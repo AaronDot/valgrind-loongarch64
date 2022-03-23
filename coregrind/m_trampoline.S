@@ -1520,6 +1520,39 @@ VG_(trampoline_stuff_end):
 #	undef UD2_1024
 #	undef UD2_PAGE
 
+/*------------------- loongarch64-linux -------------------*/
+#else
+#if defined(VGP_loongarch64_linux)
+
+.global VG_(trampoline_stuff_start)
+VG_(trampoline_stuff_start):
+
+.global VG_(loongarch64_linux_SUBST_FOR_rt_sigreturn)
+VG_(loongarch64_linux_SUBST_FOR_rt_sigreturn):
+        li.w $a7, __NR_rt_sigreturn
+        syscall 0
+        .long 0 /*illegal insn*/
+
+/* There's no particular reason that this needs to be handwritten
+   assembly, but since that's what this file contains, here's a
+   simple strlen() and strchr() implementations.
+*/
+
+.global VG_(loongarch64_linux_REDIR_FOR_strlen)
+.type   VG_(loongarch64_linux_REDIR_FOR_strlen), @function
+VG_(loongarch64_linux_REDIR_FOR_strlen):
+   /* TODO */
+.size VG_(loongarch64_linux_REDIR_FOR_strlen), .-VG_(loongarch64_linux_REDIR_FOR_strlen)
+
+.global VG_(loongarch64_linux_REDIR_FOR_strchr)
+.type   VG_(loongarch64_linux_REDIR_FOR_strchr), @function
+VG_(loongarch64_linux_REDIR_FOR_strchr):
+   /* TODO */
+.size VG_(loongarch64_linux_REDIR_FOR_strchr), .-VG_(loongarch64_linux_REDIR_FOR_strchr)
+
+.global VG_(trampoline_stuff_end)
+VG_(trampoline_stuff_end):
+
 /*---------------- x86-solaris ----------------*/
 #else
 #if defined(VGP_x86_solaris)
@@ -1703,6 +1736,7 @@ VG_(trampoline_stuff_end):
 #else
 #  error Unknown platform
 
+#endif
 #endif
 #endif
 #endif
