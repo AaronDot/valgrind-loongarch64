@@ -99,6 +99,8 @@
 #  include "vki-posixtypes-nanomips-linux.h"
 #elif defined(VGA_riscv64)
 #  include "vki-posixtypes-riscv64-linux.h"
+#elif defined(VGA_loongarch64)
+#  include "vki-posixtypes-loongarch64-linux.h"
 #else
 #  error Unknown platform
 #endif
@@ -229,6 +231,8 @@ typedef unsigned int	        vki_uint;
 #  include "vki-nanomips-linux.h"
 #elif defined(VGA_riscv64)
 #  include "vki-riscv64-linux.h"
+#elif defined(VGA_loongarch64)
+#  include "vki-loongarch64-linux.h"
 #else
 #  error Unknown platform
 #endif
