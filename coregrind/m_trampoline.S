@@ -1541,13 +1541,27 @@ VG_(loongarch64_linux_SUBST_FOR_rt_sigreturn):
 .global VG_(loongarch64_linux_REDIR_FOR_strlen)
 .type   VG_(loongarch64_linux_REDIR_FOR_strlen), @function
 VG_(loongarch64_linux_REDIR_FOR_strlen):
-   /* TODO */
+      move   $t0, $a0
+   strlen_loop:
+      ld.bu  $t1, $a0, 0
+      addi.d $a0, $a0, 1
+      bne    $t1, $zero, strlen_loop
+      sub.d  $a0, $a0, $t0
+      addi.d $a0, $a0, -1
+      jr     $ra
 .size VG_(loongarch64_linux_REDIR_FOR_strlen), .-VG_(loongarch64_linux_REDIR_FOR_strlen)
 
 .global VG_(loongarch64_linux_REDIR_FOR_strchr)
 .type   VG_(loongarch64_linux_REDIR_FOR_strchr), @function
 VG_(loongarch64_linux_REDIR_FOR_strchr):
-   /* TODO */
+   strchr_loop:
+      ld.bu  $t0, $a0, 0
+      beq    $t0, $a1, strchr_end
+      addi.d $a0, $a0, 1
+      bne    $t0, $zero, strchr_loop
+      move   $a0, $zero
+   strchr_end:
+      jr     $ra
 .size VG_(loongarch64_linux_REDIR_FOR_strchr), .-VG_(loongarch64_linux_REDIR_FOR_strchr)
 
 .global VG_(trampoline_stuff_end)
