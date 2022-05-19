@@ -97,6 +97,8 @@
 #  include "vki-posixtypes-mips64-linux.h"
 #elif defined(VGA_nanomips)
 #  include "vki-posixtypes-nanomips-linux.h"
+#elif defined(VGA_loongarch64)
+#  include "vki-posixtypes-loongarch64-linux.h"
 #else
 #  error Unknown platform
 #endif
@@ -225,6 +227,8 @@ typedef unsigned int	        vki_uint;
 #  include "vki-mips64-linux.h"
 #elif defined(VGA_nanomips)
 #  include "vki-nanomips-linux.h"
+#elif defined(VGA_loongarch64)
+#  include "vki-loongarch64-linux.h"
 #else
 #  error Unknown platform
 #endif
@@ -531,6 +535,7 @@ typedef struct vki_siginfo {
  * Digital reserves positive values for kernel-generated signals.
  */
 #define VKI_SI_USER	0		/* sent by kill, sigsend, raise */
+#define VKI_SI_KERNEL	0x80		/* sent by the kernel from somewhere */
 #define VKI_SI_TKILL	-6		/* sent by tkill system call */
 
 /*

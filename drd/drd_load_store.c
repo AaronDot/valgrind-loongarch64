@@ -53,6 +53,8 @@
 #define STACK_POINTER_OFFSET OFFSET_mips32_r29
 #elif defined(VGA_mips64)
 #define STACK_POINTER_OFFSET OFFSET_mips64_r29
+#elif defined(VGA_loongarch64)
+#define STACK_POINTER_OFFSET OFFSET_loongarch64_R3
 #else
 #error Unknown architecture.
 #endif
@@ -633,6 +635,8 @@ IRSB* DRD_(instrument)(VgCallbackClosure* const closure,
          case Imbe_Fence:
             break; /* not interesting to DRD */
          case Imbe_CancelReservation:
+            break; /* not interesting to DRD */
+         case Imbe_InsnFence:
             break; /* not interesting to DRD */
          default:
             tl_assert(0);
