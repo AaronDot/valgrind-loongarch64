@@ -245,6 +245,29 @@ __attribute__((noinline)) void atomic_add_8bit ( char* p, int n )
       );
    } while (block[2] != 1);
 #endif
+#elif defined(VGA_loongarch64)
+   unsigned long long int block[3]
+      = { (unsigned long long int)(Addr)p, (unsigned long long int)n, 0x0ULL };
+   do {
+      __asm__ __volatile__(
+         "move  $t0, %0         \n\t"
+         "ld.d  $t1, $t0, 0     \n\t"  // p
+         "ld.d  $t2, $t0, 8     \n\t"  // n
+         "andi  $t2, $t2, 0xff  \n\t"  // n = n & 0xff
+         "li.d  $s0, 0xff       \n\t"
+         "nor   $s0, $s0, $zero \n\t"  // $s0 = 0xffffff00
+         "ll.d  $t3, $t1, 0     \n\t"  // $t3 = old value
+         "and   $s0, $s0, $t3   \n\t"  // $s0 = $t3 & 0xffffff00
+         "add.d $t3, $t3, $t2   \n\t"  // $t3 = $t3 + n
+         "andi  $t3, $t3, 0xff  \n\t"  // $t3 = $t3 & 0xff
+         "or    $t3, $t3, $s0   \n\t"  // $t3 = $t3 | $s0
+         "sc.d  $t3, $t1, 0     \n\t"
+         "st.d  $t3, $t0, 16    \n\t"  // save result
+         : /*out*/
+         : /*in*/ "r" (&block[0])
+         : /*trash*/ "t0", "t1", "t2", "t3", "s0", "memory"
+      );
+   } while (block[2] != 1);
 #else
 # error "Unsupported arch"
 #endif
@@ -461,6 +484,30 @@ __attribute__((noinline)) void atomic_add_16bit ( short* p, int n )
       );
    } while (block[2] != 1);
 #endif
+#elif defined(VGA_loongarch64)
+   unsigned long long int block[3]
+      = { (unsigned long long int)(Addr)p, (unsigned long long int)n, 0x0ULL };
+   do {
+      __asm__ __volatile__(
+         "move  $t0, %0         \n\t"
+         "ld.d  $t1, $t0, 0     \n\t"  // p
+         "ld.d  $t2, $t0, 8     \n\t"  // n
+         "li.d  $s0, 0xffff     \n\t"
+         "and   $t2, $t2, $s0   \n\t"  // n = n & 0xffff
+         "nor   $s0, $s0, $zero \n\t"  // $s0= 0xffff0000
+         "ll.d  $t3, $t1, 0     \n\t"  // $t3 = old value
+         "and   $s0, $s0, $t3   \n\t"  // $s0 = $t3 & 0xffff0000
+         "add.d $t3, $t3, $t2   \n\t"  // $t3 = $t3 + n
+         "li.d  $t2, 0xffff     \n\t"
+         "and   $t3, $t3, $t2   \n\t"  // $t3 = $t3 & 0xffff
+         "or    $t3, $t3, $s0   \n\t"  // $t3 = $t3 | $s0
+         "sc.d  $t3, $t1, 0     \n\t"
+         "st.d  $t3, $t0, 16    \n\t"  // save result
+         : /*out*/
+         : /*in*/ "r" (&block[0])
+         : /*trash*/ "t0", "t1", "t2", "t3", "s0", "memory"
+      );
+   } while (block[2] != 1);
 #else
 # error "Unsupported arch"
 #endif
@@ -616,6 +663,23 @@ __attribute__((noinline)) void atomic_add_32bit ( int* p, int n )
          : /*trash*/ "memory", "t0", "t1", "t2", "t3"
       );
    } while (block[2] != 1);
+#elif defined(VGA_loongarch64)
+   unsigned long long int block[3]
+      = { (unsigned long long int)(Addr)p, (unsigned long long int)n, 0x0ULL };
+   do {
+      __asm__ __volatile__(
+         "move  $t0, %0       \n\t"
+         "ld.d  $t1, $t0, 0   \n\t"  // p
+         "ld.d  $t2, $t0, 8   \n\t"  // n
+         "ll.d  $t3, $t1, 0   \n\t"
+         "add.d $t3, $t3, $t2 \n\t"
+         "sc.d  $t3, $t1, 0   \n\t"
+         "st.d  $t3, $t0, 16  \n\t"
+         : /*out*/
+         : /*in*/ "r" (&block[0])
+         : /*trash*/ "t0", "t1", "t2", "t3", "memory"
+      );
+   } while (block[2] != 1);
 #else
 # error "Unsupported arch"
 #endif
@@ -718,6 +782,23 @@ __attribute__((noinline)) void atomic_add_64bit ( long long int* p, int n )
          : /*trash*/ "memory", "t0", "t1", "t2", "t3"
       );
    } while (block[2] != 1);
+#elif defined(VGA_loongarch64)
+   unsigned long long int block[3]
+      = { (unsigned long long int)(Addr)p, (unsigned long long int)n, 0x0ULL };
+   do {
+      __asm__ __volatile__(
+         "move  $t0, %0       \n\t"
+         "ld.d  $t1, $t0, 0   \n\t" // p
+         "ld.d  $t2, $t0, 8   \n\t" // n
+         "ll.d  $t3, $t1, 0   \n\t"
+         "add.d $t3, $t3, $t2 \n\t"
+         "sc.d  $t3, $t1, 0   \n\t"
+         "st.d  $t3, $t0, 16  \n\t"
+         : /*out*/
+         : /*in*/ "r" (&block[0])
+         : /*trash*/ "t0", "t1", "t2", "t3", "memory"
+      );
+   } while (block[2] != 1);
 #else
 # error "Unsupported arch"
 #endif
@@ -731,7 +812,8 @@ __attribute__((noinline)) void atomic_add_128bit ( MyU128* p,
     || defined(VGA_amd64) \
     || defined(VGA_ppc64be) || defined(VGA_ppc64le) \
     || defined(VGA_arm) \
-    || defined(VGA_s390x)
+    || defined(VGA_s390x) \
+    || defined(VGA_loongarch64)
    /* do nothing; is not supported */
 #elif defined(VGA_arm64)
    unsigned long long int block[3]
