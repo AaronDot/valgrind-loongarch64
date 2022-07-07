@@ -111,8 +111,8 @@
 #define __NR_splice 76
 #define __NR_tee 77
 #define __NR_readlinkat 78
-// #define __NR3264_fstatat 79
-// #define __NR3264_fstat 80
+#define __NR3264_fstatat 79
+#define __NR3264_fstat 80
 #define __NR_sync 81
 #define __NR_fsync 82
 #define __NR_fdatasync 83
@@ -311,7 +311,7 @@
 #define __NR_statx 291
 #define __NR_io_pgetevents 292
 #define __NR_rseq 293
-#define __NR_kexec_file_load 294
+#define __NR_clone3 435
 
 #define __NR_fcntl __NR3264_fcntl
 #define __NR_statfs __NR3264_statfs

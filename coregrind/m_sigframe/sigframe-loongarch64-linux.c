@@ -57,6 +57,8 @@ struct vg_sig_private {
 };
 
 struct rt_sigframe {
+   UInt rs_ass[4];
+   UInt rs_pad[2];
    struct vki_siginfo rs_info;
    struct vki_ucontext rs_uctx;
    struct vg_sig_private priv;
