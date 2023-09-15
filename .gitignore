@@ -1,4 +1,6 @@
 *.o
+*.patch
+.vscode/
 
 # /
 /.in_place
