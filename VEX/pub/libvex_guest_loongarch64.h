@@ -127,6 +127,40 @@ typedef
       /*  543 */ UChar guest_FCC7;
       /*  544 */ UInt  guest_FCSR;  /* FP Control and Status Register */
 
+      /* LSX Registers */
+      /*  280 */ V128 guest_V0;   /* Argument registers / Return value */
+      /*  288 */ V128 guest_V1;
+      /*  296 */ V128 guest_V2;   /* Argument registers */
+      /*  304 */ V128 guest_V3;
+      /*  312 */ V128 guest_V4;
+      /*  320 */ V128 guest_V5;
+      /*  328 */ V128 guest_V6;
+      /*  336 */ V128 guest_V7;
+      /*  344 */ V128 guest_V8;   /* Temporary registers */
+      /*  352 */ V128 guest_V9;
+      /*  360 */ V128 guest_V10;
+      /*  368 */ V128 guest_V11;
+      /*  376 */ V128 guest_V12;
+      /*  384 */ V128 guest_V13;
+      /*  392 */ V128 guest_V14;
+      /*  400 */ V128 guest_V15;
+      /*  408 */ V128 guest_V16;
+      /*  416 */ V128 guest_V17;
+      /*  424 */ V128 guest_V18;
+      /*  432 */ V128 guest_V19;
+      /*  440 */ V128 guest_V20;
+      /*  448 */ V128 guest_V21;
+      /*  456 */ V128 guest_V22;
+      /*  464 */ V128 guest_V23;
+      /*  472 */ V128 guest_V24;  /* Static registers */
+      /*  480 */ V128 guest_V25;
+      /*  488 */ V128 guest_V26;
+      /*  496 */ V128 guest_V27;
+      /*  504 */ V128 guest_V28;
+      /*  512 */ V128 guest_V29;
+      /*  520 */ V128 guest_V30;
+      /*  528 */ V128 guest_V31;
+
       /* Various pseudo-regs mandated by Vex or Valgrind. */
       /* Emulation notes */
       /*  548 */ UInt  guest_EMNOTE;
@@ -149,7 +183,6 @@ typedef
       /*  592 */ ULong guest_LLSC_DATA; /* Original value at ADDR. */
 
       /* VexGuestLOONGARCH64State should have a 16-aligned size */
-      /*  600 */ ULong _padding1;
 } VexGuestLOONGARCH64State;
 
 /*---------------------------------------------------------------*/

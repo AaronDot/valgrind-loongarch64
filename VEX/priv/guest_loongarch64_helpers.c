@@ -136,6 +136,47 @@ void LibVEX_GuestLOONGARCH64_initialise ( /*OUT*/
    vex_state->guest_FCC7 = 0;
    vex_state->guest_FCSR = 0; /* FP Control and Status Register */
 
+#define VRZERO(vr) \
+   do { \
+      vr.w64[0] = vr.w64[1] = 0xffffffffffffffffULL; \
+   } while(0);
+
+   /* FPU Registers */
+   VRZERO(vex_state->guest_V0)
+   VRZERO(vex_state->guest_V1)
+   VRZERO(vex_state->guest_V2)
+   VRZERO(vex_state->guest_V3)
+   VRZERO(vex_state->guest_V4)
+   VRZERO(vex_state->guest_V5)
+   VRZERO(vex_state->guest_V6)
+   VRZERO(vex_state->guest_V7)
+   VRZERO(vex_state->guest_V8)
+   VRZERO(vex_state->guest_V9)
+   VRZERO(vex_state->guest_V10)
+   VRZERO(vex_state->guest_V11)
+   VRZERO(vex_state->guest_V12)
+   VRZERO(vex_state->guest_V13)
+   VRZERO(vex_state->guest_V14)
+   VRZERO(vex_state->guest_V15)
+   VRZERO(vex_state->guest_V16)
+   VRZERO(vex_state->guest_V17)
+   VRZERO(vex_state->guest_V18)
+   VRZERO(vex_state->guest_V19)
+   VRZERO(vex_state->guest_V20)
+   VRZERO(vex_state->guest_V21)
+   VRZERO(vex_state->guest_V22)
+   VRZERO(vex_state->guest_V23)
+   VRZERO(vex_state->guest_V24)
+   VRZERO(vex_state->guest_V25)
+   VRZERO(vex_state->guest_V26)
+   VRZERO(vex_state->guest_V27)
+   VRZERO(vex_state->guest_V28)
+   VRZERO(vex_state->guest_V29)
+   VRZERO(vex_state->guest_V30)
+   VRZERO(vex_state->guest_V31)
+
+#undef VRZERO
+
    /* Various pseudo-regs mandated by Vex or Valgrind. */
    /* Emulation notes */
    vex_state->guest_EMNOTE = 0;
