@@ -15,7 +15,8 @@ EXTRA_DIST = \
 	memory.stdout.exp memory.stderr.exp memory.vgtest \
 	move.stdout.exp move.stderr.exp move.vgtest \
 	pc.stdout.exp pc.stderr.exp pc.vgtest \
-	special.stdout.exp special.stderr.exp special.vgtest
+	special.stdout.exp special.stderr.exp special.vgtest \
+	vector.stdout.exp vector.stderr.exp vector.vgtest
 
 check_PROGRAMS = \
 	allexec \
@@ -30,7 +31,8 @@ check_PROGRAMS = \
 	memory \
 	move \
 	pc \
-	special
+	special \
+	vector
 
 AM_CFLAGS    += @FLAG_M64@
 AM_CXXFLAGS  += @FLAG_M64@
