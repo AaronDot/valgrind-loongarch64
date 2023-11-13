@@ -1877,6 +1877,9 @@ typedef
       Iop_Widen8Uto16x8, Iop_Widen16Uto32x4, Iop_Widen32Uto64x2,
       Iop_Widen8Sto16x8, Iop_Widen16Sto32x4, Iop_Widen32Sto64x2,
 
+      Iop_WidenHIto16Sx8, Iop_WidenHIto32Sx4, Iop_WidenHIto64Sx2, Iop_WidenHIto128Sx1,
+      Iop_WidenHIto16Ux8, Iop_WidenHIto32Ux4, Iop_WidenHIto64Ux2, Iop_WidenHIto128Ux1,
+
       /* INTERLEAVING */
       /* Interleave lanes from low or high halves of
          operands.  Most-significant result lane is from the left

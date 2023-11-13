@@ -1114,6 +1114,14 @@ void ppIROp ( IROp op )
       case Iop_Widen8Sto16x8:  vex_printf("Widen8Sto16x8");  return;
       case Iop_Widen16Sto32x4: vex_printf("Widen16Sto32x4"); return;
       case Iop_Widen32Sto64x2: vex_printf("Widen32Sto64x2"); return;
+      case Iop_WidenHIto16Sx8:  vex_printf("WidenHIto16Sx8");  return;
+      case Iop_WidenHIto32Sx4:  vex_printf("WidenHIto32Sx4");  return;
+      case Iop_WidenHIto64Sx2:  vex_printf("WidenHIto128Sx1"); return;
+      case Iop_WidenHIto128Sx1: vex_printf("WidenHIto64Sx2");  return;
+      case Iop_WidenHIto16Ux8:  vex_printf("WidenHIto16Ux8");  return;
+      case Iop_WidenHIto32Ux4:  vex_printf("WidenHIto32Ux4");  return;
+      case Iop_WidenHIto64Ux2:  vex_printf("WidenHIto64Ux2");  return;
+      case Iop_WidenHIto128Ux1: vex_printf("WidenHIto128Ux1"); return;
 
       case Iop_InterleaveHI8x16: vex_printf("InterleaveHI8x16"); return;
       case Iop_InterleaveHI16x8: vex_printf("InterleaveHI16x8"); return;
@@ -1761,6 +1769,10 @@ Bool primopMightTrap ( IROp op )
    case Iop_QNarrowUn64Uto32Ux2:
    case Iop_Widen8Uto16x8: case Iop_Widen16Uto32x4: case Iop_Widen32Uto64x2:
    case Iop_Widen8Sto16x8: case Iop_Widen16Sto32x4: case Iop_Widen32Sto64x2:
+   case Iop_WidenHIto16Sx8: case Iop_WidenHIto32Sx4:
+   case Iop_WidenHIto64Sx2: case Iop_WidenHIto128Sx1:
+   case Iop_WidenHIto16Ux8: case Iop_WidenHIto32Ux4:
+   case Iop_WidenHIto64Ux2: case Iop_WidenHIto128Ux1:
    case Iop_InterleaveHI8x16: case Iop_InterleaveHI16x8:
    case Iop_InterleaveHI32x4: case Iop_InterleaveHI64x2:
    case Iop_InterleaveLO8x16: case Iop_InterleaveLO16x8:
@@ -3579,6 +3591,16 @@ void typeOfPrimop ( IROp op,
       case Iop_Widen32Sto64x2:
       case Iop_F16toF32x4:
          UNARY(Ity_I64, Ity_V128);
+
+      case Iop_WidenHIto16Sx8:
+      case Iop_WidenHIto32Sx4:
+      case Iop_WidenHIto64Sx2:
+      case Iop_WidenHIto128Sx1:
+      case Iop_WidenHIto16Ux8:
+      case Iop_WidenHIto32Ux4:
+      case Iop_WidenHIto64Ux2:
+      case Iop_WidenHIto128Ux1:
+         UNARY(Ity_V128, Ity_V128);
 
       case Iop_V128to32:    UNARY(Ity_V128, Ity_I32);
       case Iop_32UtoV128:   UNARY(Ity_I32, Ity_V128);
