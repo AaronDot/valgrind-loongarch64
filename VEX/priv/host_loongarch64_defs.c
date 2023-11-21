@@ -798,6 +798,10 @@ static inline const HChar* showLOONGARCH64VecUnOp ( LOONGARCH64VecUnOp op )
       case LAvecun_VPCNT_H:         return "vpcnt.h";
       case LAvecun_VPCNT_W:         return "vpcnt.w";
       case LAvecun_VPCNT_D:         return "vpcnt.d";
+      case LAvecun_VNEG_B:          return "vneg.b";
+      case LAvecun_VNEG_H:          return "vneg.h";
+      case LAvecun_VNEG_W:          return "vneg.w";
+      case LAvecun_VNEG_D:          return "vneg.d";
       case LAvecun_VMSKLTZ_B:       return "vmskltz.b";
       case LAvecun_VMSKLTZ_H:       return "vmskltz.h";
       case LAvecun_VMSKLTZ_W:       return "vmskltz.w";
@@ -3375,6 +3379,7 @@ static inline UInt* mkVecUnary ( UInt* p, LOONGARCH64VecUnOp op, HReg src, HReg 
       case LAvecun_VCLO_B: case LAvecun_VCLO_H: case LAvecun_VCLO_W: case LAvecun_VCLO_D:
       case LAvecun_VCLZ_B: case LAvecun_VCLZ_H: case LAvecun_VCLZ_W: case LAvecun_VCLZ_D:
       case LAvecun_VPCNT_B: case LAvecun_VPCNT_H: case LAvecun_VPCNT_W: case LAvecun_VPCNT_D:
+      case LAvecun_VNEG_B: case LAvecun_VNEG_H: case LAvecun_VNEG_W: case LAvecun_VNEG_D:
       case LAvecun_VMSKLTZ_B: case LAvecun_VMSKLTZ_H: case LAvecun_VMSKLTZ_W: case LAvecun_VMSKLTZ_D:
       case LAvecun_VMSKGEZ_B: case LAvecun_VMSKNZ_B:
       case LAvecun_VFLOGB_S: case LAvecun_VFLOGB_D:
