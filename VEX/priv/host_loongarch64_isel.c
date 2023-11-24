@@ -2721,22 +2721,37 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
 
       /* --------- TERNARY OP --------- */
       case Iex_Triop: {
-         switch (e->Iex.Triop.details->op) {
+         IRTriop *triop = e->Iex.Triop.details;
+         switch (triop->op) {
             case Iop_SetElem8x16: case Iop_SetElem16x8: case Iop_SetElem32x4: {
                   HReg            dst = newVRegV(env);
-                  HReg           src1 = iselV128Expr(env, e->Iex.Triop.details->arg1);
-                  HReg           src2 = iselIntExpr_R(env, e->Iex.Triop.details->arg2);
-                  HReg           src3 = iselIntExpr_R(env, e->Iex.Triop.details->arg3);
+                  HReg           src1 = iselV128Expr(env, triop->arg1);
+                  HReg           src2 = iselIntExpr_R(env, triop->arg2);
+                  HReg           src3 = iselIntExpr_R(env, triop->arg3);
                   LOONGARCH64VecBinOp op;
-                  switch (e->Iex.Triop.details->op) {
+                  switch (triop->op) {
                      case Iop_SetElem8x16: op = LAvecbin_VINSGR2VR_B; break;
                      case Iop_SetElem16x8: op = LAvecbin_VINSGR2VR_H; break;
                      case Iop_SetElem32x4: op = LAvecbin_VINSGR2VR_W; break;
                      default: vassert(0);
                   }
                   addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(src2), src3, dst));
+                  return dst;
             }
-
+            // case Iop_Add32Fx4: case Iop_Add64Fx2: {
+            //       LOONGARCH64VecBinOp op;
+            //       switch (triop->op) {
+            //          case Iop_Add32Fx4: op = LAvecbin_VFADD_S; break;
+            //          case Iop_Add64Fx2: op = LAvecbin_VFADD_D; break;
+            //          default: vassert(0);
+            //       }
+            //       HReg            dst = newVRegV(env);
+            //       HReg           src1 = iselIntExpr_R(env, triop->arg2);
+            //       HReg           src2 = iselIntExpr_R(env, triop->arg3);
+            //       set_rounding_mode(env, triop->arg1);
+            //       addInstr(env, LOONGARCH64Instr_VecBinary(op, src2, src1, dst));
+            //    set_rounding_mode_default(env);
+            // }
             default: goto irreducible;
          }
       }

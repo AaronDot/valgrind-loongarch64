@@ -9871,6 +9871,20 @@ static Bool gen_vsllwil ( DisResult* dres, UInt insn,
 /*--- Helpers for Vector Floating-point Operation insns    ---*/
 /*------------------------------------------------------------*/
 
+static Bool gen_vfmath ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
+{
+   // UInt vd    = SLICE(insn, 4, 0);
+   // UInt vj    = SLICE(insn, 9, 5);
+   // UInt vk    = SLICE(insn, 14, 10);
+   // UInt insSz = SLICE(insn, 16, 15);
+   // UInt insTy = SLICE(insn, 19, 17);
+
+   //calculateFCSR(FADD_S, 2, fj, fk, 0);
+   return True;
+}
+
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector Floating-point Conversion insns   ---*/
 /*------------------------------------------------------------*/
@@ -12487,6 +12501,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
          break;
       case 0b10110:
          ok = gen_vadd_vsub_q(dres, insn, archinfo, abiinfo);
+         break;
+      case 0b11000:
+         ok = gen_vfmath(dres, insn, archinfo, abiinfo);
          break;
       default:
          ok = False;
