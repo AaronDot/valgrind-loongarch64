@@ -9863,6 +9863,119 @@ static Bool gen_vsllwil ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vsrlr ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt insTy = SLICE(insn, 17, 17);
+
+   IRTemp argL    = newTemp(Ity_V128);
+   IRTemp argR    = newTemp(Ity_V128);
+   IRTemp subRes  = newTemp(Ity_V128);
+   IRTemp notRes  = newTemp(Ity_V128);
+   IRTemp subR    = newTemp(Ity_V128);
+   UInt shlNum[4] = { 5, 12, 27, 58 };
+   UInt shrNum[4] = { 7, 15, 31, 63 };
+   IROp shrOp     = insTy ? mkVecSAR(insSz) : mkVecSHR(insSz);
+   const HChar *nm[2] = { "vsrlr", "vsrar" };
+
+   DIP("%s.%s %s, %s, %s\n", nm[insTy], mkInsExtSize(insSz),
+                             nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   switch (insSz) {
+      case 0b00:
+         assign(subR, binop(Iop_64HLtoV128,
+                            mkU64(0x808080808080808ull),
+                            mkU64(0x808080808080808ull)));
+         break;
+      case 0x01:
+         assign(subR, binop(Iop_64HLtoV128,
+                            mkU64(0x10001000100010ul),
+                            mkU64(0x10001000100010ul)));
+         break;
+      case 0x02:
+         assign(subR, binop(Iop_64HLtoV128,
+                            mkU64(0x2000000020ul),
+                            mkU64(0x2000000020ul)));
+         break;
+      case 0x03:
+         assign(subR, binop(Iop_64HLtoV128,
+                              mkU64(64ul), mkU64(64ul)));
+         break;
+      default: vassert(0);
+   }
+
+   assign(argL, binop(shrOp, getVReg(vj), getVReg(vk)));
+   assign(subRes, binop(mkVecSUB(insSz), mkexpr(subR),getVReg(vk)));
+   assign(notRes, unop(Iop_NotV128, binop(mkVecCMPEQ(insSz),
+                                      binop(mkVecSHLN(insSz),
+                                            getVReg(vk),
+                                            mkU8(shlNum[insSz])),
+                                      mkV128(0x0000))));
+   assign(argR, binop(mkVecSHRN(insSz),
+                    binop(Iop_AndV128,
+                          binop(mkVecSHL(insSz), getVReg(vj), mkexpr(subRes)),
+                          mkexpr(notRes)),
+                    mkU8(shrNum[insSz])));
+   putVReg(vd, binop(mkVecADD(insSz), mkexpr(argL), mkexpr(argR)));
+   return True;
+}
+
+static Bool gen_vsrlri ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt insSz = SLICE(insn, 17, 10);
+   UInt insTy = SLICE(insn, 19, 19);
+
+   IRTemp argL    = newTemp(Ity_V128);
+   IRTemp argR    = newTemp(Ity_V128);
+   UInt subNum[4] = { 8, 16, 32, 64 };
+   UInt shrNum[4] = { 7, 15, 31, 63 };
+   IROp shrOp     = Iop_INVALID;
+   const HChar *nm[2] = { "vsrlri", "vsrari" };
+   UChar uImm;
+   UInt opSz;
+
+   if ((insSz & 0xf8) == 0x8) {         // 00001mmm; b
+      uImm = insSz & 0x07;
+      opSz = 0;
+   } else if ((insSz & 0xf0) == 0x10) { // 0001mmmm; h
+      uImm = insSz & 0x0f;
+      opSz = 1;
+   } else if ((insSz & 0xe0) == 0x20) { // 001mmmmm; w
+      uImm = insSz & 0x1f;
+      opSz = 2;
+   } else if ((insSz & 0xc0) == 0x40) { // 01mmmmmm; d
+      uImm = insSz & 0x3f;
+      opSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   DIP("%s.%s %s, %s, %u\n", nm[insTy], mkInsExtSize(opSz),
+                             nameVReg(vd), nameVReg(vj), uImm);
+
+   shrOp = insTy ? mkVecSARN(opSz) : mkVecSHRN(opSz);
+   assign(argL, binop(shrOp, getVReg(vj), mkU8(uImm)));
+   assign(argR, binop(mkVecSHRN(opSz),
+                      binop(mkVecSHLN(opSz),
+                            getVReg(vj),
+                            mkU8(subNum[opSz] - uImm)),
+                     mkU8(shrNum[opSz])));
+
+   if (uImm)
+      putVReg(vd, binop(mkVecADD(opSz), mkexpr(argL), mkexpr(argR)));
+   else
+      putVReg(vd, mkexpr(argL));
+   return True;
+}
+
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector String Processing insns           ---*/
 /*------------------------------------------------------------*/
@@ -12464,6 +12577,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0011 ( DisResult* dres, UInt insn,
       case 0b1011:
          ok = gen_vsll(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1100:
+         ok = gen_vsrlr(dres, insn, archinfo, abiinfo);
+         break;
       default:
          ok = False;
          break;
@@ -12591,6 +12707,10 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
          break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1010_0111(dres, insn, archinfo, abiinfo);
+         break;
+      case 0b1001:
+      case 0b1010:
+         ok = gen_vsrlri(dres, insn, archinfo, abiinfo);
          break;
       default:
          ok = False;
