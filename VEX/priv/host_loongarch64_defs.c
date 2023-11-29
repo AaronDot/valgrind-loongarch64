@@ -912,7 +912,7 @@ static inline const HChar* showLOONGARCH64VecBinOp ( LOONGARCH64VecBinOp op )
       case LAvecbin_VSLT_BU:           return "vslt.bu";
       case LAvecbin_VSLT_HU:           return "vslt.hu";
       case LAvecbin_VSLT_WU:           return "vslt.wu";
-      case LAvecbin_VSLT_DU:           return "vslt.fu";
+      case LAvecbin_VSLT_DU:           return "vslt.du";
       case LAvecbin_VADD_W:            return "vadd.w";
       case LAvecbin_VADD_D:            return "vadd.d";
       case LAvecbin_VSUB_B:            return "vsub.b";
@@ -939,7 +939,7 @@ static inline const HChar* showLOONGARCH64VecBinOp ( LOONGARCH64VecBinOp op )
       case LAvecbin_VADDWEV_W_HU:      return "vaddwev.w.hu";
       case LAvecbin_VADDWEV_D_WU:      return "vaddwev.d.wu";
       case LAvecbin_VADDWEV_Q_DU:      return "vaddwev.q.du";
-      case LAvecbin_VSUBWEV_H_BU:      return "fvsubwev.h.bu";
+      case LAvecbin_VSUBWEV_H_BU:      return "vsubwev.h.bu";
       case LAvecbin_VSUBWEV_W_HU:      return "vsubwev.w.hu";
       case LAvecbin_VSUBWEV_D_WU:      return "vsubwev.d.wu";
       case LAvecbin_VSUBWEV_Q_DU:      return "vsubwev.q.du";

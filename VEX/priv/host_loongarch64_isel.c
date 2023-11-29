@@ -878,6 +878,7 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
                return dst;
             }
             case Iop_And8:
+            case Iop_And16:
             case Iop_And32: {
                HReg            dst = newVRegI(env);
                HReg           src1 = iselIntExpr_R(env, e->Iex.Binop.arg1);
@@ -1182,25 +1183,25 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
                LOONGARCH64VecBinOp  pickOp, veplOp;
                switch (e->Iex.Binop.op) {
                    case Iop_GetElem8x16:
-                          size = 4;
-                          pickOp = LAvecbin_VPICKVE2GR_BU;
-                          veplOp = LAvecbin_VREPLVE_B;
-                          break;
+                     size = 4;
+                     pickOp = LAvecbin_VPICKVE2GR_BU;
+                     veplOp = LAvecbin_VREPLVE_B;
+                     break;
                   case Iop_GetElem16x8:
-                          size = 3;
-                          pickOp = LAvecbin_VPICKVE2GR_HU;
-                          veplOp = LAvecbin_VREPLVE_H;
-                          break;
+                     size = 3;
+                     pickOp = LAvecbin_VPICKVE2GR_HU;
+                     veplOp = LAvecbin_VREPLVE_H;
+                     break;
                   case Iop_GetElem32x4:
-                        size = 2;
-                          pickOp = LAvecbin_VPICKVE2GR_WU;
-                          veplOp = LAvecbin_VREPLVE_W;
-                          break;
+                     size = 2;
+                     pickOp = LAvecbin_VPICKVE2GR_WU;
+                     veplOp = LAvecbin_VREPLVE_W;
+                     break;
                   case Iop_GetElem64x2:
-                          size = 1;
-                          pickOp = LAvecbin_VPICKVE2GR_DU;
-                          veplOp = LAvecbin_VREPLVE_D;
-                          break;
+                     size = 1;
+                     pickOp = LAvecbin_VPICKVE2GR_DU;
+                     veplOp = LAvecbin_VREPLVE_D;
+                     break;
                   default: vassert(0);
                }
                HReg           dst  = newVRegI(env);
@@ -2416,38 +2417,29 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
             case Iop_32UtoV128: {
                HReg           dst = newVRegV(env);
                HReg           src = iselIntExpr_R(env, e->Iex.Unop.arg);
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
                                                         LOONGARCH64RI_I(0, 2, False), src, dst));
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
                                                         LOONGARCH64RI_I(1, 2, False), hregZERO(), dst));
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
                                                         LOONGARCH64RI_I(2, 2, False), hregZERO(), dst));
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_W,
                                                         LOONGARCH64RI_I(3, 2, False), hregZERO(), dst));
 	            return dst;
             }
             case Iop_64UtoV128: {
                HReg           dst = newVRegV(env);
                HReg           src = iselIntExpr_R(env, e->Iex.Unop.arg);
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_D,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_D,
                                                         LOONGARCH64RI_I(0, 1, False), src, dst));
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_D,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_D,
                                                         LOONGARCH64RI_I(1, 1, False), hregZERO(), dst));
-	            return dst;
-            }
-            case Iop_Widen8Sto16x8: {
-               HReg           dst = newVRegV(env);
-               HReg           src = iselIntExpr_R(env, e->Iex.Unop.arg);
-               HReg           tmp = newVRegV(env);
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_D,
-                                                        LOONGARCH64RI_I(1, 1, False), src, tmp));
-               addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VEXTH_H_B, tmp, dst));
 	            return dst;
             }
             case Iop_NotV128: {
                HReg           dst = newVRegV(env);
                HReg           src = iselV128Expr(env, e->Iex.Unop.arg);
-	            addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VNOR_V,
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VNOR_V,
                                                         LOONGARCH64RI_R(src), src, dst));
 	            return dst;
             }
@@ -2509,9 +2501,8 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                   case Iop_Cnt8x16:         op = LAvecun_VPCNT_B;     break;
                   default: vassert(0);
                }
-
                addInstr(env, LOONGARCH64Instr_VecUnary(op, src, dst));
-	            return dst;
+               return dst;
             }
             case Iop_Dup8x16: case Iop_Dup16x8: case Iop_Dup32x4: {
                HReg           dst = newVRegV(env);
@@ -2523,9 +2514,8 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                   case Iop_Dup32x4: op = LAvecun_VREPLGR2VR_W; break;
                   default: vassert(0);
                }
-
                addInstr(env, LOONGARCH64Instr_VecUnary(op, src, dst));
-	            return dst;
+               return dst;
             }
             default:
                goto irreducible;
@@ -2561,9 +2551,6 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
             case Iop_Sar8x16: case Iop_Sar16x8: case Iop_Sar32x4: case Iop_Sar64x2:
             case Iop_CmpGT8Sx16: case Iop_CmpGT16Sx8: case Iop_CmpGT32Sx4: case Iop_CmpGT64Sx2:
             case Iop_CmpGT8Ux16: case Iop_CmpGT16Ux8: case Iop_CmpGT32Ux4: case Iop_CmpGT64Ux2: {
-               HReg           dst  = newVRegV(env);
-               HReg           src1 = iselV128Expr(env, e->Iex.Binop.arg1);
-               HReg           src2 = iselV128Expr(env, e->Iex.Binop.arg2);
                LOONGARCH64VecBinOp op;
                Bool reverse = False;
                switch (e->Iex.Binop.op) {
@@ -2659,17 +2646,19 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                   case Iop_Sar16x8: op = LAvecbin_VSRA_H; break;
                   case Iop_Sar32x4: op = LAvecbin_VSRA_W; break;
                   case Iop_Sar64x2: op = LAvecbin_VSRA_D; break;
-                  case Iop_CmpGT8Sx16: op = LAvecbin_VSLE_B;  reverse = True; break;
-                  case Iop_CmpGT16Sx8: op = LAvecbin_VSLE_H;  reverse = True; break;
-                  case Iop_CmpGT32Sx4: op = LAvecbin_VSLE_W;  reverse = True; break;
-                  case Iop_CmpGT64Sx2: op = LAvecbin_VSLE_D;  reverse = True; break;
-                  case Iop_CmpGT8Ux16: op = LAvecbin_VSLE_BU; reverse = True; break;
-                  case Iop_CmpGT16Ux8: op = LAvecbin_VSLE_HU; reverse = True; break;
-                  case Iop_CmpGT32Ux4: op = LAvecbin_VSLE_WU; reverse = True; break;
-                  case Iop_CmpGT64Ux2: op = LAvecbin_VSLE_DU; reverse = True; break;
+                  case Iop_CmpGT8Sx16: op = LAvecbin_VSLT_B;  reverse = True; break;
+                  case Iop_CmpGT16Sx8: op = LAvecbin_VSLT_H;  reverse = True; break;
+                  case Iop_CmpGT32Sx4: op = LAvecbin_VSLT_W;  reverse = True; break;
+                  case Iop_CmpGT64Sx2: op = LAvecbin_VSLT_D;  reverse = True; break;
+                  case Iop_CmpGT8Ux16: op = LAvecbin_VSLT_BU; reverse = True; break;
+                  case Iop_CmpGT16Ux8: op = LAvecbin_VSLT_HU; reverse = True; break;
+                  case Iop_CmpGT32Ux4: op = LAvecbin_VSLT_WU; reverse = True; break;
+                  case Iop_CmpGT64Ux2: op = LAvecbin_VSLT_DU; reverse = True; break;
                   default: vassert(0);
                }
-
+               HReg           dst  = newVRegV(env);
+               HReg           src1 = iselV128Expr(env, e->Iex.Binop.arg1);
+               HReg           src2 = iselV128Expr(env, e->Iex.Binop.arg2);
                if (reverse)
                   addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(src1), src2, dst));
                else
@@ -2702,6 +2691,9 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                HReg           dst  = newVRegV(env);
                HReg           src1 = iselV128Expr(env, e->Iex.Binop.arg1);
                LOONGARCH64RI* src2 = iselIntExpr_RI(env, e->Iex.Binop.arg2, size, False);
+               vassert(e->Iex.Binop.arg2->tag == Iex_Const);
+               vassert(e->Iex.Binop.arg2->Iex.Const.con->tag == Ico_U8);
+               vassert(e->Iex.Binop.arg2->Iex.Const.con->Ico.U8 <= 63);
                addInstr(env, LOONGARCH64Instr_VecBinary(op, src2, src1, dst));
                return dst;
             }
@@ -2724,18 +2716,20 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
          IRTriop *triop = e->Iex.Triop.details;
          switch (triop->op) {
             case Iop_SetElem8x16: case Iop_SetElem16x8: case Iop_SetElem32x4: {
-                  HReg            dst = newVRegV(env);
-                  HReg           src1 = iselV128Expr(env, triop->arg1);
-                  HReg           src2 = iselIntExpr_R(env, triop->arg2);
-                  HReg           src3 = iselIntExpr_R(env, triop->arg3);
                   LOONGARCH64VecBinOp op;
+                  UChar size;
                   switch (triop->op) {
-                     case Iop_SetElem8x16: op = LAvecbin_VINSGR2VR_B; break;
-                     case Iop_SetElem16x8: op = LAvecbin_VINSGR2VR_H; break;
-                     case Iop_SetElem32x4: op = LAvecbin_VINSGR2VR_W; break;
+                     case Iop_SetElem8x16: op = LAvecbin_VINSGR2VR_B; size = 4; break;
+                     case Iop_SetElem16x8: op = LAvecbin_VINSGR2VR_H; size = 3; break;
+                     case Iop_SetElem32x4: op = LAvecbin_VINSGR2VR_W; size = 2; break;
                      default: vassert(0);
                   }
-                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(src2), src3, dst));
+                  HReg           dst  = newVRegV(env);
+                  HReg           src1 = iselV128Expr(env, triop->arg1);
+                  LOONGARCH64RI* src2 = iselIntExpr_RI(env, triop->arg2, size, False);
+                  HReg           src3 = iselIntExpr_R(env, triop->arg3);
+                  LOONGARCH64Instr_VecMove(dst, src1);
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, src2, src3, dst));
                   return dst;
             }
             // case Iop_Add32Fx4: case Iop_Add64Fx2: {
@@ -2767,46 +2761,40 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
          HReg dst = newVRegV(env);
          UShort val = con->Ico.V128;
 
-         if (val == 0) { /* likely */
-            addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_D, hregZERO(), dst));
-            return dst;
-         }
-
-         #if 0
-            HReg r_tmp = newVRegI(env);
-            UInt i;
-            addInstr(env, MIPSInstr_LI(r_tmp, 0xfful));
-
-            if (val & 1) {
-               addInstr(env,
-                        MIPSInstr_Msa2R(MSA_FILL, MSA_B, r_tmp, v_dst));
-            } else {
-               addInstr(env,
-                        MIPSInstr_Msa2R(MSA_FILL, MSA_B, hregZERO(), v_dst));
+         switch (val) {
+            case 0: { /* likely */
+               addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_D, hregZERO(), dst));
+               break;
             }
-
-            for (i = 1; i < 16; i++) {
-               val >>= 1;
+            default: {
+               HReg r_tmp = newVRegI(env);
+               UInt i;
+               addInstr(env, LOONGARCH64Instr_LI(0xfful, r_tmp));
 
                if (val & 1) {
-                  addInstr(env,
-                           MIPSInstr_MsaElm(MSA_INSERT, r_tmp, v_dst,
-                                             MSA_DFN_B | i));
+                  addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_B, r_tmp, dst));
                } else {
-                  addInstr(env,
-                           MIPSInstr_MsaElm(MSA_INSERT, hregZERO(), v_dst,
-                                             MSA_DFN_B | i));
+                  addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_B, hregZERO(), dst));
                }
-            }
 
-            break;
-         #endif
-         vpanic("iselV128Expr.const(LoongArch) later");
-         goto irreducible;
+               for (i = 1; i < 16; i++) {
+                  val >>= 1;
+
+                  if (val & 1) {
+                     addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_B,
+                                                        LOONGARCH64RI_I(i, 4, False), r_tmp, dst));
+                  } else {
+                     addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_B,
+                                                        LOONGARCH64RI_I(i, 4, False), hregZERO(), dst));
+                  }
+               }
+               break;
+            }
+         }
+         return dst;
       }
 
-      default:
-         break;
+      default: break;
    }
 
 /* We get here if no pattern matched. */
