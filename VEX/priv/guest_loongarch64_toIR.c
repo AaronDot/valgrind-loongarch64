@@ -764,6 +764,7 @@ static const HChar *mkInsExtSize ( UInt size ) {
    return insSize[size];
 }
 
+#if 0
 static void dis_ins_ui3_to_ui6(UInt insImm, UInt *uImm, UInt *insSz)
 {
    if ((insImm & 0xf8) == 0x8) {         // 00001mmm; b
@@ -782,6 +783,7 @@ static void dis_ins_ui3_to_ui6(UInt insImm, UInt *uImm, UInt *insSz)
       vassert(0);
    }
 }
+#endif
 
 
 /*------------------------------------------------------------*/
@@ -9311,15 +9313,16 @@ static Bool gen_vmaddw_vmsubw ( DisResult* dres, UInt insn,
    return True;
 }
 
-static void gen_vdiv_b(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp argR)
+static IRTemp gen_vdiv_b ( UInt isMod, UInt isU, IRTemp argL, IRTemp argR )
 {
+   UInt i;
    IRTemp tmpL[16];
    IRTemp tmpR[16];
    IRTemp tmp[16];
    IRTemp mathRes[16];
-   UInt i;
-   IROp mathOp;
+   IROp mathOp = Iop_INVALID;
    IROp wideOp = isU ? Iop_8Uto32 : Iop_8Sto32;
+   IRTemp res = newTempV128();
 
    for (i = 0; i < 16; i++) {
       tmpL[i]    = newTemp(Ity_I8);
@@ -9354,33 +9357,35 @@ static void gen_vdiv_b(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
       }
    }
 
-   assign(*res,
-         binop(Iop_64HLtoV128,
-               binop(Iop_32HLto64,
-                     binop(Iop_16HLto32,
-                           binop(Iop_8HLto16, mkexpr(tmp[15]), mkexpr(tmp[14])),
-                           binop(Iop_8HLto16, mkexpr(tmp[13]), mkexpr(tmp[12]))),
-                     binop(Iop_16HLto32,
-                           binop(Iop_8HLto16, mkexpr(tmp[11]), mkexpr(tmp[10])),
-                           binop(Iop_8HLto16, mkexpr(tmp[9]), mkexpr(tmp[8])))),
-               binop(Iop_32HLto64,
-                     binop(Iop_16HLto32,
-                           binop(Iop_8HLto16, mkexpr(tmp[7]), mkexpr(tmp[6])),
-                           binop(Iop_8HLto16, mkexpr(tmp[5]), mkexpr(tmp[4]))),
-                     binop(Iop_16HLto32,
-                           binop(Iop_8HLto16, mkexpr(tmp[3]), mkexpr(tmp[2])),
-                           binop(Iop_8HLto16, mkexpr(tmp[1]), mkexpr(tmp[0]))))));
+   assign(res,
+          binop(Iop_64HLtoV128,
+                binop(Iop_32HLto64,
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(tmp[15]), mkexpr(tmp[14])),
+                            binop(Iop_8HLto16, mkexpr(tmp[13]), mkexpr(tmp[12]))),
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(tmp[11]), mkexpr(tmp[10])),
+                            binop(Iop_8HLto16, mkexpr(tmp[9]), mkexpr(tmp[8])))),
+                binop(Iop_32HLto64,
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(tmp[7]), mkexpr(tmp[6])),
+                            binop(Iop_8HLto16, mkexpr(tmp[5]), mkexpr(tmp[4]))),
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(tmp[3]), mkexpr(tmp[2])),
+                            binop(Iop_8HLto16, mkexpr(tmp[1]), mkexpr(tmp[0]))))));
+   return res;
 }
 
-static void gen_vdiv_h(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp argR)
+static IRTemp gen_vdiv_h ( UInt isMod, UInt isU, IRTemp argL, IRTemp argR )
 {
+   UInt i;
    IRTemp tmpL[8];
    IRTemp tmpR[8];
    IRTemp tmp[8];
    IRTemp mathRes[8];
-   UInt i;
-   IROp mathOp;
+   IROp mathOp = Iop_INVALID;
    IROp wideOp = isU ? Iop_16Uto32 : Iop_16Sto32;
+   IRTemp res = newTempV128();
 
    for (i = 0; i < 8; i++) {
       tmpL[i]    = newTemp(Ity_I16);
@@ -9415,7 +9420,7 @@ static void gen_vdiv_h(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
       }
    }
 
-   assign(*res,
+   assign(res,
           binop(Iop_64HLtoV128,
                 binop(Iop_32HLto64,
                       binop(Iop_16HLto32, mkexpr(tmp[7]), mkexpr(tmp[6])),
@@ -9423,16 +9428,18 @@ static void gen_vdiv_h(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
                 binop(Iop_32HLto64,
                       binop(Iop_16HLto32, mkexpr(tmp[3]), mkexpr(tmp[2])),
                       binop(Iop_16HLto32, mkexpr(tmp[1]), mkexpr(tmp[0])))));
+   return res;
 }
 
-static void gen_vdiv_w(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp argR)
+static IRTemp gen_vdiv_w ( UInt isMod, UInt isU, IRTemp argL, IRTemp argR )
 {
+   UInt i;
    IRTemp tmpL[4];
    IRTemp tmpR[4];
    IRTemp tmp[4];
    IRTemp mathRes[4];
-   UInt i;
-   IROp mathOp;
+   IROp mathOp = Iop_INVALID;
+   IRTemp res = newTempV128();
 
    for (i = 0; i < 4; i++) {
       tmpL[i]    = newTemp(Ity_I32);
@@ -9449,7 +9456,7 @@ static void gen_vdiv_w(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
          assign(mathRes[i], binop(mathOp, mkexpr(tmpL[i]), mkexpr(tmpR[i])));
          assign(tmp[i], unop(Iop_64HIto32, mkexpr(mathRes[i])));
       }
-      assign(*res,
+      assign(res,
              binop(Iop_64HLtoV128,
                    binop(Iop_32HLto64, mkexpr(tmp[3]), mkexpr(tmp[2])),
                    binop(Iop_32HLto64, mkexpr(tmp[1]), mkexpr(tmp[0]))));
@@ -9459,14 +9466,16 @@ static void gen_vdiv_w(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
          mathOp     = isU ? Iop_DivU32 : Iop_DivS32;
          assign(mathRes[i], binop(mathOp, mkexpr(tmpL[i]), mkexpr(tmpR[i])));
       }
-      assign(*res,
+      assign(res,
              binop(Iop_64HLtoV128,
                    binop(Iop_32HLto64, mkexpr(mathRes[3]), mkexpr(mathRes[2])),
                    binop(Iop_32HLto64, mkexpr(mathRes[1]), mkexpr(mathRes[0]))));
    }
+
+   return res;
 }
 
-static void gen_vdiv_d(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp argR)
+static IRTemp gen_vdiv_d ( UInt isMod, UInt isU, IRTemp argL, IRTemp argR )
 {
    IRTemp tmpLHi = newTemp(Ity_I64);
    IRTemp tmpRHi = newTemp(Ity_I64);
@@ -9476,11 +9485,12 @@ static void gen_vdiv_d(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
    assign(tmpRHi, unop(Iop_V128HIto64, mkexpr(argR)));
    assign(tmpLLo, unop(Iop_V128to64, mkexpr(argL)));
    assign(tmpRLo, unop(Iop_V128to64, mkexpr(argR)));
-   IROp mathOp;
+   IROp mathOp = Iop_INVALID;
+   IRTemp res = newTempV128();
 
    if (isMod) {
       mathOp = isU ? Iop_DivModU64to64 : Iop_DivModS64to64;
-      assign(*res,
+      assign(res,
              binop(Iop_64HLtoV128,
                    unop(Iop_128HIto64,
                         binop(mathOp, mkexpr(tmpLHi), mkexpr(tmpRHi))),
@@ -9488,11 +9498,13 @@ static void gen_vdiv_d(UInt isMod, UInt isU, IRTemp *res, IRTemp argL, IRTemp ar
                         binop(mathOp, mkexpr(tmpLLo), mkexpr(tmpRLo)))));
    } else {
       mathOp = isU ? Iop_DivU64 : Iop_DivS64;
-      assign(*res,
+      assign(res,
              binop(Iop_64HLtoV128,
                    binop(mathOp, mkexpr(tmpLHi), mkexpr(tmpRHi)),
                    binop(mathOp, mkexpr(tmpLLo), mkexpr(tmpRLo))));
    }
+
+   return res;
 }
 
 static Bool gen_vdiv ( DisResult* dres, UInt insn,
@@ -9513,18 +9525,79 @@ static Bool gen_vdiv ( DisResult* dres, UInt insn,
    assign(argR, getVReg(vk));
 
    switch (insSz) {
-      case 0b00: gen_vdiv_b(isMod, isU, &res, argL, argR); break;
-      case 0b01: gen_vdiv_h(isMod, isU, &res, argL, argR); break;
-      case 0b10: gen_vdiv_w(isMod, isU, &res, argL, argR); break;
-      case 0b11: gen_vdiv_d(isMod, isU, &res, argL, argR); break;
+      case 0b00: res = gen_vdiv_b(isMod, isU, argL, argR); break;
+      case 0b01: res = gen_vdiv_h(isMod, isU, argL, argR); break;
+      case 0b10: res = gen_vdiv_w(isMod, isU, argL, argR); break;
+      case 0b11: res = gen_vdiv_d(isMod, isU, argL, argR); break;
       default: vassert(0);
    }
 
    UInt id = isU ? (insSz + 4) : insSz;
    const HChar *nm[2] = { "vdiv", "vmod" };
-   DIP("%s.%s %s, %s\n", nm[isMod], mkInsSize(id), nameVReg(vd), nameVReg(vj));
+   DIP("%s.%s %s, %s\n", nm[isMod], mkInsSize(id),
+                         nameVReg(vd), nameVReg(vj));
    putVReg(vd, mkexpr(res));
    return True;
+}
+
+static IRTemp vsat_u ( IRTemp src, UInt insSz, UInt uImm )
+{
+   IRTemp satVal = newTempV128();
+   IRTemp res    = newTempV128();
+   UInt sarNum[4] = {7, 15, 31, 63};
+
+   if (uImm == sarNum[insSz]) {
+      assign(res, mkexpr(src));
+      return res;
+   }
+   assign(satVal, binop(mkVecCMPEQ(insSz),
+                        binop(mkVecSHRN(insSz),
+                              mkexpr(src),
+                              mkU8(uImm + 1)),
+                        mkV128(0x0000)));
+   assign(res, binop(Iop_OrV128,
+                     binop(Iop_AndV128,
+                           mkexpr(satVal),
+                           mkexpr(src)),
+                     binop(mkVecSHRN(insSz),
+                           unop(Iop_NotV128, mkexpr(satVal)),
+                           mkU8(sarNum[insSz] - uImm))));
+   return res;
+}
+
+static IRTemp vsat_s ( IRTemp src, UInt insSz, UInt uImm )
+{
+   IRTemp satVal = newTempV128();
+   IRTemp tmp    = newTempV128();
+   IRTemp res    = newTempV128();
+   UInt shrNum[4] = {8, 16, 32, 64};
+   UInt sarNum[4] = {7, 15, 31, 63};
+
+   assign(satVal, binop(mkVecSARN(insSz),
+                        mkexpr(src),
+                        mkU8(sarNum[insSz])));
+
+   if (uImm == 0) {
+      assign(res, mkexpr(satVal));
+      return res;
+   }
+
+   assign(tmp, binop(mkVecSARN(insSz), mkexpr(src), mkU8(uImm)));
+   assign(res, binop(Iop_OrV128,
+                     binop(Iop_OrV128,
+                           binop(Iop_AndV128,
+                                 binop(mkVecCMPEQ(insSz),
+                                       mkexpr(satVal), mkexpr(tmp)),
+                                 mkexpr(src)),
+                           binop(mkVecSHLN(insSz),
+                                 binop(mkVecCMPGTS(insSz),
+                                       mkexpr(satVal), mkexpr(tmp)),
+                                 mkU8(uImm))),
+                     binop(mkVecSHRN(insSz),
+                           binop(mkVecCMPGTS(insSz),
+                                 mkexpr(tmp), mkexpr(satVal)),
+                           mkU8(shrNum[insSz] - uImm))));
+   return res;
 }
 
 static Bool gen_vsat ( DisResult* dres, UInt insn,
@@ -9536,11 +9609,10 @@ static Bool gen_vsat ( DisResult* dres, UInt insn,
    UInt insImm = SLICE(insn, 17, 10);
    UInt isS    = SLICE(insn, 18, 18);
 
-   UInt insSz, uImm, nmId;
-   UInt shrNum[4] = {8, 16, 32, 64};
-   UInt sarNum[4] = {7, 15, 31, 63};
-   IRTemp arg = newTempV128();
+   UInt insSz, uImm;
    IRTemp res = newTempV128();
+   IRTemp arg = newTempV128();
+   assign(arg, getVReg(vj));
 
    if ((insImm & 0xf8) == 0x8) {         // 00001mmm; b
       uImm = insImm & 0x07;
@@ -9558,54 +9630,8 @@ static Bool gen_vsat ( DisResult* dres, UInt insn,
       vassert(0);
    }
 
-   switch (isS) {
-      case 0: {
-         if (uImm == sarNum[insSz]) {
-            assign(res, getVReg(vj));
-            break;
-         }
-         assign(arg, binop(mkVecCMPEQ(insSz),
-                           binop(mkVecSHRN(insSz),
-                                 getVReg(vj),
-                                 mkU8(uImm + 1)),
-                           mkV128(0x0000)));
-         assign(res, binop(Iop_OrV128,
-                           binop(Iop_AndV128,
-                                 mkexpr(arg),
-                                 getVReg(vj)),
-                           binop(mkVecSHRN(insSz),
-                                 unop(Iop_NotV128, mkexpr(arg)),
-                                 mkU8(sarNum[insSz] - uImm))));
-
-         break;
-      }
-      case 1: {
-         assign(arg, binop(mkVecSARN(insSz), getVReg(vj), mkU8(sarNum[insSz])));
-         if (uImm == 0) {
-            assign(res, mkexpr(arg));
-            break;
-         }
-         IRTemp tmp = newTempV128();
-         assign(tmp, binop(mkVecSARN(insSz), getVReg(vj), mkU8(uImm)));
-         assign(res, binop(Iop_OrV128,
-                           binop(Iop_OrV128,
-                                 binop(Iop_AndV128,
-                                       binop(mkVecCMPEQ(insSz),
-                                             mkexpr(arg), mkexpr(tmp)),
-                                       getVReg(vj)),
-                                 binop(mkVecSHLN(insSz),
-                                       binop(mkVecCMPGTS(insSz),
-                                             mkexpr(arg), mkexpr(tmp)),
-                                       mkU8(uImm))),
-                           binop(mkVecSHRN(insSz),
-                                 binop(mkVecCMPGTS(insSz),
-                                       mkexpr(tmp), mkexpr(arg)),
-                                 mkU8(shrNum[insSz] - uImm))));
-         break;
-      }
-      default: vassert(0);
-   }
-   nmId = isS ? insSz : (insSz + 4);
+   res = isS ? vsat_s(arg, insSz, uImm) : vsat_u(arg, insSz, uImm);
+   UInt nmId = isS ? insSz : (insSz + 4);
    DIP("vsat.%s %s, %u\n", mkInsSize(nmId), nameVReg(vd), uImm);
    putVReg(vd, mkexpr(res));
    return True;
@@ -10061,9 +10087,55 @@ static Bool gen_vlogical_u8 ( DisResult* dres, UInt insn,
    return True;
 }
 
-static Bool gen_vsll ( DisResult* dres, UInt insn,
-                       const VexArchInfo* archinfo,
-                       const VexAbiInfo* abiinfo )
+static IRTemp gen_vrotr ( UInt insSz, IRTemp vj, IRTemp vk )
+{
+   IRTemp shr = newTempV128();
+   IRTemp shl = newTempV128();
+   IRTemp dup = newTempV128();
+   IRTemp shlR = newTempV128();
+   IRTemp res = newTempV128();
+
+   switch (insSz) {
+      case 0b00: {
+         assign(dup, unop(Iop_Dup8x16, mkU8(8)));
+         assign(shlR, binop(Iop_Sub8x16,
+                            mkexpr(dup),
+                            mkexpr(gen_vdiv_b(1, 1, vk, dup))));
+         break;
+      }
+      case 0b01: {
+         assign(dup, unop(Iop_Dup16x8, mkU16(16)));
+         assign(shlR, binop(Iop_Sub16x8,
+                            mkexpr(dup),
+                            mkexpr(gen_vdiv_h(1, 1, vk, dup))));
+         break;
+      }
+      case 0b10: {
+         assign(dup, unop(Iop_Dup32x4, mkU32(32)));
+         assign(shlR, binop(Iop_Sub32x4,
+                            mkexpr(dup),
+                            mkexpr(gen_vdiv_w(1, 1, vk, dup))));
+         break;
+      }
+      case 0b11: {
+         assign(dup, binop(Iop_64HLtoV128, mkU64(64), mkU64(64)));
+         assign(shlR, binop(Iop_Sub64x2,
+                            mkexpr(dup),
+                            mkexpr(gen_vdiv_d(1, 1, vk, dup))));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   assign(shr, binop(mkVecSHR(insSz), mkexpr(vj),  mkexpr(vk)));
+   assign(shl, binop(mkVecSHL(insSz), mkexpr(vj), mkexpr(shlR)));
+   assign(res, binop(Iop_OrV128, mkexpr(shr), mkexpr(shl)));
+   return res;
+}
+
+static Bool gen_vshift ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
 {
    UInt vd    = SLICE(insn, 4, 0);
    UInt vj    = SLICE(insn, 9, 5);
@@ -10071,18 +10143,35 @@ static Bool gen_vsll ( DisResult* dres, UInt insn,
    UInt insSz = SLICE(insn, 16, 15);
    UInt insTy = SLICE(insn, 18, 17);
 
-   IROp op    = Iop_INVALID;
+   IRTemp res = newTempV128();
+   IRTemp argR = newTempV128();
+   IRTemp argL = newTempV128();
+   assign(argR, getVReg(vk));
+   assign(argL, getVReg(vj));
    switch (insTy) {
-      case 0b00: op = mkVecSHL(insSz); break;
-      case 0b01: op = mkVecSHR(insSz); break;
-      case 0b10: op = mkVecSAR(insSz); break;
+      case 0b00: {
+         assign(res, binop(mkVecSHL(insSz), mkexpr(argL), mkexpr(argR)));
+         break;
+      }
+      case 0b01: {
+         assign(res, binop(mkVecSHR(insSz), mkexpr(argL), mkexpr(argR)));
+         break;
+      }
+      case 0b10: {
+         assign(res, binop(mkVecSAR(insSz), mkexpr(argL), mkexpr(argR)));
+         break;
+      }
+      case 0b11: {
+         res = gen_vrotr(insSz, argL, argR);
+         break;
+      }
       default: vassert(0);
    }
 
-   const HChar *nm[3] = { "vsll", "vsrl", "vsra" };
+   const HChar *nm[4] = { "vsll", "vsrl", "vsra", "vrotr" };
    DIP("%s.%s %s, %s, %s\n", nm[insTy], mkInsSize(insSz),
                              nameVReg(vd), nameVReg(vj), nameVReg(vk));
-   putVReg(vd, binop(op, getVReg(vj), getVReg(vk)));
+   putVReg(vd, mkexpr(res));
    return True;
 }
 
@@ -10176,13 +10265,14 @@ static Bool gen_vsllwil ( DisResult* dres, UInt insn,
    return True;
 }
 
-static void vsrlr_ops(UInt vj, UInt vk, IROp shrOp, UInt insSz, IRTemp *res)
+static IRTemp vsrlr_ops ( UInt vj, UInt vk, IROp shrOp, UInt insSz )
 {
    IRTemp argL    = newTempV128();
    IRTemp argR    = newTempV128();
    IRTemp subRes  = newTempV128();
    IRTemp notRes  = newTempV128();
    IRTemp subR    = newTempV128();
+   IRTemp res     = newTempV128();
    UInt shlNum[4] = { 5, 12, 27, 58 };
    UInt shrNum[4] = { 7, 15, 31, 63 };
 
@@ -10224,7 +10314,9 @@ static void vsrlr_ops(UInt vj, UInt vk, IROp shrOp, UInt insSz, IRTemp *res)
                                   mkexpr(subRes)),
                             mkexpr(notRes)),
                       mkU8(shrNum[insSz])));
-   assign(*res, binop(mkVecADD(insSz), mkexpr(argL), mkexpr(argR)));
+   assign(res, binop(mkVecADD(insSz), mkexpr(argL), mkexpr(argR)));
+
+   return res;
 }
 
 static Bool gen_vsrlr ( DisResult* dres, UInt insn,
@@ -10238,8 +10330,8 @@ static Bool gen_vsrlr ( DisResult* dres, UInt insn,
    UInt insTy = SLICE(insn, 17, 17);
 
    IROp shrOp = insTy ? mkVecSAR(insSz) : mkVecSHR(insSz);
-   IRTemp res = newTemp(Ity_V128);
-   vsrlr_ops(vj, vk, shrOp, insSz, &res);
+   IRTemp res = newTempV128();
+   res = vsrlr_ops(vj, vk, shrOp, insSz);
 
    const HChar *nm[2] = { "vsrlr", "vsrar" };
    DIP("%s.%s %s, %s, %s\n", nm[insTy], mkInsExtSize(insSz),
@@ -10248,17 +10340,60 @@ static Bool gen_vsrlr ( DisResult* dres, UInt insn,
    return True;
 }
 
+static IRTemp gen_vrotri ( UInt insSz, IRTemp vj, UInt imm )
+{
+   IRTemp shr  = newTempV128();
+   IRTemp shl  = newTempV128();
+   IRTemp shrR = newTempV128();
+   IRTemp shlR = newTempV128();
+   IRTemp res  = newTempV128();
+   IRExpr* sub;
+
+   switch (insSz) {
+      case 0b00: {
+         sub = unop(Iop_64to8, binop(Iop_Sub64, mkU64(8), mkU64(imm)));
+         assign(shlR, unop(Iop_Dup8x16, sub));
+         assign(shrR, unop(Iop_Dup8x16, mkU8(imm)));
+         break;
+      }
+      case 0b01: {
+         sub = unop(Iop_64to16, binop(Iop_Sub64, mkU64(16), mkU64(imm)));
+         assign(shlR, unop(Iop_Dup16x8, sub));
+         assign(shrR, unop(Iop_Dup16x8, mkU16(imm)));
+         break;
+      }
+      case 0b10: {
+         sub = unop(Iop_64to32, binop(Iop_Sub64, mkU64(32), mkU64(imm)));
+         assign(shlR, unop(Iop_Dup32x4, sub));
+         assign(shrR, unop(Iop_Dup32x4, mkU32(imm)));
+         break;
+      }
+      case 0b11: {
+         sub = binop(Iop_Sub64, mkU64(64), mkU64(imm));
+         assign(shlR, binop(Iop_64HLtoV128, sub, sub));
+         assign(shrR, binop(Iop_64HLtoV128, mkU64(imm), mkU64(imm)));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   assign(shr, binop(mkVecSHR(insSz), mkexpr(vj), mkexpr(shrR)));
+   assign(shl, binop(mkVecSHL(insSz), mkexpr(vj), mkexpr(shlR)));
+   assign(res, binop(Iop_OrV128, mkexpr(shr), mkexpr(shl)));
+   return res;
+}
+
 static Bool gen_vsrlri ( DisResult* dres, UInt insn,
-                        const VexArchInfo* archinfo,
-                        const VexAbiInfo* abiinfo )
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
 {
    UInt vd     = SLICE(insn, 4, 0);
    UInt vj     = SLICE(insn, 9, 5);
    UInt insImm = SLICE(insn, 17, 10);
-   UInt insTy  = SLICE(insn, 19, 19);
+   UInt insTy  = SLICE(insn, 19, 18);
 
-   IRTemp argL    = newTempV128();
-   IRTemp argR    = newTempV128();
+   IRTemp src = newTempV128();
+   IRTemp res = newTempV128();
    UInt shlNum[4] = { 8, 16, 32, 64 };
    UInt shrNum[4] = { 7, 15, 31, 63 };
    UInt uImm, insSz;
@@ -10279,34 +10414,48 @@ static Bool gen_vsrlri ( DisResult* dres, UInt insn,
       vassert(0);
    }
 
-   const HChar *nm[2] = { "vsrlri", "vsrari" };
+   assign(src, getVReg(vj));
+   switch (insTy) {
+      case 0b00: {
+         res = gen_vrotri(insSz, src, uImm);
+         break;
+      }
+      case 0b01:
+      case 0b10: {
+         IRTemp argL = newTempV128();
+         IRTemp argR = newTempV128();
+         IROp shrOp  = (insTy == 0b10) ? mkVecSARN(insSz) : mkVecSHRN(insSz);
+         assign(argL, binop(shrOp, mkexpr(src), mkU8(uImm)));
+         assign(argR, binop(mkVecSHRN(insSz),
+                           binop(mkVecSHLN(insSz),
+                                 mkexpr(src),
+                                 mkU8(shlNum[insSz] - uImm)),
+                           mkU8(shrNum[insSz])));
+         if (uImm)
+            assign(res, binop(mkVecADD(insSz), mkexpr(argL), mkexpr(argR)));
+         else
+            assign(res, mkexpr(argL));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   const HChar *nm[3] = { "vrotri", "vsrlri", "vsrari" };
    DIP("%s.%s %s, %s, %u\n", nm[insTy], mkInsExtSize(insSz),
                              nameVReg(vd), nameVReg(vj), uImm);
-
-   IROp shrOp = insTy ? mkVecSARN(insSz) : mkVecSHRN(insSz);
-   assign(argL, binop(shrOp, getVReg(vj), mkU8(uImm)));
-   assign(argR, binop(mkVecSHRN(insSz),
-                      binop(mkVecSHLN(insSz),
-                            getVReg(vj),
-                            mkU8(shlNum[insSz] - uImm)),
-                     mkU8(shrNum[insSz])));
-
-   if (uImm)
-      putVReg(vd, binop(mkVecADD(insSz), mkexpr(argL), mkexpr(argR)));
-   else
-      putVReg(vd, mkexpr(argL));
+   putVReg(vd, mkexpr(res));
    return True;
 }
 
 static Bool gen_vsrln_vsran ( DisResult* dres, UInt insn,
-                        const VexArchInfo* archinfo,
-                        const VexAbiInfo* abiinfo )
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
 {
    UInt vd     = SLICE(insn, 4, 0);
    UInt vj     = SLICE(insn, 9, 5);
    UInt vk     = SLICE(insn, 14, 10);
    UInt insSz  = SLICE(insn, 16, 15);
-   UInt insTy  = SLICE(insn, 19, 17);
+   UInt insTy  = SLICE(insn, 20, 17);
 
    IRTemp argR = newTempV128();
    IRTemp res  = newTempV128();
@@ -10314,31 +10463,96 @@ static Bool gen_vsrln_vsran ( DisResult* dres, UInt insn,
    const HChar *nm;
 
    switch (insTy) {
-      case 0b010:
-      case 0b011:
-         nm = (insTy == 0b010) ? "vsrln" : "vsran";
+      case 0b1010:
+      case 0b1011: {
+         nm = (insTy == 0b1010) ? "vsrln" : "vsran";
          assign(argR, binop(shiftOp, getVReg(vj), getVReg(vk)));
          assign(res, binop(mkVecPACKEV(insSz - 1),
                            mkV128(0x0000),
                            mkexpr(argR)));
          break;
-      case 0b100:
-      case 0b101:
-         nm = (insTy == 0b100) ? "vsrlrn" : "vsrarn";
-         vsrlr_ops(vj, vk, shiftOp, insSz, &argR);
+      }
+      case 0b1100:
+      case 0b1101: {
+         nm = (insTy == 0b1100) ? "vsrlrn" : "vsrarn";
+         argR = vsrlr_ops(vj, vk, shiftOp, insSz);
          assign(res, binop(mkVecPACKEV(insSz - 1),
                            mkV128(0x0000),
                            mkexpr(argR)));
          break;
-      case 0b110:
-         nm = "vssrln";
+      }
+      case 0b1110: //vssrln
+      case 0b1111: { //vssran
+         IRTemp sat = newTempV128();
+         UInt shiftNum[3] = { 7, 15, 31 };
+         nm = (insTy == 0b1110) ? "vssrln" : "vssran";
          assign(argR, binop(shiftOp, getVReg(vj), getVReg(vk)));
-         assign(res, binop(mkVecQADDS(insSz - 1),
-                           binop(mkVecPACKEV(insSz - 1),
-                                 mkV128(0x0000),
+         sat = vsat_s(argR, insSz, shiftNum[insSz-1]);
+         assign(res, binop(mkVecPACKEV(insSz - 1),
+                           mkV128(0x0000),
+                           mkexpr(sat)));
+         break;
+      }
+      case 0b0010: //vssrln{u}
+      case 0b0011: { //vssran{u}
+         IRTemp sat = newTempV128();
+         IRTemp eq = newTempV128();
+         UInt shiftNum[3] = { 8, 16, 32 };
+         nm = (insTy == 0b0010) ? "vssrln" : "vssran";
+         assign(argR, binop(shiftOp, getVReg(vj), getVReg(vk)));
+         assign(eq, binop(mkVecCMPEQ(insSz),
+                          binop(mkVecSHRN(insSz),
+                                mkexpr(argR),
+                                mkU8(shiftNum[insSz - 1])),
+                          mkV128(0x0000)));
+         assign(sat, binop(Iop_OrV128,
+                           binop(Iop_AndV128,
+                                 mkexpr(eq),
                                  mkexpr(argR)),
-                           mkV128(0x000)));
+                           binop(mkVecSHRN(insSz),
+                                 unop(Iop_NotV128, mkexpr(eq)),
+                                 mkU8(shiftNum[insSz - 1]))));
+         assign(res, binop(mkVecPACKEV(insSz - 1),
+                           mkV128(0x0000),
+                           mkexpr(sat)));
          break;
+      }
+      case 0b0000:
+      case 0b0001: {
+         IRTemp sat = newTempV128();
+         nm = (insTy == 0b0000) ? "vssrlrn" : "vssrarn";
+         UInt shiftNum[3] = { 7, 15, 31 };
+         argR = vsrlr_ops(vj, vk, shiftOp, insSz);
+         sat = vsat_s(argR, insSz, shiftNum[insSz-1]);
+         assign(res, binop(mkVecPACKEV(insSz - 1),
+                           mkV128(0x0000),
+                           mkexpr(sat)));
+         break;
+      }
+      case 0b0100: //vssrlrn{u}
+      case 0b0101: { //vssrarn{u}
+         IRTemp sat = newTempV128();
+         IRTemp eq = newTempV128();
+         UInt shiftNum[3] = { 8, 16, 32 };
+         nm = (insTy == 0b0010) ? "vssrlrn" : "vssrarn";
+         argR = vsrlr_ops(vj, vk, shiftOp, insSz);
+         assign(eq, binop(mkVecCMPEQ(insSz),
+                          binop(mkVecSHRN(insSz),
+                                mkexpr(argR),
+                                mkU8(shiftNum[insSz - 1])),
+                          mkV128(0x0000)));
+         assign(sat, binop(Iop_OrV128,
+                           binop(Iop_AndV128,
+                                 mkexpr(eq),
+                                 mkexpr(argR)),
+                           binop(mkVecSHRN(insSz),
+                                 unop(Iop_NotV128, mkexpr(eq)),
+                                 mkU8(shiftNum[insSz - 1]))));
+         assign(res, binop(mkVecPACKEV(insSz - 1),
+                           mkV128(0x0000),
+                           mkexpr(sat)));
+         break;
+      }
       default: vassert(0);
    }
 
@@ -10348,6 +10562,29 @@ static Bool gen_vsrln_vsran ( DisResult* dres, UInt insn,
    return True;
 }
 
+static IRTemp gen_vsrlri_2 ( IRTemp src, IROp shrOp, UInt insSz, UInt uImm )
+{
+   IRTemp argL = newTempV128();
+   IRTemp argR = newTempV128();
+   IRTemp res = newTempV128();
+   UInt shlNum[4] = { 8, 16, 32, 64 };
+   UInt shrNum[4] = { 7, 15, 31, 63 };
+
+   assign(argL, binop(shrOp, mkexpr(src), mkU8(uImm)));
+   assign(argR, binop(mkVecSHRN(insSz),
+                     binop(mkVecSHLN(insSz),
+                           mkexpr(src),
+                           mkU8(shlNum[insSz] - uImm)),
+                     mkU8(shrNum[insSz])));
+
+   if (uImm)
+      assign(res, binop(mkVecADD(insSz), mkexpr(argL), mkexpr(argR)));
+   else
+      assign(res, mkexpr(argL));
+
+   return res;
+}
+
 static Bool gen_vsrlni_vsrani ( DisResult* dres, UInt insn,
                         const VexArchInfo* archinfo,
                         const VexAbiInfo* abiinfo )
@@ -10355,12 +10592,17 @@ static Bool gen_vsrlni_vsrani ( DisResult* dres, UInt insn,
    UInt vd     = SLICE(insn, 4, 0);
    UInt vj     = SLICE(insn, 9, 5);
    UInt insImm = SLICE(insn, 17, 10);
-   UInt insTy  = SLICE(insn, 19, 18);
+   UInt insTy  = SLICE(insn, 20, 18);
 
    UInt uImm, insSz;
-   IRTemp argL  = newTempV128();
-   IRTemp argR  = newTempV128();
-   IRTemp res   = newTempV128();
+   IRTemp argL = newTempV128();
+   IRTemp argR = newTempV128();
+   IRTemp svd  = newTempV128();
+   IRTemp svj  = newTempV128();
+   IRTemp res  = newTempV128();
+
+   assign(svj, getVReg(vj));
+   assign(svd, getVReg(vd));
 
    if ((insImm & 0xf0) == 0x10) {         // 0001mmmm; b
       uImm = insImm & 0x0f;
@@ -10378,11 +10620,11 @@ static Bool gen_vsrlni_vsrani ( DisResult* dres, UInt insn,
       vassert(0);
    }
 
-   IROp shiftOp = SLICE(insn, 18, 18) ? mkVecSARN(insSz + 1) :
-                                        mkVecSHRN(insSz + 1);
    switch (insTy) {
-      case 0b00:
-      case 0b10:
+      case 0b000: //vsrlni
+      case 0b110: { //vsrani
+         IROp shiftOp = SLICE(insn, 19, 19) ? mkVecSARN(insSz + 1) :
+                                              mkVecSHRN(insSz + 1);
          assign(argR, binop(mkVecPACKEV(insSz),
                             mkV128(0x0000),
                             binop(shiftOp, getVReg(vj), mkU8(uImm))));
@@ -10391,6 +10633,36 @@ static Bool gen_vsrlni_vsrani ( DisResult* dres, UInt insn,
                             binop(shiftOp, getVReg(vd), mkU8(uImm))));
          assign(res, binop(Iop_InterleaveLO64x2, mkexpr(argL), mkexpr(argR)));
          break;
+      }
+      case 0b010: //vssrlni
+      case 0b011: { //vssrlni{u}
+         IROp shiftOp = mkVecSHRN(insSz + 1);
+         IRTemp satR = newTempV128();
+         IRTemp satL = newTempV128();
+         UInt shiftNum[3] = { 7, 15, 31 };
+         assign(argR, binop(shiftOp, getVReg(vj), mkU8(uImm)));
+         assign(argL, binop(shiftOp, getVReg(vd), mkU8(uImm)));
+         assign(satR, binop(mkVecPACKEV(insSz),
+                            mkV128(0x0000),
+                            mkexpr(vsat_s(argR, insSz + 1, shiftNum[insSz]))));
+         assign(satL, binop(mkVecPACKEV(insSz),
+                            mkV128(0x0000),
+                            mkexpr(vsat_s(argL, insSz + 1, shiftNum[insSz]))));
+         assign(res, binop(Iop_InterleaveLO64x2, mkexpr(satL), mkexpr(satR)));
+         break;
+      }
+      case 0b001: //vsrlrni
+      case 0b111: { //vsrarni
+         IROp shiftOp = SLICE(insn, 19, 19) ? mkVecSARN(insSz + 1) : mkVecSHRN(insSz + 1);
+         assign(argR, binop(mkVecPACKEV(insSz),
+                            mkV128(0x0000),
+                            mkexpr(gen_vsrlri_2(svj, shiftOp, insSz + 1, uImm))));
+         assign(argL, binop(mkVecPACKEV(insSz),
+                            mkV128(0x0000),
+                            mkexpr(gen_vsrlri_2(svd, shiftOp, insSz + 1, uImm))));
+         assign(res, binop(Iop_InterleaveLO64x2, mkexpr(argL), mkexpr(argR)));
+         break;
+      }
       default: vassert(0);
    }
 
@@ -13181,7 +13453,7 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0011 ( DisResult* dres, UInt insn,
       case 0b1000: case 0b1001:
          ok = gen_vdiv(dres, insn, archinfo, abiinfo); break;
       case 0b1010: case 0b1011:
-         ok = gen_vsll(dres, insn, archinfo, abiinfo); break;
+         ok = gen_vshift(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = gen_vsrlr(dres, insn, archinfo, abiinfo);
          break;
@@ -13201,6 +13473,10 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 17)) {
+      case 0b00000: case 0b00001:
+      case 0b00010: case 0b00011:
+      case 0b00100: case 0b00101:
+         ok = gen_vsrln_vsran(dres, insn, archinfo, abiinfo); break;
       case 0b00110: case 0b00111: case 0b01000:
          ok = gen_bitops(dres, insn, archinfo, abiinfo); break;
       case 0b01011: case 0b01100:
@@ -13297,6 +13573,7 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
          ok = gen_vmaxi_vmini(dres, insn, archinfo, abiinfo); break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1010_0111(dres, insn, archinfo, abiinfo); break;
+      case 0b1000:
       case 0b1001:
       case 0b1010:
          ok = gen_vsrlri(dres, insn, archinfo, abiinfo); break;
@@ -13352,7 +13629,7 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1101 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
-      case 0b0000: case 0b0110:
+      case 0b0000: case 0b0001: case 0b0010: case 0b0011: case 0b0110: case 0b0111:
          ok = gen_vsrlni_vsrani(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
