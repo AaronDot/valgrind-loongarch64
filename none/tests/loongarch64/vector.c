@@ -30,6 +30,85 @@ unsigned long long mem[32] = {
    //0x1716151413121110ull, 0x1f1e1d1c1b1a1918ull,
 unsigned long long out[2];
 
+unsigned long long fpout[2];
+
+unsigned int fcsr;
+
+unsigned int  flt  = 0;
+unsigned int  flto = 0;
+unsigned long long dbl = 0;
+
+unsigned int reg;
+
+unsigned long long datad[] = {
+   0xfff0000000000000, 0x3fe0000000000000, // -inf, 0.5
+   0xc3e0000020000000, 0xc005395810624dd3, // -9223373136366403584, -2.653
+   0x8000006000000000, 0x4085e5999999999a, // -1e-49, 700.7
+   0x8000000000000000, 0xc088f8f5c28f5c29, // -0, -799.12
+   0x0000000000000000, 0x407b13ae147ae148, // +0, 433.23
+   0x0000006000000000, 0xbfe6666666666666, // 1e-49, -0.7
+   0x4141a828c51eb852, 0x3ff199999999999a, // 2314321.54, 1.1
+   0x7ff0000000000000, 0xc1b59e0837b33333, // +inf, -362678327.7
+   0x4082000000000000, 0x40e6252666666666, // 576.0, 45353.2
+   0x4082000000000000, 0x4082000000000000, // 576.0, 576.0
+   0x7ff0000000006000, 0x40e6252666666666, // qnan, 45353.2
+   0x7ff8000000006000, 0x4082000000000000  // snan, 576.0
+};
+
+unsigned long long dataf[] = {
+   0xff8000003f000000, // -inf, 0.5
+   0xcf000001c029cac1, // -2147483904, -2.653
+   0x80500000442f2ccd, // -sub, 700.7
+   0x80000000c447c7ae, // -0, -799.12
+   0x0000000043d89d71, // +0, 433.23
+   0x00500000bf333333, // sub, -0.7
+   0x46b4a3143f8ccccd, // 23121.54, 1.1
+   0x7f800000c70dabb3, // +inf, -36267.7
+   0xc029cac1c791bfa9, // -2.653, -74623.321
+   0x44100000458db99a, // 576.0, 4535.2
+   0x4410000044100000, // 576.0, 576.0
+   0x7f800060458db99a, // qnan, 4535.2
+   0x7fc0006044100000, // snan, 576.0
+};
+
+unsigned long long data16[] = {
+   0x80006179fc00c14e,
+   0xfc00c14efc003800,
+   0x7e005ec57fffe23e,
+   0x8000e23effff6179,
+   0x75a53c660004b99a,
+   0x0000b99a00005ec5,
+   0x7dff6c6e7c00f86d,
+   0x7c00f86d75a53c66,
+   0xc14efc007dff6080,
+   0x7dff60807dff6c6e,
+   0x800100013c66f5a5,
+   0x3c66f5a5c14efc00,
+};
+
+#define EPS 0.000001
+
+union {
+   unsigned long long i[2];
+   double d[2];
+   float f[4];
+} frsqrt_out, frsqrt_exp;
+
+typedef enum {
+   TO_NEAREST = 0,
+   TO_ZERO,
+   TO_PLUS_INFINITY,
+   TO_MINUS_INFINITY
+} round_mode_t;
+
+static inline void set_fcsr(round_mode_t mode)
+{
+   __asm__ __volatile__("movgr2fcsr $r0, %0" : : "r" (mode << 8));
+
+   const char *round_mode_name[] = { "near", "zero", "+inf", "-inf" };
+   printf("roundig mode: %s\n", round_mode_name[mode]);
+}
+
 #define TESTINST_LOAD_CR(insn, VJ, offs) \
    {                                                      \
       int fcc;                              \
@@ -116,6 +195,23 @@ unsigned long long out[2];
 	       out[1], out[0] , rj);\
    }
 
+#define TESTINST_FFF_S(insn, VD, VJ, VK, offs1, offs2)        \
+   {                                        \
+      __asm__ __volatile__(                 \
+         "vld $"#VJ", %2, "#offs1"\n"       \
+         "vld $"#VK", %2, "#offs2"\n"       \
+         insn " $"#VD", $"#VJ", $"#VK"   \n"          \
+         "vst $"#VD", %0\n"                      \
+         "movfcsr2gr %1, $r0 \n\t"          \
+	      : "=m" (fpout), "=r" (fcsr)          \
+	      : "r" (datad)                      \
+         : "memory");                       \
+         printf(insn" $"#VD", $"#VJ", $"#VK" "#VD":"                  \
+          " %016llx%016llx  "#VJ": %016llx%016llx  "#VK": "            \
+          "%016llx%016llx fcsr %08x\n", fpout[1], fpout[0],              \
+          datad[offs1 / 8 + 1], datad[offs1 / 8],                    \
+          datad[offs2 / 8 + 1], datad[offs2 / 8], fcsr);           \
+   }
 
 static inline void show(void)
 {
@@ -172,6 +268,24 @@ void test(void)
 
    printf("test vinsgr2vr.b: ");
    TESTINST_LOAD_RRU("vinsgr2vr.b", vr2, r1, 0x80, 0);
+
+   printf("test vfadd.s: TO_NEAREST\n");
+    set_fcsr(TO_NEAREST);
+    TESTINST_FFF_S("vfadd.s", vr2, vr3, vr4, 0, 0);
+ 
+   printf("test vfadd.s: TO_ZERO\n");
+   set_fcsr(TO_ZERO);
+   TESTINST_FFF_S("vfadd.s", vr2, vr3, vr4, 0, 0);
+
+   printf("test vfadd.s: TO_PLUS_INFINITY\n");
+   set_fcsr(TO_PLUS_INFINITY);
+   TESTINST_FFF_S("vfadd.s", vr2, vr3, vr4, 0, 0);
+
+   printf("test vfadd.s: TO_MINUS_INFINITY\n");
+   set_fcsr(TO_MINUS_INFINITY);
+   TESTINST_FFF_S("vfadd.s", vr2, vr3, vr4, 0, 0);
+
+
 //
 //   printf("test vseq.b: ");
 //   TESTINST_LOAD_RRR("vseq.b", vr2, vr3, vr4, 0x40, 0x30);

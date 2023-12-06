@@ -1052,6 +1052,28 @@ static void calculateFCSR ( enum fpop op, UInt nargs,
    putFCSR(2, mkexpr(fcsr2));
 }
 
+static void calculateVFCSR ( enum fpop op, UInt nargs,
+                             UInt src1, UInt src2, UInt src3 )
+{
+   IRExpr* s1 = NULL;
+   IRExpr* s2 = NULL;
+   IRExpr* s3 = NULL;
+   switch (nargs) {
+      case 3: s3 = unop(Iop_ReinterpF64asI64, getFReg64(src3)); /* fallthrough */
+      case 2: s2 = unop(Iop_ReinterpF64asI64, getFReg64(src2)); /* fallthrough */
+      case 1: s1 = unop(Iop_ReinterpF64asI64, getFReg64(src1)); break;
+      default: vassert(0);
+   }
+   IRExpr** arg = mkIRExprVec_4(mkU64(op), s1, s2, s3);
+   IRExpr* call = mkIRExprCCall(Ity_I64, 0/*regparms*/,
+                                "loongarch64_calculate_FCSR",
+                                &loongarch64_calculate_FCSR,
+                                arg);
+   IRTemp fcsr2 = newTemp(Ity_I32);
+   assign(fcsr2, unop(Iop_64to32, call));
+   putFCSR(2, mkexpr(fcsr2));
+}
+
 static IRExpr* gen_round_to_nearest ( void )
 {
    return mkU32(0x0);
