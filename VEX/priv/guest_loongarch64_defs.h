@@ -104,6 +104,10 @@ enum fpop {
    FRINT_S, FRINT_D
 };
 
+enum vfpop {
+   VFADD_S, VFADD_D
+};
+
 extern ULong loongarch64_calculate_cpucfg    ( ULong src );
 extern ULong loongarch64_calculate_revb_2h   ( ULong src );
 extern ULong loongarch64_calculate_revb_4h   ( ULong src );
@@ -121,6 +125,11 @@ extern ULong loongarch64_calculate_fclass_s  ( ULong src );
 extern ULong loongarch64_calculate_fclass_d  ( ULong src );
 extern ULong loongarch64_calculate_FCSR      ( enum fpop op, ULong src1,
                                                ULong src2, ULong src3 );
+extern ULong loongarch64_calculate_VFCSR     ( enum vfpop op, ULong nargs,
+                                               ULong v1Hi, ULong v1Lo,
+                                               ULong v2Hi, ULong v2Lo,
+                                               ULong v3Hi, ULong v3Lo );
+
 
 #endif /* ndef __VEX_GUEST_LOONGARCH64_DEFS_H */
 

@@ -538,6 +538,20 @@ ULong loongarch64_calculate_fclass_d ( ULong src )
                     : "$s0", "$f24"                      \
                    )
 
+#define ASM_VOLATILE_VEC_BINARY(inst)                        \
+   __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
+                    "movgr2fcsr $r2, $zero       \n\t"   \
+                    "vld $vr22, %1, 0            \n\t"   \
+                    "vld $vr23, %2, 0            \n\t"   \
+                    #inst" $vr24, $vr22, $vr21   \n\t"   \
+                    "movfcsr2gr %0, $r2          \n\t"   \
+                    "movgr2fcsr $r0, $s0         \n\t"   \
+                    : "=r" (fcsr2)                       \
+                    : "r" (src1), "r" (src2)             \
+                    : "$s0", "$f24"                      \
+                   )
+
+
 #define ASM_VOLATILE_TRINARY(inst)                       \
    __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
                     "movgr2fcsr $r2, $zero       \n\t"   \
@@ -897,6 +911,39 @@ ULong loongarch64_calculate_FCSR ( enum fpop op, ULong src1,
          break;
       case FRINT_D:
          ASM_VOLATILE_UNARY(frint.d);
+         break;
+      default:
+         break;
+   }
+#endif
+   return (ULong)fcsr2;
+}
+
+/* Calculate FCSR and return whether an exception needs to be thrown */
+ULong loongarch64_calculate_VFCSR ( enum vfpop op, ULong nargs, ULong v1Hi, ULong v1Lo,
+                                    ULong v2Hi, ULong v2Lo, ULong v3Hi, ULong v3Lo )
+{
+   UInt fcsr2 = 0;
+   ULong src1[2], src2[2], src3[2];
+
+   switch (nargs) {
+      case 3: {
+         src3[1] = v3Hi; src3[0] = v3Lo;
+      } /* fallthrough */
+      case 2: {
+         src2[1] = v2Hi; src2[0] = v2Lo;
+      } /* fallthrough */
+      case 1: {
+         src1[1] = v1Hi; src1[0] = v1Lo;
+         break;
+      }
+      default: vassert(0);
+   }
+
+#if defined(__loongarch__)
+   switch (op) {
+      case VFADD_S:
+         ASM_VOLATILE_VEC_BINARY(vfadd.s);
          break;
       default:
          break;

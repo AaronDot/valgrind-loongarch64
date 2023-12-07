@@ -1073,28 +1073,6 @@ static void calculateFCSR ( enum fpop op, UInt nargs,
    putFCSR(2, mkexpr(fcsr2));
 }
 
-static void calculateVFCSR ( enum fpop op, UInt nargs,
-                             UInt src1, UInt src2, UInt src3 )
-{
-   IRExpr* s1 = NULL;
-   IRExpr* s2 = NULL;
-   IRExpr* s3 = NULL;
-   switch (nargs) {
-      case 3: s3 = unop(Iop_ReinterpF64asI64, getFReg64(src3)); /* fallthrough */
-      case 2: s2 = unop(Iop_ReinterpF64asI64, getFReg64(src2)); /* fallthrough */
-      case 1: s1 = unop(Iop_ReinterpF64asI64, getFReg64(src1)); break;
-      default: vassert(0);
-   }
-   IRExpr** arg = mkIRExprVec_4(mkU64(op), s1, s2, s3);
-   IRExpr* call = mkIRExprCCall(Ity_I64, 0/*regparms*/,
-                                "loongarch64_calculate_FCSR",
-                                &loongarch64_calculate_FCSR,
-                                arg);
-   IRTemp fcsr2 = newTemp(Ity_I32);
-   assign(fcsr2, unop(Iop_64to32, call));
-   putFCSR(2, mkexpr(fcsr2));
-}
-
 static IRExpr* gen_round_to_nearest ( void )
 {
    return mkU32(0x0);
@@ -1170,6 +1148,68 @@ static void putVReg ( UInt iregNo, IRExpr* e )
 static IRTemp newTempV128 ( void )
 {
    return newTemp(Ity_V128);
+}
+
+static void calculateVFCSR ( enum vfpop op, UInt nargs,
+                             UInt src1, UInt src2, UInt src3 )
+{
+   IRTemp v1   = newTemp(Ity_V128);
+   IRTemp v2   = newTemp(Ity_V128);
+   IRTemp v3   = newTemp(Ity_V128);
+   IRTemp v1hi = newTemp(Ity_I64);
+   IRTemp v1lo = newTemp(Ity_I64);
+   IRTemp v2hi = newTemp(Ity_I64);
+   IRTemp v2lo = newTemp(Ity_I64);
+   IRTemp v3hi = newTemp(Ity_I64);
+   IRTemp v3lo = newTemp(Ity_I64);
+   switch (nargs) {
+      case 3: {
+         assign(v3,   getVReg(src3));
+         assign(v3hi, unop(Iop_V128HIto64, mkexpr(v3)));
+         assign(v3lo, unop(Iop_V128to64,   mkexpr(v3)));
+         assign(v2,   getVReg(src2));
+         assign(v2hi, unop(Iop_V128HIto64, mkexpr(v2)));
+         assign(v2lo, unop(Iop_V128to64,   mkexpr(v2)));
+         assign(v1,   getVReg(src1));
+         assign(v1hi, unop(Iop_V128HIto64, mkexpr(v1)));
+         assign(v1lo, unop(Iop_V128to64,   mkexpr(v1)));
+         break;
+      }
+      case 2: {
+         assign(v3,   mkV128(0x0000));
+         assign(v3hi, unop(Iop_V128HIto64, mkexpr(v3)));
+         assign(v3lo, unop(Iop_V128to64,   mkexpr(v3)));
+         assign(v2,   getVReg(src2));
+         assign(v2hi, unop(Iop_V128HIto64, mkexpr(v2)));
+         assign(v2lo, unop(Iop_V128to64,   mkexpr(v2)));
+         assign(v1,   getVReg(src1));
+         assign(v1hi, unop(Iop_V128HIto64, mkexpr(v1)));
+         assign(v1lo, unop(Iop_V128to64,   mkexpr(v1)));
+         break;
+      }
+      case 1: {
+         assign(v3,   mkV128(0x0000));
+         assign(v3hi, unop(Iop_V128HIto64, mkexpr(v3)));
+         assign(v3lo, unop(Iop_V128to64,   mkexpr(v3)));
+         assign(v2,   getVReg(0x0000));
+         assign(v2hi, unop(Iop_V128HIto64, mkexpr(v2)));
+         assign(v2lo, unop(Iop_V128to64,   mkexpr(v2)));
+         assign(v1,   getVReg(src1));
+         assign(v1hi, unop(Iop_V128HIto64, mkexpr(v1)));
+         assign(v1lo, unop(Iop_V128to64,   mkexpr(v1)));
+         break;
+      }
+      default: vassert(0);
+   }
+   IRExpr** arg = mkIRExprVec_8(mkU64(op), mkU64(nargs), mkexpr(v1hi), mkexpr(v1lo),
+                                 mkexpr(v2hi), mkexpr(v2lo), mkexpr(v3hi), mkexpr(v3lo));
+   IRExpr* call = mkIRExprCCall(Ity_I64, 0/*regparms*/,
+                                "loongarch64_calculate_VFCSR",
+                                &loongarch64_calculate_VFCSR,
+                                arg);
+   IRTemp fcsr2 = newTemp(Ity_I32);
+   assign(fcsr2, unop(Iop_64to32, call));
+   putFCSR(2, mkexpr(fcsr2));
 }
 
 
@@ -10764,13 +10804,15 @@ static Bool gen_vfmath ( DisResult* dres, UInt insn,
                          const VexArchInfo* archinfo,
                          const VexAbiInfo* abiinfo )
 {
-   // UInt vd    = SLICE(insn, 4, 0);
-   // UInt vj    = SLICE(insn, 9, 5);
-   // UInt vk    = SLICE(insn, 14, 10);
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
    // UInt insSz = SLICE(insn, 16, 15);
    // UInt insTy = SLICE(insn, 19, 17);
 
-   //calculateFCSR(FADD_S, 2, fj, fk, 0);
+   calculateVFCSR(VFADD_S, 2, vj, vk, 0);
+   IRExpr* rm = get_rounding_mode();
+   putVReg(vd, triop(Iop_Add32Fx4, rm, getVReg(vj), getVReg(vk)));
    return True;
 }
 
