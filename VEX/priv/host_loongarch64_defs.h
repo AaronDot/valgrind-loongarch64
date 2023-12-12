@@ -49,7 +49,7 @@ ST_IN HReg hregLOONGARCH64_R30 ( void ) { return mkHReg(False, HRcInt64, 30,  7)
 /* $r31 is used as guest stack pointer */
 
 /* Integer temporary registers */
-/* $r12 is used as a chaining/ProfInc/Cmove temporary */
+/* $r12 is used as a chaining/ProfInc/Cmove/genSpill/genReload temporary */
 /* $r13 is used as a ProfInc temporary */
 ST_IN HReg hregLOONGARCH64_R14 ( void ) { return mkHReg(False, HRcInt64, 14,  8); }
 ST_IN HReg hregLOONGARCH64_R15 ( void ) { return mkHReg(False, HRcInt64, 15,  9); }

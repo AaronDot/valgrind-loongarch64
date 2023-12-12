@@ -122,6 +122,30 @@ static const HChar* nameFReg( UInt reg )
    return reg_names[reg];
 }
 
+static const HChar* nameVReg( UInt reg )
+{
+   vassert(reg < 32);
+   static const HChar* reg_names[32] = {
+      "$v0",  "$v1",  "$v2",  "$v3",  "$v4",  "$v5",  "$v6",  "$v7",
+      "$v8",  "$v9",  "$v10", "$v11", "$v12", "$v13", "$v14", "$v15",
+      "$v16", "$v17", "$v18", "$v19", "$v20", "$v21", "$v22", "$v23",
+      "$v24", "$v25", "$v26", "$v27", "$v28", "$v29", "$v30", "$v31"
+   };
+   return reg_names[reg];
+}
+
+static const HChar* nameXReg( UInt reg )
+{
+   vassert(reg < 32);
+   static const HChar* reg_names[32] = {
+      "$x0",  "$x1",  "$x2",  "$x3",  "$x4",  "$x5",  "$x6",  "$x7",
+      "$x8",  "$x9",  "$x10", "$x11", "$x12", "$x13", "$x14", "$x15",
+      "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
+      "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$x31"
+   };
+   return reg_names[reg];
+}
+
 static const HChar* nameFCC( UInt reg )
 {
    vassert(reg < 8);
@@ -563,43 +587,43 @@ static void putPC ( IRExpr* e )
    stmt(IRStmt_Put(offsetof(VexGuestLOONGARCH64State, guest_PC), e));
 }
 
-/* ---------------- Floating point registers ---------------- */
+/* ---------------- Floating point / vector registers ---------------- */
 
-static Int offsetFReg ( UInt iregNo )
+static Int offsetXReg ( UInt iregNo )
 {
    switch (iregNo) {
-      case 0:  return offsetof(VexGuestLOONGARCH64State, guest_F0);
-      case 1:  return offsetof(VexGuestLOONGARCH64State, guest_F1);
-      case 2:  return offsetof(VexGuestLOONGARCH64State, guest_F2);
-      case 3:  return offsetof(VexGuestLOONGARCH64State, guest_F3);
-      case 4:  return offsetof(VexGuestLOONGARCH64State, guest_F4);
-      case 5:  return offsetof(VexGuestLOONGARCH64State, guest_F5);
-      case 6:  return offsetof(VexGuestLOONGARCH64State, guest_F6);
-      case 7:  return offsetof(VexGuestLOONGARCH64State, guest_F7);
-      case 8:  return offsetof(VexGuestLOONGARCH64State, guest_F8);
-      case 9:  return offsetof(VexGuestLOONGARCH64State, guest_F9);
-      case 10: return offsetof(VexGuestLOONGARCH64State, guest_F10);
-      case 11: return offsetof(VexGuestLOONGARCH64State, guest_F11);
-      case 12: return offsetof(VexGuestLOONGARCH64State, guest_F12);
-      case 13: return offsetof(VexGuestLOONGARCH64State, guest_F13);
-      case 14: return offsetof(VexGuestLOONGARCH64State, guest_F14);
-      case 15: return offsetof(VexGuestLOONGARCH64State, guest_F15);
-      case 16: return offsetof(VexGuestLOONGARCH64State, guest_F16);
-      case 17: return offsetof(VexGuestLOONGARCH64State, guest_F17);
-      case 18: return offsetof(VexGuestLOONGARCH64State, guest_F18);
-      case 19: return offsetof(VexGuestLOONGARCH64State, guest_F19);
-      case 20: return offsetof(VexGuestLOONGARCH64State, guest_F20);
-      case 21: return offsetof(VexGuestLOONGARCH64State, guest_F21);
-      case 22: return offsetof(VexGuestLOONGARCH64State, guest_F22);
-      case 23: return offsetof(VexGuestLOONGARCH64State, guest_F23);
-      case 24: return offsetof(VexGuestLOONGARCH64State, guest_F24);
-      case 25: return offsetof(VexGuestLOONGARCH64State, guest_F25);
-      case 26: return offsetof(VexGuestLOONGARCH64State, guest_F26);
-      case 27: return offsetof(VexGuestLOONGARCH64State, guest_F27);
-      case 28: return offsetof(VexGuestLOONGARCH64State, guest_F28);
-      case 29: return offsetof(VexGuestLOONGARCH64State, guest_F29);
-      case 30: return offsetof(VexGuestLOONGARCH64State, guest_F30);
-      case 31: return offsetof(VexGuestLOONGARCH64State, guest_F31);
+      case 0:  return offsetof(VexGuestLOONGARCH64State, guest_X0);
+      case 1:  return offsetof(VexGuestLOONGARCH64State, guest_X1);
+      case 2:  return offsetof(VexGuestLOONGARCH64State, guest_X2);
+      case 3:  return offsetof(VexGuestLOONGARCH64State, guest_X3);
+      case 4:  return offsetof(VexGuestLOONGARCH64State, guest_X4);
+      case 5:  return offsetof(VexGuestLOONGARCH64State, guest_X5);
+      case 6:  return offsetof(VexGuestLOONGARCH64State, guest_X6);
+      case 7:  return offsetof(VexGuestLOONGARCH64State, guest_X7);
+      case 8:  return offsetof(VexGuestLOONGARCH64State, guest_X8);
+      case 9:  return offsetof(VexGuestLOONGARCH64State, guest_X9);
+      case 10: return offsetof(VexGuestLOONGARCH64State, guest_X10);
+      case 11: return offsetof(VexGuestLOONGARCH64State, guest_X11);
+      case 12: return offsetof(VexGuestLOONGARCH64State, guest_X12);
+      case 13: return offsetof(VexGuestLOONGARCH64State, guest_X13);
+      case 14: return offsetof(VexGuestLOONGARCH64State, guest_X14);
+      case 15: return offsetof(VexGuestLOONGARCH64State, guest_X15);
+      case 16: return offsetof(VexGuestLOONGARCH64State, guest_X16);
+      case 17: return offsetof(VexGuestLOONGARCH64State, guest_X17);
+      case 18: return offsetof(VexGuestLOONGARCH64State, guest_X18);
+      case 19: return offsetof(VexGuestLOONGARCH64State, guest_X19);
+      case 20: return offsetof(VexGuestLOONGARCH64State, guest_X20);
+      case 21: return offsetof(VexGuestLOONGARCH64State, guest_X21);
+      case 22: return offsetof(VexGuestLOONGARCH64State, guest_X22);
+      case 23: return offsetof(VexGuestLOONGARCH64State, guest_X23);
+      case 24: return offsetof(VexGuestLOONGARCH64State, guest_X24);
+      case 25: return offsetof(VexGuestLOONGARCH64State, guest_X25);
+      case 26: return offsetof(VexGuestLOONGARCH64State, guest_X26);
+      case 27: return offsetof(VexGuestLOONGARCH64State, guest_X27);
+      case 28: return offsetof(VexGuestLOONGARCH64State, guest_X28);
+      case 29: return offsetof(VexGuestLOONGARCH64State, guest_X29);
+      case 30: return offsetof(VexGuestLOONGARCH64State, guest_X30);
+      case 31: return offsetof(VexGuestLOONGARCH64State, guest_X31);
       default: vassert(0);
    }
 }
@@ -619,18 +643,47 @@ static Int offsetFCC ( UInt iregNo )
    }
 }
 
-static IRExpr* getFReg64 ( UInt iregNo )
+/* Find the offset of the laneNo'th lane of type laneTy in the given
+   Xreg.  Since the host is little-endian, the least significant lane
+   has the lowest offset. */
+static Int offsetXRegLane ( UInt xregNo, IRType laneTy, UInt laneNo )
 {
-   return IRExpr_Get(offsetFReg(iregNo), Ity_F64);
+   vassert(host_endness == VexEndnessLE);
+   Int laneSzB;
+   /* Since the host is little-endian, the least significant lane
+      will be at the lowest address. */
+   switch (laneTy) {
+      case Ity_F32:  laneSzB = 4;  break;
+      case Ity_F64:  laneSzB = 8;  break;
+      case Ity_V128: laneSzB = 16; break;
+      case Ity_V256: laneSzB = 32; break;
+      default:       vassert(0);   break;
+   }
+   return offsetXReg(xregNo) + laneNo * laneSzB;
 }
 
-static IRExpr* getFReg32 ( UInt iregNo )
+static IRExpr* getXReg ( UInt xregNo )
+{
+   return IRExpr_Get(offsetXRegLane(xregNo, Ity_V256, 0), Ity_V256);
+}
+
+static IRExpr* getVReg ( UInt vregNo )
+{
+   return IRExpr_Get(offsetXRegLane(vregNo, Ity_V128, 0), Ity_V128);
+}
+
+static IRExpr* getFReg64 ( UInt fregNo )
+{
+   return IRExpr_Get(offsetXRegLane(fregNo, Ity_F64, 0), Ity_F64);
+}
+
+static IRExpr* getFReg32 ( UInt fregNo )
 {
    /* Get FReg32 from FReg64.
-      We could probably use IRExpr_Get(offsetFReg(iregNo), Ity_F32),
+      We could probably use IRExpr_Get(offsetXRegLane(fregNo, Ity_F32, 0), Ity_F32),
       but that would cause Memcheck to report some errors.
     */
-   IRExpr* i = unop(Iop_ReinterpF64asI64, getFReg64(iregNo));
+   IRExpr* i = unop(Iop_ReinterpF64asI64, getFReg64(fregNo));
    return unop(Iop_ReinterpI32asF32, unop(Iop_64to32, i));
 }
 
@@ -676,13 +729,25 @@ static IRExpr* getFCSR ( UInt iregNo )
 static void putFReg32 ( UInt iregNo, IRExpr* e )
 {
    vassert(typeOfIRExpr(irsb->tyenv, e) == Ity_F32);
-   stmt(IRStmt_Put(offsetFReg(iregNo), e));
+   stmt(IRStmt_Put(offsetXReg(iregNo), e));
 }
 
 static void putFReg64 ( UInt iregNo, IRExpr* e )
 {
    vassert(typeOfIRExpr(irsb->tyenv, e) == Ity_F64);
-   stmt(IRStmt_Put(offsetFReg(iregNo), e));
+   stmt(IRStmt_Put(offsetXReg(iregNo), e));
+}
+
+static void putVReg ( UInt iregNo, IRExpr* e )
+{
+   vassert(typeOfIRExpr(irsb->tyenv, e) == Ity_V128);
+   stmt(IRStmt_Put(offsetXReg(iregNo), e));
+}
+
+static void putXReg ( UInt iregNo, IRExpr* e )
+{
+   vassert(typeOfIRExpr(irsb->tyenv, e) == Ity_V256);
+   stmt(IRStmt_Put(offsetXReg(iregNo), e));
 }
 
 static void putFCC ( UInt iregNo, IRExpr* e )

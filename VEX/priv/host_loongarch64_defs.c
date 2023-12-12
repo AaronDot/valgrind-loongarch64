@@ -80,7 +80,7 @@ const RRegUniverse* getRRegUniverse_LOONGARCH64 ( void )
    ru->regs[ru->size++] = hregLOONGARCH64_R30();
    // $r31 is used as guest stack pointer, not available to regalloc.
 
-   // $r12 is used as a chaining/spill/ProfInc temporary
+   // $r12 is used as a chaining/ProfInc/Cmove/genSpill/genReload temporary
    // $r13 is used as a ProfInc temporary
    ru->regs[ru->size++] = hregLOONGARCH64_R14();
    ru->regs[ru->size++] = hregLOONGARCH64_R15();
@@ -1708,14 +1708,27 @@ void genSpill_LOONGARCH64 ( /*OUT*/ HInstr** i1, /*OUT*/ HInstr** i2,
 
    LOONGARCH64AMode* am;
    *i1 = *i2 = NULL;
-   am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
 
    switch (hregClass(rreg)) {
       case HRcInt64:
-         *i1 = LOONGARCH64Instr_Store(LAstore_ST_D, am, rreg);
+         if (offsetB < 1024) {
+            am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
+            *i1 = LOONGARCH64Instr_Store(LAstore_ST_D, am, rreg);
+         } else {
+            am = LOONGARCH64AMode_RR(hregGSP(), hregT0());
+            *i1 = LOONGARCH64Instr_LI(offsetB, hregT0());
+            *i2 = LOONGARCH64Instr_Store(LAstore_STX_D, am, rreg);
+         }
          break;
       case HRcFlt64:
-         *i1 = LOONGARCH64Instr_FpStore(LAfpstore_FST_D, am, rreg);
+         if (offsetB < 1024) {
+            am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
+            *i1 = LOONGARCH64Instr_FpStore(LAfpstore_FST_D, am, rreg);
+         } else {
+            am = LOONGARCH64AMode_RR(hregGSP(), hregT0());
+            *i1 = LOONGARCH64Instr_LI(offsetB, hregT0());
+            *i2 = LOONGARCH64Instr_FpStore(LAfpstore_FSTX_D, am, rreg);
+         }
          break;
       default:
          ppHRegClass(hregClass(rreg));
@@ -1735,14 +1748,27 @@ void genReload_LOONGARCH64 ( /*OUT*/ HInstr** i1, /*OUT*/ HInstr** i2,
 
    LOONGARCH64AMode* am;
    *i1 = *i2 = NULL;
-   am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
 
    switch (hregClass(rreg)) {
       case HRcInt64:
-         *i1 = LOONGARCH64Instr_Load(LAload_LD_D, am, rreg);
+         if (offsetB < 1024) {
+            am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
+            *i1 = LOONGARCH64Instr_Load(LAload_LD_D, am, rreg);
+         } else {
+            am = LOONGARCH64AMode_RR(hregGSP(), hregT0());
+            *i1 = LOONGARCH64Instr_LI(offsetB, hregT0());
+            *i2 = LOONGARCH64Instr_Load(LAload_LDX_D, am, rreg);
+         }
          break;
       case HRcFlt64:
-         *i1 = LOONGARCH64Instr_FpLoad(LAfpload_FLD_D, am, rreg);
+         if (offsetB < 1024) {
+            am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
+            *i1 = LOONGARCH64Instr_FpLoad(LAfpload_FLD_D, am, rreg);
+         } else {
+            am = LOONGARCH64AMode_RR(hregGSP(), hregT0());
+            *i1 = LOONGARCH64Instr_LI(offsetB, hregT0());
+            *i2 = LOONGARCH64Instr_FpLoad(LAfpload_FLDX_D, am, rreg);
+         }
          break;
       default:
          ppHRegClass(hregClass(rreg));

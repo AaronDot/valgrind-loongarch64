@@ -1322,26 +1322,50 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
 
       /* --------- GET --------- */
       case Iex_Get: {
-         LOONGARCH64AMode* am = mkLOONGARCH64AMode_RI(hregGSP(), e->Iex.Get.offset);
-         HReg             dst = newVRegI(env);
-         LOONGARCH64LoadOp op;
-         switch(ty) {
-            case Ity_I8:
-               op = LAload_LD_BU;
-               break;
-            case Ity_I16:
-               op = LAload_LD_HU;
-               break;
-            case Ity_I32:
-               op = LAload_LD_WU;
-               break;
-            case Ity_I64:
-               op = LAload_LD_D;
-               break;
-            default:
-               goto irreducible;
+         HReg dst = newVRegI(env);
+         if (e->Iex.Get.offset < 1024) {
+            LOONGARCH64AMode* am = LOONGARCH64AMode_RI(hregGSP(), e->Iex.Get.offset);
+            LOONGARCH64LoadOp op;
+            switch(ty) {
+               case Ity_I8:
+                  op = LAload_LD_BU;
+                  break;
+               case Ity_I16:
+                  op = LAload_LD_HU;
+                  break;
+               case Ity_I32:
+                  op = LAload_LD_WU;
+                  break;
+               case Ity_I64:
+                  op = LAload_LD_D;
+                  break;
+               default:
+                  goto irreducible;
+            }
+            addInstr(env, LOONGARCH64Instr_Load(op, am, dst));
+         } else {
+            HReg             tmp = newVRegI(env);
+            LOONGARCH64AMode* am = LOONGARCH64AMode_RR(hregGSP(), tmp);
+            LOONGARCH64LoadOp op;
+            switch(ty) {
+               case Ity_I8:
+                  op = LAload_LDX_BU;
+                  break;
+               case Ity_I16:
+                  op = LAload_LDX_HU;
+                  break;
+               case Ity_I32:
+                  op = LAload_LDX_WU;
+                  break;
+               case Ity_I64:
+                  op = LAload_LDX_D;
+                  break;
+               default:
+                  goto irreducible;
+            }
+            addInstr(env, LOONGARCH64Instr_LI(e->Iex.Get.offset, tmp));
+            addInstr(env, LOONGARCH64Instr_Load(op, am, dst));
          }
-         addInstr(env, LOONGARCH64Instr_Load(op, am, dst));
          return dst;
       }
 
@@ -1740,20 +1764,38 @@ static HReg iselFltExpr_wrk ( ISelEnv* env, IRExpr* e )
 
       /* --------- GET --------- */
       case Iex_Get: {
-         LOONGARCH64AMode* am = mkLOONGARCH64AMode_RI(hregGSP(), e->Iex.Get.offset);
-         HReg             dst = newVRegF(env);
-         LOONGARCH64FpLoadOp op;
-         switch(ty) {
-            case Ity_F32:
-               op = LAfpload_FLD_S;
-               break;
-            case Ity_F64:
-               op = LAfpload_FLD_D;
-               break;
-            default:
-               goto irreducible;
+         HReg dst = newVRegF(env);
+         if (e->Iex.Get.offset < 1024) {
+            LOONGARCH64AMode* am = LOONGARCH64AMode_RI(hregGSP(), e->Iex.Get.offset);
+            LOONGARCH64FpLoadOp op;
+            switch(ty) {
+               case Ity_F32:
+                  op = LAfpload_FLD_S;
+                  break;
+               case Ity_F64:
+                  op = LAfpload_FLD_D;
+                  break;
+               default:
+                  goto irreducible;
+            }
+            addInstr(env, LOONGARCH64Instr_FpLoad(op, am, dst));
+         } else {
+            HReg             tmp = newVRegI(env);
+            LOONGARCH64AMode* am = LOONGARCH64AMode_RR(hregGSP(), tmp);
+            LOONGARCH64FpLoadOp op;
+            switch(ty) {
+               case Ity_F32:
+                  op = LAfpload_FLDX_S;
+                  break;
+               case Ity_F64:
+                  op = LAfpload_FLDX_D;
+                  break;
+               default:
+                  goto irreducible;
+            }
+            addInstr(env, LOONGARCH64Instr_LI(e->Iex.Get.offset, tmp));
+            addInstr(env, LOONGARCH64Instr_FpLoad(op, am, dst));
          }
-         addInstr(env, LOONGARCH64Instr_FpLoad(op, am, dst));
          return dst;
       }
 
@@ -2228,41 +2270,81 @@ static void iselStmtPut ( ISelEnv* env, IRStmt* stmt )
    IRType ty = typeOfIRExpr(env->type_env, stmt->Ist.Put.data);
 
    Bool                 fp = False;
-   LOONGARCH64AMode*    am = mkLOONGARCH64AMode_RI(hregGSP(), stmt->Ist.Put.offset);
+   LOONGARCH64AMode*    am;
    LOONGARCH64StoreOp   op;
    LOONGARCH64FpStoreOp fop;
-   switch (ty) {
-      case Ity_I8:
-         op = LAstore_ST_B;
-         break;
-      case Ity_I16:
-         op = LAstore_ST_H;
-         break;
-      case Ity_I32:
-         op = LAstore_ST_W;
-         break;
-      case Ity_I64:
-         op = LAstore_ST_D;
-         break;
-      case Ity_F32:
-         fop = LAfpstore_FST_S;
-         fp = True;
-         break;
-      case Ity_F64:
-         fop = LAfpstore_FST_D;
-         fp = True;
-         break;
-      default:
-         vpanic("iselStmt(loongarch64): Ist_Put");
-         break;
-   }
+   if (stmt->Ist.Put.offset < 1024) {
+      switch (ty) {
+         case Ity_I8:
+            op = LAstore_ST_B;
+            break;
+         case Ity_I16:
+            op = LAstore_ST_H;
+            break;
+         case Ity_I32:
+            op = LAstore_ST_W;
+            break;
+         case Ity_I64:
+            op = LAstore_ST_D;
+            break;
+         case Ity_F32:
+            fop = LAfpstore_FST_S;
+            fp = True;
+            break;
+         case Ity_F64:
+            fop = LAfpstore_FST_D;
+            fp = True;
+            break;
+         default:
+            vpanic("iselStmt(loongarch64): Ist_Put");
+            break;
+      }
 
-   if (fp) {
-      HReg src = iselFltExpr(env, stmt->Ist.Put.data);
-      addInstr(env, LOONGARCH64Instr_FpStore(fop, am, src));
+      am = LOONGARCH64AMode_RI(hregGSP(), stmt->Ist.Put.offset);
+      if (fp) {
+         HReg src = iselFltExpr(env, stmt->Ist.Put.data);
+         addInstr(env, LOONGARCH64Instr_FpStore(fop, am, src));
+      } else {
+         HReg src = iselIntExpr_R(env, stmt->Ist.Put.data);
+         addInstr(env, LOONGARCH64Instr_Store(op, am, src));
+      }
    } else {
-      HReg src = iselIntExpr_R(env, stmt->Ist.Put.data);
-      addInstr(env, LOONGARCH64Instr_Store(op, am, src));
+      switch (ty) {
+         case Ity_I8:
+            op = LAstore_STX_B;
+            break;
+         case Ity_I16:
+            op = LAstore_STX_H;
+            break;
+         case Ity_I32:
+            op = LAstore_STX_W;
+            break;
+         case Ity_I64:
+            op = LAstore_STX_D;
+            break;
+         case Ity_F32:
+            fop = LAfpstore_FSTX_S;
+            fp = True;
+            break;
+         case Ity_F64:
+            fop = LAfpstore_FSTX_D;
+            fp = True;
+            break;
+         default:
+            vpanic("iselStmt(loongarch64): Ist_Put");
+            break;
+      }
+
+      HReg tmp = newVRegI(env);
+      addInstr(env, LOONGARCH64Instr_LI(stmt->Ist.Put.offset, tmp));
+      am = LOONGARCH64AMode_RR(hregGSP(), tmp);
+      if (fp) {
+         HReg src = iselFltExpr(env, stmt->Ist.Put.data);
+         addInstr(env, LOONGARCH64Instr_FpStore(fop, am, src));
+      } else {
+         HReg src = iselIntExpr_R(env, stmt->Ist.Put.data);
+         addInstr(env, LOONGARCH64Instr_Store(op, am, src));
+      }
    }
 }
 

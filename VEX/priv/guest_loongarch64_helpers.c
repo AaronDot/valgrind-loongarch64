@@ -52,6 +52,8 @@ IRExpr* guest_loongarch64_spechelper ( const HChar * function_name,
 void LibVEX_GuestLOONGARCH64_initialise ( /*OUT*/
                                           VexGuestLOONGARCH64State* vex_state )
 {
+   Int i;
+
    /* Event check fail addr and counter. */
    vex_state->host_EvC_FAILADDR = 0;
    vex_state->host_EvC_COUNTER  = 0;
@@ -92,39 +94,41 @@ void LibVEX_GuestLOONGARCH64_initialise ( /*OUT*/
 
    vex_state->guest_PC   = 0; /* Program counter */
 
-   /* FPU Registers */
-   vex_state->guest_F0   = 0xffffffffffffffffULL; /* Argument registers / Return value */
-   vex_state->guest_F1   = 0xffffffffffffffffULL;
-   vex_state->guest_F2   = 0xffffffffffffffffULL; /* Argument registers */
-   vex_state->guest_F3   = 0xffffffffffffffffULL;
-   vex_state->guest_F4   = 0xffffffffffffffffULL;
-   vex_state->guest_F5   = 0xffffffffffffffffULL;
-   vex_state->guest_F6   = 0xffffffffffffffffULL;
-   vex_state->guest_F7   = 0xffffffffffffffffULL;
-   vex_state->guest_F8   = 0xffffffffffffffffULL; /* Temporary registers */
-   vex_state->guest_F9   = 0xffffffffffffffffULL;
-   vex_state->guest_F10  = 0xffffffffffffffffULL;
-   vex_state->guest_F11  = 0xffffffffffffffffULL;
-   vex_state->guest_F12  = 0xffffffffffffffffULL;
-   vex_state->guest_F13  = 0xffffffffffffffffULL;
-   vex_state->guest_F14  = 0xffffffffffffffffULL;
-   vex_state->guest_F15  = 0xffffffffffffffffULL;
-   vex_state->guest_F16  = 0xffffffffffffffffULL;
-   vex_state->guest_F17  = 0xffffffffffffffffULL;
-   vex_state->guest_F18  = 0xffffffffffffffffULL;
-   vex_state->guest_F19  = 0xffffffffffffffffULL;
-   vex_state->guest_F20  = 0xffffffffffffffffULL;
-   vex_state->guest_F21  = 0xffffffffffffffffULL;
-   vex_state->guest_F22  = 0xffffffffffffffffULL;
-   vex_state->guest_F23  = 0xffffffffffffffffULL;
-   vex_state->guest_F24  = 0xffffffffffffffffULL; /* Static registers */
-   vex_state->guest_F25  = 0xffffffffffffffffULL;
-   vex_state->guest_F26  = 0xffffffffffffffffULL;
-   vex_state->guest_F27  = 0xffffffffffffffffULL;
-   vex_state->guest_F28  = 0xffffffffffffffffULL;
-   vex_state->guest_F29  = 0xffffffffffffffffULL;
-   vex_state->guest_F30  = 0xffffffffffffffffULL;
-   vex_state->guest_F31  = 0xffffffffffffffffULL;
+   /* FPU/SIMD Registers */
+   for (i = 0; i < 8; i++) {
+      vex_state->guest_X0[i]   = 0xff;
+      vex_state->guest_X1[i]   = 0xff;
+      vex_state->guest_X2[i]   = 0xff;
+      vex_state->guest_X3[i]   = 0xff;
+      vex_state->guest_X4[i]   = 0xff;
+      vex_state->guest_X5[i]   = 0xff;
+      vex_state->guest_X6[i]   = 0xff;
+      vex_state->guest_X7[i]   = 0xff;
+      vex_state->guest_X8[i]   = 0xff;
+      vex_state->guest_X9[i]   = 0xff;
+      vex_state->guest_X10[i]  = 0xff;
+      vex_state->guest_X11[i]  = 0xff;
+      vex_state->guest_X12[i]  = 0xff;
+      vex_state->guest_X13[i]  = 0xff;
+      vex_state->guest_X14[i]  = 0xff;
+      vex_state->guest_X15[i]  = 0xff;
+      vex_state->guest_X16[i]  = 0xff;
+      vex_state->guest_X17[i]  = 0xff;
+      vex_state->guest_X18[i]  = 0xff;
+      vex_state->guest_X19[i]  = 0xff;
+      vex_state->guest_X20[i]  = 0xff;
+      vex_state->guest_X21[i]  = 0xff;
+      vex_state->guest_X22[i]  = 0xff;
+      vex_state->guest_X23[i]  = 0xff;
+      vex_state->guest_X24[i]  = 0xff;
+      vex_state->guest_X25[i]  = 0xff;
+      vex_state->guest_X26[i]  = 0xff;
+      vex_state->guest_X27[i]  = 0xff;
+      vex_state->guest_X28[i]  = 0xff;
+      vex_state->guest_X29[i]  = 0xff;
+      vex_state->guest_X30[i]  = 0xff;
+      vex_state->guest_X31[i]  = 0xff;
+   }
 
    vex_state->guest_FCC0 = 0; /* Condition Flag Registers */
    vex_state->guest_FCC1 = 0;

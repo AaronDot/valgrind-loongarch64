@@ -1448,38 +1448,38 @@ static Int get_otrack_shadow_offset_wrk ( Int offset, Int szB )
 
    if (o == GOF(PC)  && sz == 8) return -1;  /* slot unused */
 
-   if (o >= GOF(F0)  && o + sz <= GOF(F0)  + SZB(F0))  return GOF(F0);
-   if (o >= GOF(F1)  && o + sz <= GOF(F1)  + SZB(F1))  return GOF(F1);
-   if (o >= GOF(F2)  && o + sz <= GOF(F2)  + SZB(F2))  return GOF(F2);
-   if (o >= GOF(F3)  && o + sz <= GOF(F3)  + SZB(F3))  return GOF(F3);
-   if (o >= GOF(F4)  && o + sz <= GOF(F4)  + SZB(F4))  return GOF(F4);
-   if (o >= GOF(F5)  && o + sz <= GOF(F5)  + SZB(F5))  return GOF(F5);
-   if (o >= GOF(F6)  && o + sz <= GOF(F6)  + SZB(F6))  return GOF(F6);
-   if (o >= GOF(F7)  && o + sz <= GOF(F7)  + SZB(F7))  return GOF(F7);
-   if (o >= GOF(F8)  && o + sz <= GOF(F8)  + SZB(F8))  return GOF(F8);
-   if (o >= GOF(F9)  && o + sz <= GOF(F9)  + SZB(F9))  return GOF(F9);
-   if (o >= GOF(F10) && o + sz <= GOF(F10) + SZB(F10)) return GOF(F10);
-   if (o >= GOF(F11) && o + sz <= GOF(F11) + SZB(F11)) return GOF(F11);
-   if (o >= GOF(F12) && o + sz <= GOF(F12) + SZB(F12)) return GOF(F12);
-   if (o >= GOF(F13) && o + sz <= GOF(F13) + SZB(F13)) return GOF(F13);
-   if (o >= GOF(F14) && o + sz <= GOF(F14) + SZB(F14)) return GOF(F14);
-   if (o >= GOF(F15) && o + sz <= GOF(F15) + SZB(F15)) return GOF(F15);
-   if (o >= GOF(F16) && o + sz <= GOF(F16) + SZB(F16)) return GOF(F16);
-   if (o >= GOF(F17) && o + sz <= GOF(F17) + SZB(F17)) return GOF(F17);
-   if (o >= GOF(F18) && o + sz <= GOF(F18) + SZB(F18)) return GOF(F18);
-   if (o >= GOF(F19) && o + sz <= GOF(F19) + SZB(F19)) return GOF(F19);
-   if (o >= GOF(F20) && o + sz <= GOF(F20) + SZB(F20)) return GOF(F20);
-   if (o >= GOF(F21) && o + sz <= GOF(F21) + SZB(F21)) return GOF(F21);
-   if (o >= GOF(F22) && o + sz <= GOF(F22) + SZB(F22)) return GOF(F22);
-   if (o >= GOF(F23) && o + sz <= GOF(F23) + SZB(F23)) return GOF(F23);
-   if (o >= GOF(F24) && o + sz <= GOF(F24) + SZB(F24)) return GOF(F24);
-   if (o >= GOF(F25) && o + sz <= GOF(F25) + SZB(F25)) return GOF(F25);
-   if (o >= GOF(F26) && o + sz <= GOF(F26) + SZB(F26)) return GOF(F26);
-   if (o >= GOF(F27) && o + sz <= GOF(F27) + SZB(F27)) return GOF(F27);
-   if (o >= GOF(F28) && o + sz <= GOF(F28) + SZB(F28)) return GOF(F28);
-   if (o >= GOF(F29) && o + sz <= GOF(F29) + SZB(F29)) return GOF(F29);
-   if (o >= GOF(F30) && o + sz <= GOF(F30) + SZB(F30)) return GOF(F30);
-   if (o >= GOF(F31) && o + sz <= GOF(F31) + SZB(F31)) return GOF(F31);
+   if (o >= GOF(X0)  && o + sz <= GOF(X0)  + SZB(X0))  return GOF(X0);
+   if (o >= GOF(X1)  && o + sz <= GOF(X1)  + SZB(X1))  return GOF(X1);
+   if (o >= GOF(X2)  && o + sz <= GOF(X2)  + SZB(X2))  return GOF(X2);
+   if (o >= GOF(X3)  && o + sz <= GOF(X3)  + SZB(X3))  return GOF(X3);
+   if (o >= GOF(X4)  && o + sz <= GOF(X4)  + SZB(X4))  return GOF(X4);
+   if (o >= GOF(X5)  && o + sz <= GOF(X5)  + SZB(X5))  return GOF(X5);
+   if (o >= GOF(X6)  && o + sz <= GOF(X6)  + SZB(X6))  return GOF(X6);
+   if (o >= GOF(X7)  && o + sz <= GOF(X7)  + SZB(X7))  return GOF(X7);
+   if (o >= GOF(X8)  && o + sz <= GOF(X8)  + SZB(X8))  return GOF(X8);
+   if (o >= GOF(X9)  && o + sz <= GOF(X9)  + SZB(X9))  return GOF(X9);
+   if (o >= GOF(X10) && o + sz <= GOF(X10) + SZB(X10)) return GOF(X10);
+   if (o >= GOF(X11) && o + sz <= GOF(X11) + SZB(X11)) return GOF(X11);
+   if (o >= GOF(X12) && o + sz <= GOF(X12) + SZB(X12)) return GOF(X12);
+   if (o >= GOF(X13) && o + sz <= GOF(X13) + SZB(X13)) return GOF(X13);
+   if (o >= GOF(X14) && o + sz <= GOF(X14) + SZB(X14)) return GOF(X14);
+   if (o >= GOF(X15) && o + sz <= GOF(X15) + SZB(X15)) return GOF(X15);
+   if (o >= GOF(X16) && o + sz <= GOF(X16) + SZB(X16)) return GOF(X16);
+   if (o >= GOF(X17) && o + sz <= GOF(X17) + SZB(X17)) return GOF(X17);
+   if (o >= GOF(X18) && o + sz <= GOF(X18) + SZB(X18)) return GOF(X18);
+   if (o >= GOF(X19) && o + sz <= GOF(X19) + SZB(X19)) return GOF(X19);
+   if (o >= GOF(X20) && o + sz <= GOF(X20) + SZB(X20)) return GOF(X20);
+   if (o >= GOF(X21) && o + sz <= GOF(X21) + SZB(X21)) return GOF(X21);
+   if (o >= GOF(X22) && o + sz <= GOF(X22) + SZB(X22)) return GOF(X22);
+   if (o >= GOF(X23) && o + sz <= GOF(X23) + SZB(X23)) return GOF(X23);
+   if (o >= GOF(X24) && o + sz <= GOF(X24) + SZB(X24)) return GOF(X24);
+   if (o >= GOF(X25) && o + sz <= GOF(X25) + SZB(X25)) return GOF(X25);
+   if (o >= GOF(X26) && o + sz <= GOF(X26) + SZB(X26)) return GOF(X26);
+   if (o >= GOF(X27) && o + sz <= GOF(X27) + SZB(X27)) return GOF(X27);
+   if (o >= GOF(X28) && o + sz <= GOF(X28) + SZB(X28)) return GOF(X28);
+   if (o >= GOF(X29) && o + sz <= GOF(X29) + SZB(X29)) return GOF(X29);
+   if (o >= GOF(X30) && o + sz <= GOF(X30) + SZB(X30)) return GOF(X30);
+   if (o >= GOF(X31) && o + sz <= GOF(X31) + SZB(X31)) return GOF(X31);
 
    if (o == GOF(FCC0) && sz == 1) return -1;  /* slot unused */
    if (o == GOF(FCC1) && sz == 1) return -1;  /* slot unused */
