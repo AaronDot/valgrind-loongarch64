@@ -912,7 +912,7 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
                addInstr(env, LOONGARCH64Instr_Binary(op, src2, src1, dst));
                return dst;
             }
-            case Iop_And32: {
+            case Iop_And8: case Iop_And32: {
                HReg            dst = newVRegI(env);
                HReg           src1 = iselIntExpr_R(env, e->Iex.Binop.arg1);
                LOONGARCH64RI* src2 = iselIntExpr_RI(env, e->Iex.Binop.arg2, 12, False);
