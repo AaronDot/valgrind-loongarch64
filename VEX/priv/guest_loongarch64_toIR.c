@@ -9178,6 +9178,64 @@ static Bool gen_vst ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vstelm ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo*  abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt rj     = SLICE(insn, 9, 5);
+   UInt si8    = SLICE(insn, 17, 10);
+   UInt insImm = SLICE(insn, 23, 18);
+
+   IRExpr* addr;
+   UInt idx, insSz;
+
+   if ((insImm & 0x30) == 0x20) {     // 10_idx; b
+      idx = insImm & 0xf;
+      insSz = 0;
+   } else if ((insImm & 0x38) == 0x10) { // 01_idx; h
+      idx = insImm & 0x7;
+      insSz = 1;
+   } else if ((insImm & 0x3c) == 0x8) { // 001_idx; w
+      idx = insImm & 0x3;
+      insSz = 2;
+   } else if ((insImm & 0x3e) == 0x4) { // 0001_idx; d
+      idx = insImm & 0x1;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   switch (insSz) {
+      case 0b00:
+         addr = binop(Iop_Add64,
+                      getIReg64(rj),
+                      mkU64(extend64(si8, 8)));
+         break;
+      case 0b01:
+         addr = binop(Iop_Add64,
+                      getIReg64(rj),
+                      mkU64(extend64(si8 << 1, 9)));
+         break;
+      case 0b10:
+         addr = binop(Iop_Add64,
+                      getIReg64(rj),
+                      mkU64(extend64(si8 << 2, 10)));
+         break;
+      case 0b11:
+         addr = binop(Iop_Add64,
+                      getIReg64(rj),
+                      mkU64(extend64(si8 << 3, 11)));
+         break;
+      default: vassert(0);
+   }
+
+   DIP("vstelm.%s %s, %s, %d, %u\n", mkInsSize(insSz), nameVReg(vd), nameIReg(rj),
+                                     (Int)extend32(si8, 8), idx);
+   store(addr, binop(mkVecGetElem(insSz), getVReg(vd), mkU8(idx)));
+   return True;
+}
+
 
 /*------------------------------------------------------------*/
 /*--- Disassemble a single LOONGARCH64 instruction         ---*/
@@ -10054,6 +10112,8 @@ static Bool disInstr_LOONGARCH64_WRK_00_1100 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 25, 24)) {
       case 0b00:
          ok = gen_vldrepl(dres, insn, archinfo, abiinfo); break;
+      case 0b01:
+         ok = gen_vstelm(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
