@@ -8664,6 +8664,56 @@ static Bool gen_vmsk ( DisResult* dres, UInt insn,
 /*--- Helpers for Vector bit operation insns               ---*/
 /*------------------------------------------------------------*/
 
+static Bool gen_logical_v ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insTy = SLICE(insn, 17, 15);
+
+   IRTemp res  = newTempV128();
+   IRTemp srcL = newTempV128();
+   IRTemp srcR = newTempV128();
+   assign(srcL, getVReg(vj));
+   assign(srcR, getVReg(vk));
+
+   switch (insTy) {
+      case 0b100: //vand.v
+         assign(res, binop(Iop_AndV128, mkexpr(srcL), mkexpr(srcR)));
+         break;
+      case 0b101: //vor.v
+         assign(res, binop(Iop_OrV128,  mkexpr(srcL), mkexpr(srcR)));
+         break;
+      case 0b110: //vxor.v
+         assign(res, binop(Iop_XorV128, mkexpr(srcL), mkexpr(srcR)));
+         break;
+      case 0b111: //vnor.v
+         assign(res, unop(Iop_NotV128, binop(Iop_OrV128,
+                                             mkexpr(srcL), mkexpr(srcR))));
+         break;
+      case 0b000: //vandn.v
+         assign(res, binop(Iop_AndV128,
+                           unop(Iop_NotV128, mkexpr(srcL)),
+                           mkexpr(srcR)));
+         break;
+      case 0b001: //vorn.v
+         assign(res, binop(Iop_OrV128,
+                           mkexpr(srcL),
+                           unop(Iop_NotV128, mkexpr(srcR))));
+         break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[8] = { "vandn.v", "vorn.v", "", "",
+                          "vand.v",  "vor.v", "vxor.v", "vnor.v" };
+   DIP("%s %s, %s, %s\n", nm[insTy], nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
+
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector String Processing insns           ---*/
 /*------------------------------------------------------------*/
@@ -10473,11 +10523,10 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 21, 17)) {
       case 0b01101:
       case 0b01110:
-         ok = gen_vilv(dres, insn, archinfo, abiinfo);
-         break;
-      default:
-         ok = False;
-         break;
+         ok = gen_vilv(dres, insn, archinfo, abiinfo); break;
+      case 0b10011: case 0b10100:
+         ok = gen_logical_v(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
    }
 
    return ok;
