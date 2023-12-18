@@ -8714,6 +8714,77 @@ static Bool gen_logical_v ( DisResult* dres, UInt insn,
 }
 
 
+static Bool gen_vbiti ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo*  abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt vj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 17, 10);
+   UInt insTy  = SLICE(insn, 19, 18);
+
+   IRTemp c1   = newTempV128();
+   IRTemp argR = newTempV128();
+   IRTemp res  = newTempV128();
+   UInt insSz, uImm;
+
+   if ((insImm & 0xf8) == 0x8) {         // 00001mmm; b
+      uImm = insImm & 0x07;
+      insSz = 0;
+   } else if ((insImm & 0xf0) == 0x10) { // 0001mmmm; h
+      uImm = insImm & 0x0f;
+      insSz = 1;
+   } else if ((insImm & 0xe0) == 0x20) { // 001mmmmm; w
+      uImm = insImm & 0x1f;
+      insSz = 2;
+   } else if ((insImm & 0xc0) == 0x40) { // 01mmmmmm; d
+      uImm = insImm & 0x3f;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   switch (insSz) {
+      case 0b00: {
+         assign(c1, unop(Iop_Dup8x16, mkU8(1)));
+         break;
+      }
+      case 0b01: {
+         assign(c1, unop(Iop_Dup16x8, mkU16(1)));
+         break;
+      }
+      case 0b10: {
+         assign(c1, unop(Iop_Dup32x4, mkU32(1)));
+         break;
+      }
+      case 0b11: {
+         assign(c1, binop(Iop_64HLtoV128, mkU64(1), mkU64(1)));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   assign(argR, binop(mkVecSHLN(insSz), mkexpr(c1), mkU8(uImm)));
+   switch (insTy) {
+      case 0b00: //vbitclri
+         assign(res, binop(Iop_AndV128,
+                           getVReg(vj), unop(Iop_NotV128, mkexpr(argR))));
+         break;
+      case 0b01: //vbitseti
+         assign(res, binop(Iop_OrV128, getVReg(vj), mkexpr(argR)));
+         break;
+      case 0b10: //vbitrevi
+         assign(res, binop(Iop_XorV128, getVReg(vj), mkexpr(argR)));
+         break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[3] = { "vbitrevi", "vbitclri", "vbitseti" };
+   DIP("%s.%s %s, %u\n", nm[insTy], mkInsSize(insSz), nameVReg(vd), uImm);
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector String Processing insns           ---*/
 /*------------------------------------------------------------*/
@@ -10658,6 +10729,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_1100 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0100: case 0b0101: case 0b0110:
+         ok = gen_vbiti(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
                                                const VexArchInfo* archinfo,
                                                const VexAbiInfo*  abiinfo )
@@ -10672,17 +10758,15 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
 
    switch (SLICE(insn, 25, 22)) {
       case 0b0000:
-         ok = disInstr_LOONGARCH64_WRK_01_1100_0000(dres, insn, archinfo, abiinfo);
-         break;
+         ok = disInstr_LOONGARCH64_WRK_01_1100_0000(dres, insn, archinfo, abiinfo); break;
       case 0b0001:
-         ok = disInstr_LOONGARCH64_WRK_01_1100_0001(dres, insn, archinfo, abiinfo);
-         break;
+         ok = disInstr_LOONGARCH64_WRK_01_1100_0001(dres, insn, archinfo, abiinfo); break;
       case 0b0100:
-         ok = disInstr_LOONGARCH64_WRK_01_1100_0100(dres, insn, archinfo, abiinfo);
-         break;
+         ok = disInstr_LOONGARCH64_WRK_01_1100_0100(dres, insn, archinfo, abiinfo); break;
       case 0b1010:
-         ok = disInstr_LOONGARCH64_WRK_01_1100_1010(dres, insn, archinfo, abiinfo);
-         break;
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1010(dres, insn, archinfo, abiinfo); break;
+      case 0b1100:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1100(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False; break;
    }
