@@ -2742,7 +2742,7 @@ void genReload_LOONGARCH64 ( /*OUT*/ HInstr** i1, /*OUT*/ HInstr** i2,
          } else {
             am = LOONGARCH64AMode_RR(hregGSP(), hregT0());
             *i1 = LOONGARCH64Instr_LI(offsetB, hregT0());
-            *i2 = LOONGARCH64Instr_VecLoad(LAvecload_VLD, am, rreg);
+            *i2 = LOONGARCH64Instr_VecLoad(LAvecload_VLDX, am, rreg);
          }
          break;
       default:
