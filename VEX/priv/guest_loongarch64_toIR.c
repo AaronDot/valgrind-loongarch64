@@ -9075,6 +9075,23 @@ static Bool gen_vld ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvld ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt xd   = SLICE(insn, 4, 0);
+   UInt rj   = SLICE(insn, 9, 5);
+   UInt si12 = SLICE(insn, 21, 10);
+
+   IRExpr* addr = binop(Iop_Add64,
+                        getIReg64(rj),
+                        mkU64(extend64(si12, 12)));
+   DIP("xvld %s, %s, %d\n", nameXReg(xd), nameIReg(rj),
+                           (Int)extend32(si12, 12));
+   putXReg(xd, load(Ity_V256, addr));
+   return True;
+}
+
 static Bool gen_vldrepl ( DisResult* dres, UInt insn,
                           const VexArchInfo* archinfo,
                           const VexAbiInfo*  abiinfo )
@@ -9157,6 +9174,23 @@ static Bool gen_vst ( DisResult* dres, UInt insn,
    DIP("vst %s, %s, %d\n", nameVReg(vd), nameIReg(rj),
                            (Int)extend32(si12, 12));
    store(addr, getVReg(vd));
+   return True;
+}
+
+static Bool gen_xvst ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt xd   = SLICE(insn, 4, 0);
+   UInt rj   = SLICE(insn, 9, 5);
+   UInt si12 = SLICE(insn, 21, 10);
+
+   IRExpr* addr = binop(Iop_Add64,
+                        getIReg64(rj),
+                        mkU64(extend64(si12, 12)));
+   DIP("xvst %s, %s, %d\n", nameXReg(xd), nameIReg(rj),
+                            (Int)extend32(si12, 12));
+   store(addr, getXReg(xd));
    return True;
 }
 
@@ -10070,6 +10104,10 @@ static Bool disInstr_LOONGARCH64_WRK_00_1011 ( DisResult* dres, UInt insn,
          ok = gen_vld(dres, insn, archinfo, abiinfo); break;
       case 0b01:
          ok = gen_vst(dres, insn, archinfo, abiinfo); break;
+      case 0b10:
+         ok = gen_xvld(dres, insn, archinfo, abiinfo); break;
+      case 0b11:
+         ok = gen_xvst(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
    return ok;
