@@ -534,68 +534,68 @@ static IRExpr* extendU ( IRType ty, IRExpr* e )
 //    return ops[size];
 // }
 
-static IROp mkVecADD ( UInt size ) {
-   const IROp ops[5]
-      = { Iop_Add8x16, Iop_Add16x8, Iop_Add32x4, Iop_Add64x2, Iop_Add128x1 };
-   vassert(size < 5);
-   return ops[size];
-}
+// static IROp mkVecADD ( UInt size ) {
+//    const IROp ops[5]
+//       = { Iop_Add8x16, Iop_Add16x8, Iop_Add32x4, Iop_Add64x2, Iop_Add128x1 };
+//    vassert(size < 5);
+//    return ops[size];
+// }
 
-static IROp mkVecQADDU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_QAdd8Ux16, Iop_QAdd16Ux8, Iop_QAdd32Ux4, Iop_QAdd64Ux2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecQADDU ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_QAdd8Ux16, Iop_QAdd16Ux8, Iop_QAdd32Ux4, Iop_QAdd64Ux2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecQADDS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_QAdd8Sx16, Iop_QAdd16Sx8, Iop_QAdd32Sx4, Iop_QAdd64Sx2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecQADDS ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_QAdd8Sx16, Iop_QAdd16Sx8, Iop_QAdd32Sx4, Iop_QAdd64Sx2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecSUB ( UInt size ) {
-   const IROp ops[5]
-      = { Iop_Sub8x16, Iop_Sub16x8, Iop_Sub32x4, Iop_Sub64x2, Iop_Sub128x1 };
-   vassert(size < 5);
-   return ops[size];
-}
+// static IROp mkVecSUB ( UInt size ) {
+//    const IROp ops[5]
+//       = { Iop_Sub8x16, Iop_Sub16x8, Iop_Sub32x4, Iop_Sub64x2, Iop_Sub128x1 };
+//    vassert(size < 5);
+//    return ops[size];
+// }
 
-static IROp mkVecQSUBU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_QSub8Ux16, Iop_QSub16Ux8, Iop_QSub32Ux4, Iop_QSub64Ux2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecQSUBU ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_QSub8Ux16, Iop_QSub16Ux8, Iop_QSub32Ux4, Iop_QSub64Ux2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecQSUBS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_QSub8Sx16, Iop_QSub16Sx8, Iop_QSub32Sx4, Iop_QSub64Sx2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecQSUBS ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_QSub8Sx16, Iop_QSub16Sx8, Iop_QSub32Sx4, Iop_QSub64Sx2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecMUL ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Mul8x16, Iop_Mul16x8, Iop_Mul32x4, Iop_INVALID };
-   vassert(size < 3);
-   return ops[size];
-}
+// static IROp mkVecMUL ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Mul8x16, Iop_Mul16x8, Iop_Mul32x4, Iop_INVALID };
+//    vassert(size < 3);
+//    return ops[size];
+// }
 
-static IROp mkVecMUHS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_MulHi8Sx16, Iop_MulHi16Sx8, Iop_MulHi32Sx4, Iop_INVALID };
-   vassert(size < 3);
-   return ops[size];
-}
+// static IROp mkVecMUHS ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_MulHi8Sx16, Iop_MulHi16Sx8, Iop_MulHi32Sx4, Iop_INVALID };
+//    vassert(size < 3);
+//    return ops[size];
+// }
 
-static IROp mkVecMUHU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_MulHi8Ux16, Iop_MulHi16Ux8, Iop_MulHi32Ux4, Iop_INVALID };
-   vassert(size < 3);
-   return ops[size];
-}
+// static IROp mkVecMUHU ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_MulHi8Ux16, Iop_MulHi16Ux8, Iop_MulHi32Ux4, Iop_INVALID };
+//    vassert(size < 3);
+//    return ops[size];
+// }
 
 static IROp mkVecPACKOD ( UInt size ) {
    const IROp ops[4]
@@ -613,19 +613,19 @@ static IROp mkVecPACKEV ( UInt size ) {
    return ops[size];
 }
 
-static IROp mkVecAVGU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Avg8Ux16, Iop_Avg16Ux8, Iop_Avg32Ux4, Iop_Avg64Ux2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecAVGU ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Avg8Ux16, Iop_Avg16Ux8, Iop_Avg32Ux4, Iop_Avg64Ux2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecAVGS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Avg8Sx16, Iop_Avg16Sx8, Iop_Avg32Sx4, Iop_Avg64Sx2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecAVGS ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Avg8Sx16, Iop_Avg16Sx8, Iop_Avg32Sx4, Iop_Avg64Sx2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
 static IROp mkVecCMPEQ ( UInt size ) {
    const IROp ops[4]
@@ -664,12 +664,12 @@ static IROp mkVecINTERLEAVEHI ( UInt size ) {
    return ops[size];
 }
 
-static IROp mkVecABS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Abs8x16, Iop_Abs16x8, Iop_Abs32x4, Iop_Abs64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecABS ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Abs8x16, Iop_Abs16x8, Iop_Abs32x4, Iop_Abs64x2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
 static IROp mkVecMAXU ( UInt size ) {
    const IROp ops[4]
@@ -699,26 +699,26 @@ static IROp mkVecMINS ( UInt size ) {
    return ops[size];
 }
 
-static IROp mkVecSHL ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Shl8x16, Iop_Shl16x8, Iop_Shl32x4, Iop_Shl64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecSHL ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Shl8x16, Iop_Shl16x8, Iop_Shl32x4, Iop_Shl64x2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecSHR ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Shr8x16, Iop_Shr16x8, Iop_Shr32x4, Iop_Shr64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecSHR ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Shr8x16, Iop_Shr16x8, Iop_Shr32x4, Iop_Shr64x2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecSAR ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Sar8x16, Iop_Sar16x8, Iop_Sar32x4, Iop_Sar64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecSAR ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Sar8x16, Iop_Sar16x8, Iop_Sar32x4, Iop_Sar64x2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
 static IROp mkVecSHLN ( UInt size ) {
    const IROp ops[4]
@@ -734,26 +734,26 @@ static IROp mkVecSHRN ( UInt size ) {
    return ops[size];
 }
 
-static IROp mkVecSARN ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_SarN8x16, Iop_SarN16x8, Iop_SarN32x4, Iop_SarN64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecSARN ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_SarN8x16, Iop_SarN16x8, Iop_SarN32x4, Iop_SarN64x2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
-static IROp mkVecCLS ( UInt size ) {
-   const IROp ops[3]
-      = { Iop_Cls8x16, Iop_Cls16x8, Iop_Cls32x4 };
-   vassert(size < 3);
-   return ops[size];
-}
+// static IROp mkVecCLS ( UInt size ) {
+//    const IROp ops[3]
+//       = { Iop_Cls8x16, Iop_Cls16x8, Iop_Cls32x4 };
+//    vassert(size < 3);
+//    return ops[size];
+// }
 
-static IROp mkVecCLZ ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Clz8x16, Iop_Clz16x8, Iop_Clz32x4, Iop_Clz64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
+// static IROp mkVecCLZ ( UInt size ) {
+//    const IROp ops[4]
+//       = { Iop_Clz8x16, Iop_Clz16x8, Iop_Clz32x4, Iop_Clz64x2 };
+//    vassert(size < 4);
+//    return ops[size];
+// }
 
 static IROp mkVecGetElem ( UInt size ) {
    const IROp ops[4]
@@ -770,12 +770,12 @@ static const HChar *mkInsSize ( UInt size ) {
    return insSize[size];
 }
 
-static const HChar *mkInsExtSize ( UInt size ) {
-   const HChar *insSize[8]
-      = { "h.b",  "w.h",  "d.w",  "q.d", "hu.bu", "wu.hu", "du.wu", "qu.du" };
-   vassert(size < 8);
-   return insSize[size];
-}
+// static const HChar *mkInsExtSize ( UInt size ) {
+//    const HChar *insSize[8]
+//       = { "h.b",  "w.h",  "d.w",  "q.d", "hu.bu", "wu.hu", "du.wu", "qu.du" };
+//    vassert(size < 8);
+//    return insSize[size];
+// }
 
 
 /*------------------------------------------------------------*/
