@@ -518,6 +518,100 @@ static IRExpr* extendU ( IRType ty, IRExpr* e )
    }
 }
 
+/* Break a V128-bit value up into four 32-bit ints. */
+static void breakupV128to32s ( IRTemp t128,
+                               /*OUTs*/
+                               IRTemp* t3, IRTemp* t2,
+                               IRTemp* t1, IRTemp* t0 )
+{
+   IRTemp hi64 = newTemp(Ity_I64);
+   IRTemp lo64 = newTemp(Ity_I64);
+   assign( hi64, unop(Iop_V128HIto64, mkexpr(t128)) );
+   assign( lo64, unop(Iop_V128to64,   mkexpr(t128)) );
+
+   vassert(t0 && *t0 == IRTemp_INVALID);
+   vassert(t1 && *t1 == IRTemp_INVALID);
+   vassert(t2 && *t2 == IRTemp_INVALID);
+   vassert(t3 && *t3 == IRTemp_INVALID);
+
+   *t0 = newTemp(Ity_I32);
+   *t1 = newTemp(Ity_I32);
+   *t2 = newTemp(Ity_I32);
+   *t3 = newTemp(Ity_I32);
+   assign( *t0, unop(Iop_64to32,   mkexpr(lo64)) );
+   assign( *t1, unop(Iop_64HIto32, mkexpr(lo64)) );
+   assign( *t2, unop(Iop_64to32,   mkexpr(hi64)) );
+   assign( *t3, unop(Iop_64HIto32, mkexpr(hi64)) );
+}
+
+/* Construct a V128-bit value from four 32-bit ints. */
+// static IRExpr* mkV128from32s ( IRTemp t3, IRTemp t2,
+//                                IRTemp t1, IRTemp t0 )
+// {
+//    return
+//       binop( Iop_64HLtoV128,
+//              binop(Iop_32HLto64, mkexpr(t3), mkexpr(t2)),
+//              binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0))
+//    );
+// }
+
+/* Break a 64-bit value up into four 16-bit ints. */
+// static void breakup64to16s ( IRTemp t64,
+//                              /*OUTs*/
+//                              IRTemp* t3, IRTemp* t2,
+//                              IRTemp* t1, IRTemp* t0 )
+// {
+//    IRTemp hi32 = newTemp(Ity_I32);
+//    IRTemp lo32 = newTemp(Ity_I32);
+//    assign( hi32, unop(Iop_64HIto32, mkexpr(t64)) );
+//    assign( lo32, unop(Iop_64to32,   mkexpr(t64)) );
+
+//    vassert(t0 && *t0 == IRTemp_INVALID);
+//    vassert(t1 && *t1 == IRTemp_INVALID);
+//    vassert(t2 && *t2 == IRTemp_INVALID);
+//    vassert(t3 && *t3 == IRTemp_INVALID);
+
+//    *t0 = newTemp(Ity_I16);
+//    *t1 = newTemp(Ity_I16);
+//    *t2 = newTemp(Ity_I16);
+//    *t3 = newTemp(Ity_I16);
+//    assign( *t0, unop(Iop_32to16,   mkexpr(lo32)) );
+//    assign( *t1, unop(Iop_32HIto16, mkexpr(lo32)) );
+//    assign( *t2, unop(Iop_32to16,   mkexpr(hi32)) );
+//    assign( *t3, unop(Iop_32HIto16, mkexpr(hi32)) );
+// }
+
+/* Construct a 64-bit value from four 16-bit ints. */
+// static IRExpr* mk64from16s ( IRTemp t3, IRTemp t2,
+//                              IRTemp t1, IRTemp t0 )
+// {
+//    return
+//       binop( Iop_32HLto64,
+//              binop(Iop_16HLto32, mkexpr(t3), mkexpr(t2)),
+//              binop(Iop_16HLto32, mkexpr(t1), mkexpr(t0))
+//    );
+// }
+
+/* Break a V256-bit value up into four 64-bit ints. */
+static void breakupV256to64s ( IRTemp t256,
+                               /*OUTs*/
+                               IRTemp* t3, IRTemp* t2,
+                               IRTemp* t1, IRTemp* t0 )
+{
+   vassert(t0 && *t0 == IRTemp_INVALID);
+   vassert(t1 && *t1 == IRTemp_INVALID);
+   vassert(t2 && *t2 == IRTemp_INVALID);
+   vassert(t3 && *t3 == IRTemp_INVALID);
+   *t0 = newTemp(Ity_I64);
+   *t1 = newTemp(Ity_I64);
+   *t2 = newTemp(Ity_I64);
+   *t3 = newTemp(Ity_I64);
+   assign( *t0, unop(Iop_V256to64_0, mkexpr(t256)) );
+   assign( *t1, unop(Iop_V256to64_1, mkexpr(t256)) );
+   assign( *t2, unop(Iop_V256to64_2, mkexpr(t256)) );
+   assign( *t3, unop(Iop_V256to64_3, mkexpr(t256)) );
+}
+
 /* Break a V256-bit value up into two V128s. */
 static void breakupV256toV128s ( IRTemp t256,
                                  IRTemp* hi, IRTemp* lo )
@@ -528,6 +622,49 @@ static void breakupV256toV128s ( IRTemp t256,
    *lo = newTemp(Ity_V128);
    assign(*hi, unop(Iop_V256toV128_1, mkexpr(t256)));
    assign(*lo, unop(Iop_V256toV128_0, mkexpr(t256)));
+}
+
+/* Break a V256-bit value up into eight 32-bit ints.  */
+static void breakupV256to32s ( IRTemp t256,
+                               /*OUTs*/
+                               IRTemp* t7, IRTemp* t6,
+                               IRTemp* t5, IRTemp* t4,
+                               IRTemp* t3, IRTemp* t2,
+                               IRTemp* t1, IRTemp* t0 )
+{
+   IRTemp t128_1 = IRTemp_INVALID;
+   IRTemp t128_0 = IRTemp_INVALID;
+   breakupV256toV128s( t256, &t128_1, &t128_0 );
+   breakupV128to32s( t128_1, t7, t6, t5, t4 );
+   breakupV128to32s( t128_0, t3, t2, t1, t0 );
+}
+
+/* Construct a V256-bit value from eight 32-bit ints. */
+// static IRExpr* mkV256from32s ( IRTemp t7, IRTemp t6,
+//                                IRTemp t5, IRTemp t4,
+//                                IRTemp t3, IRTemp t2,
+//                                IRTemp t1, IRTemp t0 )
+// {
+//    return
+//       binop( Iop_V128HLtoV256,
+//              binop( Iop_64HLtoV128,
+//                     binop(Iop_32HLto64, mkexpr(t7), mkexpr(t6)),
+//                     binop(Iop_32HLto64, mkexpr(t5), mkexpr(t4)) ),
+//              binop( Iop_64HLtoV128,
+//                     binop(Iop_32HLto64, mkexpr(t3), mkexpr(t2)),
+//                     binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0)) )
+//    );
+// }
+
+/* Construct a V256-bit value from four 64-bit ints. */
+static IRExpr* mkV256from64s ( IRTemp t3, IRTemp t2,
+                               IRTemp t1, IRTemp t0 )
+{
+   return
+      binop( Iop_V128HLtoV256,
+             binop(Iop_64HLtoV128, mkexpr(t3), mkexpr(t2)),
+             binop(Iop_64HLtoV128, mkexpr(t1), mkexpr(t0))
+   );
 }
 
 // static IROp mkVecEXTHTS ( UInt size ) {
@@ -8984,6 +9121,46 @@ static Bool gen_vreplgr2vr ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvpickve ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 15, 10);
+
+   UInt sImm, insSz;
+   IRTemp res = newTemp(Ity_I64);
+   IRTemp z64 = newTemp(Ity_I64);
+   IRTemp src = newTemp(Ity_V256);
+   assign(z64, mkU64(0));
+   assign(src, getXReg(xj));
+
+   if ((insImm & 0x38) == 0x30) {     // 110ui3; w
+      IRTemp s[8];
+      s[7] = s[6] = s[5] = s[4] = s[3] = s[2] = s[1] = s[0] = IRTemp_INVALID;
+      breakupV256to32s(src, &s[7], &s[6], &s[5], &s[4],
+                                    &s[3], &s[2], &s[1], &s[0]);
+      sImm = insImm & 0x7;
+      insSz = 0;
+      assign(res, extendU(Ity_I32, mkexpr(s[sImm])));
+   } else if ((insImm & 0x3c) == 0x38) { // 1110ui2; d
+      IRTemp s[4];
+      s[3] = s[2] = s[1] = s[0] = IRTemp_INVALID;
+      breakupV256to64s(src, &s[3], &s[2], &s[1], &s[0]);
+      sImm = insImm & 0x3;
+      insSz = 1;
+      assign(res, mkexpr(s[sImm]));
+   } else {
+      vassert(0);
+   }
+
+   const HChar arr = "wd"[insSz];
+   DIP("xvpickve.%c %s, %s, %u", arr, nameXReg(xd), nameXReg(xj), sImm);
+   putXReg(xd, mkV256from64s(z64, z64, z64, res));
+   return True;
+}
+
 static Bool gen_evod ( DisResult* dres, UInt insn,
                        const VexArchInfo* archinfo,
                        const VexAbiInfo* abiinfo )
@@ -10956,6 +11133,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0000:
+         ok = gen_xvpickve(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
                                                const VexArchInfo* archinfo,
                                                const VexAbiInfo*  abiinfo )
@@ -10971,6 +11163,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 25, 22)) {
       case 0b1010:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010(dres, insn, archinfo, abiinfo); break;
+      case 0b1100:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_1100(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False; break;
    }
