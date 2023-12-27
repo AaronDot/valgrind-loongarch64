@@ -725,7 +725,7 @@ static LOONGARCH64RI* iselIntExpr_RI ( ISelEnv* env, IRExpr* e,
    switch (ri->tag) {
       case LAri_Imm:
          switch (ri->LAri.I.size) {
-            case 1 ... 4:
+            case 0 ... 4:
             case 6 ... 7:
                vassert(ri->LAri.I.isSigned == False);
                break;
@@ -2508,6 +2508,12 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                addInstr(env, LOONGARCH64Instr_VecUnary(op, src, dst));
                return dst;
             }
+            case Iop_V256toV128_0:
+            case Iop_V256toV128_1: {
+               HReg vHi, vLo;
+               iselV256Expr(&vHi, &vLo, env, e->Iex.Unop.arg);
+               return (e->Iex.Unop.op == Iop_V256toV128_1) ? vHi : vLo;
+            }
             default:
                goto irreducible;
          }
@@ -2867,6 +2873,20 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
          return;
       }
 
+      /* --------- BINARY OP --------- */
+      case Iex_Binop: {
+         switch (e->Iex.Binop.op) {
+            case Iop_V128HLtoV256: {
+               // Curiously, there doesn't seem to be any benefit to be had here by
+               // checking whether arg1 and arg2 are the same, in the style of how
+               // (eg) 64HLtoV128 is handled elsewhere in this file.
+               *rHi = iselV128Expr(env, e->Iex.Binop.arg1);
+               *rLo = iselV128Expr(env, e->Iex.Binop.arg2);
+               return;
+            }
+            default: goto irreducible;
+         }
+      }
 
       case Iex_Const: {
          vassert(e->Iex.Const.con->tag == Ico_V256);
@@ -2878,7 +2898,7 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
    }
 
    /* We get here if no pattern matched. */
-//irreducible:
+irreducible:
    ppIRExpr(e);
    vpanic("iselV256Expr(loongarch64): cannot reduce tree");
 }
