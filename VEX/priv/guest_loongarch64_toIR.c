@@ -126,10 +126,10 @@ static const HChar* nameVReg( UInt reg )
 {
    vassert(reg < 32);
    static const HChar* reg_names[32] = {
-      "$v0",  "$v1",  "$v2",  "$v3",  "$v4",  "$v5",  "$v6",  "$v7",
-      "$v8",  "$v9",  "$v10", "$v11", "$v12", "$v13", "$v14", "$v15",
-      "$v16", "$v17", "$v18", "$v19", "$v20", "$v21", "$v22", "$v23",
-      "$v24", "$v25", "$v26", "$v27", "$v28", "$v29", "$v30", "$v31"
+      "$vr0",  "$vr1",  "$vr2",  "$vr3",  "$vr4",  "$vr5",  "$vr6",  "$vr7",
+      "$vr8",  "$vr9",  "$vr10", "$vr11", "$vr12", "$vr13", "$vr14", "$vr15",
+      "$vr16", "$vr17", "$vr18", "$vr19", "$vr20", "$vr21", "$vr22", "$vr23",
+      "$vr24", "$vr25", "$vr26", "$vr27", "$vr28", "$vr29", "$vr30", "$vr31"
    };
    return reg_names[reg];
 }
@@ -138,10 +138,10 @@ static const HChar* nameXReg( UInt reg )
 {
    vassert(reg < 32);
    static const HChar* reg_names[32] = {
-      "$x0",  "$x1",  "$x2",  "$x3",  "$x4",  "$x5",  "$x6",  "$x7",
-      "$x8",  "$x9",  "$x10", "$x11", "$x12", "$x13", "$x14", "$x15",
-      "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
-      "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$x31"
+      "$xr0",  "$xr1",  "$xr2",  "$xr3",  "$xr4",  "$xr5",  "$xr6",  "$xr7",
+      "$xr8",  "$xr9",  "$xr10", "$xr11", "$xr12", "$xr13", "$xr14", "$xr15",
+      "$xr16", "$xr17", "$xr18", "$xr19", "$xr20", "$xr21", "$xr22", "$xr23",
+      "$xr24", "$xr25", "$xr26", "$xr27", "$xr28", "$xr29", "$xr30", "$xr31"
    };
    return reg_names[reg];
 }
