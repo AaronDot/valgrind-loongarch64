@@ -407,6 +407,11 @@ static inline IRExpr* mkV128 ( UShort i )
    return IRExpr_Const(IRConst_V128(i));
 }
 
+static inline IRExpr* mkV256 ( UShort i )
+{
+   return IRExpr_Const(IRConst_V256(i));
+}
+
 static inline IRExpr* mkexpr ( IRTemp tmp )
 {
    return IRExpr_RdTmp(tmp);
@@ -9192,6 +9197,60 @@ static Bool gen_vset ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvset ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo*  abiinfo )
+{
+   UInt cd    = SLICE(insn, 2, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   //UInt insSz = SLICE(insn, 11, 10);
+   UInt insTy = SLICE(insn, 13, 12);
+
+   IROp ops64  = Iop_INVALID;
+   IRTemp res  = newTemp(Ity_V256);
+   IRTemp z256 = newTemp(Ity_V256);
+   assign(z256, mkV256(0x0000));
+
+   switch (insTy) {
+      case 0b01: {
+         if (SLICE(insn, 10, 10) == 0b0) {
+            DIP("xvseteqz.v %u, %s", cd, nameXReg(xj));
+            assign(res, binop(Iop_CmpEQ64x4, getXReg(xj), mkexpr(z256)));
+            ops64 = Iop_And64;
+         } else {
+            // DIP("vsetnez.v %u, %s", cd, nameVReg(vj));
+            // assign(res, unop(Iop_NotV128,
+            //                  binop(Iop_CmpEQ64x2, getVReg(vj), mkexpr(z128))));
+            // ops64 = Iop_Or64;
+         }
+         break;
+      }
+      // case 0b10: {  //vsetanyeqz
+      //    DIP("vsetanyeqz.%s %u, %s", mkInsSize(insSz), cd, nameVReg(vj));
+      //    assign(eq, binop(mkVecCMPEQ(insSz), getVReg(vj), mkexpr(z128)));
+      //    assign(res, unop(Iop_NotV128,
+      //                     binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128))));
+      //    ops64 = Iop_Or64;
+      //    break;
+      // }
+      // case 0b11: {  //vsetqllnez
+      //    DIP("vsetqllnez.%s %u, %s", mkInsSize(insSz), cd, nameVReg(vj));
+      //    assign(eq, binop(mkVecCMPEQ(insSz), getVReg(vj), mkexpr(z128)));
+      //    assign(res, binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128)));
+      //    ops64 = Iop_And64;
+      //    break;
+      // }
+      default: vassert(0);
+   }
+
+   IRTemp r1, r2, r3, r4;
+   r1 = r2 = r3 = r4 = IRTemp_INVALID;
+   breakupV256to64s(res, &r1, &r2, &r3, &r4);
+   putFCC(cd, unop(Iop_64to8, binop(ops64,
+                                    binop(ops64, mkexpr(r1), mkexpr(r2)),
+                                    binop(ops64, mkexpr(r3), mkexpr(r4)))));
+   return True;
+}
 
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector moving and shuffling insns        ---*/
@@ -11280,6 +11339,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010_0111 ( DisResult* dres, UInt i
    switch (SLICE(insn, 17, 14)) {
       case 0b0001:
          ok = gen_xvmsk(dres, insn, archinfo, abiinfo); break;
+      case 0b0010:
+         ok = gen_xvset(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = gen_xvreplgr2vr(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;

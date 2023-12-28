@@ -1451,6 +1451,24 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
                                                         LOONGARCH64RI_I(1, 1, False), src, dst));
                return dst;
             }
+            case Iop_V256to64_0: case Iop_V256to64_1:
+            case Iop_V256to64_2: case Iop_V256to64_3: {
+               UShort id;
+               HReg vHi, vLo, vec;
+               iselV256Expr(&vHi, &vLo, env, e->Iex.Unop.arg);
+               switch (e->Iex.Unop.op) {
+                  case Iop_V256to64_0: vec = vLo; id = 0; break;
+                  case Iop_V256to64_1: vec = vLo; id = 1; break;
+                  case Iop_V256to64_2: vec = vHi; id = 0; break;
+                  case Iop_V256to64_3: vec = vHi; id = 1; break;
+                  default: vassert(0);
+               }
+
+               HReg dst = newVRegI(env);
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VPICKVE2GR_D,
+                                                        LOONGARCH64RI_I(id, 1, False), vec, dst));
+               return dst;
+            }
             default:
                goto irreducible;
          }
