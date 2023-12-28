@@ -1317,16 +1317,20 @@ void ppIROp ( IROp op )
       case Iop_Max8Sx32:  vex_printf("Max8Sx32"); return;
       case Iop_Max16Sx16: vex_printf("Max16Sx16"); return;
       case Iop_Max32Sx8:  vex_printf("Max32Sx8"); return;
+      case Iop_Max64Sx4:  vex_printf("Max64Sx4"); return;
       case Iop_Max8Ux32:  vex_printf("Max8Ux32"); return;
       case Iop_Max16Ux16: vex_printf("Max16Ux16"); return;
       case Iop_Max32Ux8:  vex_printf("Max32Ux8"); return;
+      case Iop_Max64Ux4:  vex_printf("Max64Ux4"); return;
 
       case Iop_Min8Sx32:  vex_printf("Min8Sx32"); return;
       case Iop_Min16Sx16: vex_printf("Min16Sx16"); return;
       case Iop_Min32Sx8:  vex_printf("Min32Sx8"); return;
+      case Iop_Min64Sx4:  vex_printf("Min64Sx4"); return;
       case Iop_Min8Ux32:  vex_printf("Min8Ux32"); return;
       case Iop_Min16Ux16: vex_printf("Min16Ux16"); return;
       case Iop_Min32Ux8:  vex_printf("Min32Ux8"); return;
+      case Iop_Min64Ux4:  vex_printf("Min64Ux4"); return;
 
       case Iop_CmpEQ8x32:   vex_printf("CmpEQ8x32"); return;
       case Iop_CmpEQ16x16:  vex_printf("CmpEQ16x16"); return;
@@ -1802,10 +1806,10 @@ Bool primopMightTrap ( IROp op )
    case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
    case Iop_ShrN16x16: case Iop_ShrN32x8: case Iop_ShrN64x4:
    case Iop_SarN16x16: case Iop_SarN32x8:
-   case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8:
-   case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8:
-   case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8:
-   case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8:
+   case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
+   case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
+   case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
+   case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
    case Iop_Mul16x16: case Iop_Mul32x8:
    case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
    case Iop_QAdd8Ux32: case Iop_QAdd16Ux16:
@@ -4125,10 +4129,10 @@ void typeOfPrimop ( IROp op,
       case Iop_Mul16x16: case Iop_Mul32x8:
       case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
       case Iop_Avg8Ux32: case Iop_Avg16Ux16:
-      case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8:
-      case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8:
-      case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8:
-      case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8:
+      case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
+      case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
+      case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
+      case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
       case Iop_CmpEQ8x32:  case Iop_CmpEQ16x16:
       case Iop_CmpEQ32x8:  case Iop_CmpEQ64x4:
       case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16:

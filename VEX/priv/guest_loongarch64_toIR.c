@@ -852,6 +852,34 @@ static IROp mkVecMINS ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV256MAXU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MAXS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8, Iop_Max64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MINU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8, Iop_Min64Ux4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MINS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
 // static IROp mkVecSHL ( UInt size ) {
 //    const IROp ops[4]
 //       = { Iop_Shl8x16, Iop_Shl16x8, Iop_Shl32x4, Iop_Shl64x2 };
@@ -8610,6 +8638,27 @@ static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvmax_xvmin ( DisResult* dres, UInt insn,
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isMin = SLICE(insn, 17, 17);
+   UInt isU   = SLICE(insn, 18, 18);
+
+   IROp op = isMin ? isU ? mkV256MINU(insSz) : mkV256MINS(insSz) :
+                     isU ? mkV256MAXU(insSz) : mkV256MAXS(insSz);
+   UInt id = isU ? (insSz + 4) : insSz;
+   const HChar *nm[2] = { "vmax", "vmin" };
+   DIP("%s.%s %s, %s, %s\n", nm[isMin], mkInsSize(id),
+                             nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, binop(op, getXReg(xj), getXReg(xk)));
+   return True;
+}
+
 static IRTemp gen_vmsk_b ( IRTemp shr )
 {
    UInt i;
@@ -11207,6 +11256,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0000 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b1101:
+         ok = gen_xvmax_xvmin(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101_1010_0111 ( DisResult* dres, UInt insn,
                                                          const VexArchInfo* archinfo,
                                                          const VexAbiInfo*  abiinfo )
@@ -11269,6 +11333,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 25, 22)) {
       case 0b0000:
          ok = disInstr_LOONGARCH64_WRK_01_1101_0000(dres, insn, archinfo, abiinfo); break;
+      case 0b0001:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_0001(dres, insn, archinfo, abiinfo); break;
       case 0b1010:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010(dres, insn, archinfo, abiinfo); break;
       case 0b1100:

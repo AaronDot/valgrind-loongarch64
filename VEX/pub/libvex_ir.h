@@ -2010,10 +2010,10 @@ typedef
       Iop_ShrN16x16, Iop_ShrN32x8, Iop_ShrN64x4,
       Iop_SarN16x16, Iop_SarN32x8,
 
-      Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8,
-      Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8,
-      Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8,
-      Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8,
+      Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8, Iop_Max64Sx4,
+      Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4,
+      Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4,
+      Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8, Iop_Min64Ux4,
 
       Iop_Mul16x16, Iop_Mul32x8,
       Iop_MulHi16Ux16, Iop_MulHi16Sx16,

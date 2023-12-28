@@ -2926,13 +2926,33 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
                *rLo = iselV128Expr(env, e->Iex.Binop.arg2);
                return;
             }
-            case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8: case Iop_CmpEQ64x4: {
+            case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8: case Iop_CmpEQ64x4:
+            case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
+            case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
+            case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
+            case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4: {
                LOONGARCH64VecBinOp op;
                switch (e->Iex.Binop.op) {
                   case Iop_CmpEQ8x32:  op = LAvecbin_VSEQ_B; break;
                   case Iop_CmpEQ16x16: op = LAvecbin_VSEQ_H; break;
                   case Iop_CmpEQ32x8:  op = LAvecbin_VSEQ_W; break;
                   case Iop_CmpEQ64x4:  op = LAvecbin_VSEQ_D; break;
+                  case Iop_Max8Sx32:   op = LAvecbin_VMAX_B; break;
+                  case Iop_Max16Sx16:  op = LAvecbin_VMAX_H; break;
+                  case Iop_Max32Sx8:   op = LAvecbin_VMAX_W; break;
+                  case Iop_Max64Sx4:   op = LAvecbin_VMAX_D; break;
+                  case Iop_Max8Ux32:   op = LAvecbin_VMAX_BU; break;
+                  case Iop_Max16Ux16:  op = LAvecbin_VMAX_HU; break;
+                  case Iop_Max32Ux8:   op = LAvecbin_VMAX_WU; break;
+                  case Iop_Max64Ux4:   op = LAvecbin_VMAX_DU; break;
+                  case Iop_Min8Sx32:   op = LAvecbin_VMIN_B; break;
+                  case Iop_Min16Sx16:  op = LAvecbin_VMIN_H; break;
+                  case Iop_Min32Sx8:   op = LAvecbin_VMIN_W; break;
+                  case Iop_Min64Sx4:   op = LAvecbin_VMIN_D; break;
+                  case Iop_Min8Ux32:   op = LAvecbin_VMIN_BU; break;
+                  case Iop_Min16Ux16:  op = LAvecbin_VMIN_HU; break;
+                  case Iop_Min32Ux8:   op = LAvecbin_VMIN_WU; break;
+                  case Iop_Min64Ux4:   op = LAvecbin_VMIN_DU; break;
                   default: vassert(0);
                }
                HReg src1Hi, src1Lo, src2Hi, src2Lo;
