@@ -1933,8 +1933,7 @@ typedef struct {
       struct {
          LOONGARCH64VecStoreOp  op;
          LOONGARCH64AMode*      dst;
-         HReg                   src1;
-         LOONGARCH64RI*         src2;
+         HReg                   src;
       } VecStore;
       struct {
          LOONGARCH64VecFpCmpOp  op;
@@ -2047,8 +2046,7 @@ extern LOONGARCH64Instr* LOONGARCH64Instr_VecLoad   ( LOONGARCH64VecLoadOp op,
                                                       HReg dst );
 extern LOONGARCH64Instr* LOONGARCH64Instr_VecStore  ( LOONGARCH64VecStoreOp op,
                                                       LOONGARCH64AMode* dst,
-                                                      HReg src1,
-                                                      LOONGARCH64RI* src2 );
+                                                      HReg src );
 extern LOONGARCH64Instr* LOONGARCH64Instr_VecFpCmp  ( LOONGARCH64VecFpCmpOp op,
                                                       HReg src2, HReg src1,
                                                       HReg dst );

@@ -1708,15 +1708,13 @@ LOONGARCH64Instr* LOONGARCH64Instr_VecLoad ( LOONGARCH64VecLoadOp op,
 }
 
 LOONGARCH64Instr* LOONGARCH64Instr_VecStore ( LOONGARCH64VecStoreOp op,
-                                              LOONGARCH64AMode* dst, HReg src1,
-                                              LOONGARCH64RI* src2)
+                                              LOONGARCH64AMode* dst, HReg src )
 {
    LOONGARCH64Instr* i  = LibVEX_Alloc_inline(sizeof(LOONGARCH64Instr));
    i->tag               = LAin_VecStore;
    i->LAin.VecStore.op  = op;
    i->LAin.VecStore.dst = dst;
-   i->LAin.VecStore.src1 = src1;
-   i->LAin.VecStore.src2 = src2;
+   i->LAin.VecStore.src = src;
    return i;
 }
 
@@ -2391,8 +2389,7 @@ void getRegUsage_LOONGARCH64Instr ( HRegUsage* u, const LOONGARCH64Instr* i,
          break;
       case LAin_VecStore:
          addRegUsage_LOONGARCH64AMode(u, i->LAin.VecStore.dst);
-         addHRegUse(u, HRmRead, i->LAin.VecStore.src1);
-         addRegUsage_LOONGARCH64RI(u, i->LAin.VecStore.src2);
+         addHRegUse(u, HRmRead, i->LAin.VecStore.src);
          break;
       case LAin_VecFpCmp:
          addHRegUse(u, HRmRead, i->LAin.VecFpCmp.src2);
@@ -2583,8 +2580,7 @@ void mapRegs_LOONGARCH64Instr ( HRegRemap* m, LOONGARCH64Instr* i,
          break;
       case LAin_VecStore:
          mapRegs_LOONGARCH64AMode(m, i->LAin.VecStore.dst);
-         mapReg(m, &i->LAin.VecStore.src1);
-         mapRegs_LOONGARCH64RI(m, i->LAin.VecStore.src2);
+         mapReg(m, &i->LAin.VecStore.src);
          break;
       case LAin_VecFpCmp:
          mapReg(m, &i->LAin.VecFpCmp.src2);
@@ -2685,14 +2681,13 @@ void genSpill_LOONGARCH64 ( /*OUT*/ HInstr** i1, /*OUT*/ HInstr** i2,
          }
          break;
       case HRcVec128:
-         LOONGARCH64RI* src2 = LOONGARCH64RI_I(0, 1, False);
          if (offsetB < 1024) {
             am = LOONGARCH64AMode_RI(hregGSP(), offsetB);
-            *i1 = LOONGARCH64Instr_VecStore(LAvecstore_VST, am, rreg, src2);
+            *i1 = LOONGARCH64Instr_VecStore(LAvecstore_VST, am, rreg);
          } else {
             am = LOONGARCH64AMode_RR(hregGSP(), hregT0());
             *i1 = LOONGARCH64Instr_LI(offsetB, hregT0());
-            *i2 = LOONGARCH64Instr_VecStore(LAvecstore_VSTX, am, rreg, src2);
+            *i2 = LOONGARCH64Instr_VecStore(LAvecstore_VSTX, am, rreg);
          }
          break;
       default:
@@ -3815,46 +3810,20 @@ static inline UInt* mkVecLoad ( UInt* p, LOONGARCH64VecLoadOp op,
 }
 
 static inline UInt* mkVecStore ( UInt* p, LOONGARCH64VecStoreOp op,
-                                 LOONGARCH64AMode* dst, HReg src1,
-                                 LOONGARCH64RI *src2)
+                                 LOONGARCH64AMode* dst, HReg src )
 {
    switch (op) {
       case LAvecstore_VST:
          vassert(dst->tag == LAam_RI);
          *p++ = emit_binop_ri(op, dst->LAam.RI.index, 12,
-                              iregEnc(dst->LAam.RI.base), vregEnc(src1));
-         return p;
-      case LAvecstore_VSTELM_D:
-         vassert(dst->tag == LAam_RI);
-         *p++ = emit_storeop_rii(op, src2->LAri.I.imm, 1,
-                                 dst->LAam.RI.index, 8, iregEnc(dst->LAam.RI.base),
-                                 vregEnc(src1));
-         return p;
-      case LAvecstore_VSTELM_W:
-         vassert(dst->tag == LAam_RI);
-         *p++ = emit_storeop_rii(op, src2->LAri.I.imm, 2,
-                                 dst->LAam.RI.index, 8, iregEnc(dst->LAam.RI.base),
-                                 vregEnc(src1));
-         return p;
-      case LAvecstore_VSTELM_H:
-         vassert(dst->tag == LAam_RI);
-         *p++ = emit_storeop_rii(op, src2->LAri.I.imm, 3,
-                                 dst->LAam.RI.index, 8, iregEnc(dst->LAam.RI.base),
-                                 vregEnc(src1));
-         return p;
-      case LAvecstore_VSTELM_B:
-         vassert(dst->tag == LAam_RI);
-         *p++ = emit_storeop_rii(op, src2->LAri.I.imm, 4,
-                                 dst->LAam.RI.index, 8, iregEnc(dst->LAam.RI.base),
-                                 vregEnc(src1));
+                              iregEnc(dst->LAam.RI.base), vregEnc(src));
          return p;
       case LAvecstore_VSTX:
          vassert(dst->tag == LAam_RR);
          *p++ = emit_binop_rr(op, iregEnc(dst->LAam.RR.index),
-                              iregEnc(dst->LAam.RR.base), vregEnc(src1));
+                              iregEnc(dst->LAam.RR.base), vregEnc(src));
          return p;
-      default:
-         return NULL;
+      default: return NULL;
    }
 }
 
@@ -4390,7 +4359,7 @@ Int emit_LOONGARCH64Instr ( /*MB_MOD*/Bool* is_profInc,
          break;
       case LAin_VecStore:
          p = mkVecStore(p, i->LAin.VecStore.op, i->LAin.VecStore.dst,
-                        i->LAin.VecStore.src1, i->LAin.VecStore.src2);
+                        i->LAin.VecStore.src);
          break;
       case LAin_VecFpCmp:
          p = mkVecFpCmp(p, i->LAin.VecFpCmp.op, i->LAin.VecFpCmp.src2,
