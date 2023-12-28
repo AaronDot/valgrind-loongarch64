@@ -2922,11 +2922,28 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
       case Iex_Binop: {
          switch (e->Iex.Binop.op) {
             case Iop_V128HLtoV256: {
-               // Curiously, there doesn't seem to be any benefit to be had here by
-               // checking whether arg1 and arg2 are the same, in the style of how
-               // (eg) 64HLtoV128 is handled elsewhere in this file.
                *rHi = iselV128Expr(env, e->Iex.Binop.arg1);
                *rLo = iselV128Expr(env, e->Iex.Binop.arg2);
+               return;
+            }
+            case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8: case Iop_CmpEQ64x4: {
+               LOONGARCH64VecBinOp op;
+               switch (e->Iex.Binop.op) {
+                  case Iop_CmpEQ8x32:  op = LAvecbin_VSEQ_B; break;
+                  case Iop_CmpEQ16x16: op = LAvecbin_VSEQ_H; break;
+                  case Iop_CmpEQ32x8:  op = LAvecbin_VSEQ_W; break;
+                  case Iop_CmpEQ64x4:  op = LAvecbin_VSEQ_D; break;
+                  default: vassert(0);
+               }
+               HReg src1Hi, src1Lo, src2Hi, src2Lo;
+               iselV256Expr(&src1Hi, &src1Lo, env, e->Iex.Binop.arg1);
+               iselV256Expr(&src2Hi, &src2Lo, env, e->Iex.Binop.arg2);
+               HReg dstHi = newVRegV(env);
+               HReg dstLo = newVRegV(env);
+               addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(src2Hi), src1Hi, dstHi));
+               addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(src2Lo), src1Lo, dstLo));
+               *rHi = dstHi;
+               *rLo = dstLo;
                return;
             }
             default: goto irreducible;
