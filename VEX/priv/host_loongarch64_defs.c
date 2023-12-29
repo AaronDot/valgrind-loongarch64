@@ -1476,10 +1476,6 @@ static inline const HChar* showLOONGARCH64VecStoreOp ( LOONGARCH64VecStoreOp op 
 {
    switch (op) {
       case LAvecstore_VST:       return "vst";
-      case LAvecstore_VSTELM_D:  return "vstelm.d";
-      case LAvecstore_VSTELM_W:  return "vstelm.w";
-      case LAvecstore_VSTELM_H:  return "vstelm.h";
-      case LAvecstore_VSTELM_B:  return "vstelm.b";
       case LAvecstore_VSTX:      return "vstx";
       default:                   vpanic("showLOONGARCH64VecStoreOp");
 
@@ -2008,13 +2004,13 @@ static inline void ppVecLoad ( LOONGARCH64VecLoadOp op, LOONGARCH64AMode* src,
    ppLOONGARCH64AMode(src);
 }
 
-static inline void ppVecStore ( LOONGARCH64VecStoreOp op, LOONGARCH64AMode* src,
-                               HReg dst )
+static inline void ppVecStore ( LOONGARCH64VecStoreOp op, LOONGARCH64AMode* dst,
+                               HReg src )
 {
    vex_printf("%s ", showLOONGARCH64VecStoreOp(op));
-   ppHRegLOONGARCH64(dst);
+   ppHRegLOONGARCH64(src);
    vex_printf(", ");
-   ppLOONGARCH64AMode(src);
+   ppLOONGARCH64AMode(dst);
 }
 
 static inline void ppVecFpCmp ( LOONGARCH64VecFpCmpOp op,
@@ -2251,6 +2247,10 @@ void ppLOONGARCH64Instr ( const LOONGARCH64Instr* i, Bool mode64 )
       case LAin_VecLoad:
          ppVecLoad(i->LAin.VecLoad.op, i->LAin.VecLoad.src,
                    i->LAin.VecLoad.dst);
+         break;
+      case LAin_VecStore:
+         ppVecStore(i->LAin.VecStore.op, i->LAin.VecStore.dst,
+                    i->LAin.VecStore.src);
          break;
       case LAin_VecFpCmp:
          ppVecFpCmp(i->LAin.VecFpCmp.op, i->LAin.VecFpCmp.src2,
