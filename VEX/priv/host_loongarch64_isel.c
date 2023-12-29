@@ -3108,22 +3108,13 @@ static void iselStmtStore ( ISelEnv* env, IRStmt* stmt )
       HReg src = iselV128Expr(env, stmt->Ist.Store.data);
       addInstr(env, LOONGARCH64Instr_VecStore(vop, am, src));
    } else if (tyd == Ity_V256) {
-      LOONGARCH64VecStoreOp vop;
-      HReg hi, lo, tmp;
-      if (am->tag == LAam_RI) {
-         vop = LAvecstore_VST;
-         addInstr(env, LOONGARCH64Instr_Binary(LAbin_ADDI_D,
-                                               LOONGARCH64RI_I(am->LAam.RI.index, 12, True),
-                                               am->LAam.RI.base, tmp));
-      } else {
-         vop = LAvecstore_VSTX;
-         addInstr(env, LOONGARCH64Instr_Binary(LAbin_ADD_D,
-                                               LOONGARCH64RI_R(am->LAam.RR.index),
-                                               am->LAam.RR.base, tmp));
-      }
-      iselV256Expr(&hi, &lo, env, stmt->Ist.Store.data);
-      addInstr(env, LOONGARCH64Instr_VecStore(vop, am, lo));
-      addInstr(env, LOONGARCH64Instr_VecStore(LAvecstore_VST, LOONGARCH64AMode_RI(tmp, 16), hi));
+      HReg vHi, vLo;
+      LOONGARCH64VecStoreOp vop = (am->tag == LAam_RI) ? LAvecstore_VST : LAvecstore_VSTX;
+      HReg addr = iselIntExpr_R(env, stmt->Ist.Store.addr);
+      LOONGARCH64AMode* am16 = LOONGARCH64AMode_RI(addr, 16);
+      iselV256Expr(&vHi, &vLo, env, stmt->Ist.Store.data);
+      addInstr(env, LOONGARCH64Instr_VecStore(vop, am, vLo));
+      addInstr(env, LOONGARCH64Instr_VecStore(LAvecstore_VST, am16, vHi));
    } else {
       vpanic("iselStmt(loongarch64): Ist_Store");
    }
