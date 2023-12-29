@@ -8946,6 +8946,55 @@ static Bool gen_logical_v ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_logical_xv ( DisResult* dres, UInt insn,
+                             const VexArchInfo* archinfo,
+                             const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insTy = SLICE(insn, 17, 15);
+
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp sL  = newTemp(Ity_V256);
+   IRTemp sR  = newTemp(Ity_V256);
+   assign(sL, getXReg(xj));
+   assign(sR, getXReg(xk));
+
+   switch (insTy) {
+      // case 0b100: //vand.v
+      //    assign(res, binop(Iop_AndV128, mkexpr(srcL), mkexpr(srcR)));
+      //    break;
+      // case 0b101: //vor.v
+      //    assign(res, binop(Iop_OrV128,  mkexpr(srcL), mkexpr(srcR)));
+      //    break;
+      case 0b110: //xvxor.v
+         assign(res, binop(Iop_XorV256, mkexpr(sL), mkexpr(sR)));
+         break;
+      // case 0b111: //vnor.v
+      //    assign(res, unop(Iop_NotV128, binop(Iop_OrV128,
+      //                                        mkexpr(srcL), mkexpr(srcR))));
+      //    break;
+      // case 0b000: //vandn.v
+      //    assign(res, binop(Iop_AndV128,
+      //                      unop(Iop_NotV128, mkexpr(srcL)),
+      //                      mkexpr(srcR)));
+      //    break;
+      // case 0b001: //vorn.v
+      //    assign(res, binop(Iop_OrV128,
+      //                      mkexpr(srcL),
+      //                      unop(Iop_NotV128, mkexpr(srcR))));
+      //    break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[8] = { "xvandn.v", "xvorn.v", "", "",
+                          "xvand.v",  "xvor.v", "xvxor.v", "xvnor.v" };
+   DIP("%s %s, %s, %s\n", nm[insTy], nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, mkexpr(res));
+   return True;
+}
+
 
 static Bool gen_vbiti ( DisResult* dres, UInt insn,
                         const VexArchInfo* archinfo,
@@ -11330,6 +11379,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_0100 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b1001:
+         ok = gen_logical_xv(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101_1010_0111 ( DisResult* dres, UInt insn,
                                                          const VexArchInfo* archinfo,
                                                          const VexAbiInfo*  abiinfo )
@@ -11396,6 +11460,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
          ok = disInstr_LOONGARCH64_WRK_01_1101_0000(dres, insn, archinfo, abiinfo); break;
       case 0b0001:
          ok = disInstr_LOONGARCH64_WRK_01_1101_0001(dres, insn, archinfo, abiinfo); break;
+      case 0b0100:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_0100(dres, insn, archinfo, abiinfo); break;
       case 0b1010:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010(dres, insn, archinfo, abiinfo); break;
       case 0b1100:

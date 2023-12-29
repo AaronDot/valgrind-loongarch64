@@ -2944,6 +2944,7 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
                *rLo = iselV128Expr(env, e->Iex.Binop.arg2);
                return;
             }
+            case Iop_XorV256:
             case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8: case Iop_CmpEQ64x4:
             case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
             case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
@@ -2951,6 +2952,7 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
             case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4: {
                LOONGARCH64VecBinOp op;
                switch (e->Iex.Binop.op) {
+                  case Iop_XorV256:    op = LAvecbin_VXOR_V; break;
                   case Iop_CmpEQ8x32:  op = LAvecbin_VSEQ_B; break;
                   case Iop_CmpEQ16x16: op = LAvecbin_VSEQ_H; break;
                   case Iop_CmpEQ32x8:  op = LAvecbin_VSEQ_W; break;
