@@ -9413,6 +9413,49 @@ static Bool gen_xvreplgr2vr ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vreplve ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt rk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRExpr *elem;
+   IRTemp mod  = newTemp(Ity_I8);
+   IRTemp res  = newTempV128();
+   UInt div[4] = { 0x10, 0x8, 0x4, 0x2 };
+
+   assign(mod, unop(Iop_64to8,
+                    unop(Iop_128HIto64,
+                         binop(Iop_DivModU64to64,
+                               getIReg64(rk),
+                               mkU64(div[insSz])))));
+
+   elem = binop(mkVecGetElem(insSz), getVReg(vj), mkexpr(mod));
+   switch (insSz) {
+      case 0b00:
+         assign(res, unop(Iop_Dup8x16, elem));
+         break;
+      case 0b01:
+         assign(res, unop(Iop_Dup16x8, elem));
+         break;
+      case 0b10:
+         assign(res, unop(Iop_Dup32x4, elem));
+         break;
+      case 0b11:
+         assign(res, binop(Iop_64HLtoV128, elem, elem));
+         break;
+      default: vassert(0);
+   }
+
+   DIP("vreplve.%s %s, %s, %s", mkInsSize(insSz),
+                                nameVReg(vd), nameVReg(vj), nameIReg(rk));
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
 static Bool gen_xvpickve ( DisResult* dres, UInt insn,
                            const VexArchInfo* archinfo,
                            const VexAbiInfo*  abiinfo )
@@ -11364,6 +11407,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
       case 0b01101: case 0b01110:
       case 0b01111: case 0b10000:
          ok = gen_evod(dres, insn, archinfo, abiinfo); break;
+      case 0b10001:
+         ok = gen_vreplve(dres, insn, archinfo, abiinfo); break;
       case 0b10011: case 0b10100:
          ok = gen_logical_v(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
