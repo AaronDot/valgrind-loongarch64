@@ -2936,6 +2936,26 @@ static void iselV256Expr_wrk ( HReg* rHi, HReg* rLo,
          return;
       }
 
+      /* --------- UNARY OP --------- */
+      case Iex_Unop: {
+         switch (e->Iex.Unop.op) {
+            case Iop_NotV256: {
+               HReg sHi, sLo;
+               iselV256Expr(&sHi, &sLo, env, e->Iex.Unop.arg);
+               HReg dHi = newVRegV(env);
+               HReg dLo = newVRegV(env);
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VNOR_V,
+                                                        LOONGARCH64RI_R(sHi), sHi, dHi));
+               addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VNOR_V,
+                                                        LOONGARCH64RI_R(sLo), sLo, dLo));
+               *rHi = dHi;
+               *rLo = dLo;
+               return;
+            }
+            default: goto irreducible;
+         }
+      }
+
       /* --------- BINARY OP --------- */
       case Iex_Binop: {
          switch (e->Iex.Binop.op) {

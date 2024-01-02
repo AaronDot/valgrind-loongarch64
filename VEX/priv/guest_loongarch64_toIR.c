@@ -9252,11 +9252,12 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
 {
    UInt cd    = SLICE(insn, 2, 0);
    UInt xj    = SLICE(insn, 9, 5);
-   //UInt insSz = SLICE(insn, 11, 10);
+   UInt insSz = SLICE(insn, 11, 10);
    UInt insTy = SLICE(insn, 13, 12);
 
    IROp ops64  = Iop_INVALID;
    IRTemp res  = newTemp(Ity_V256);
+   IRTemp eq   = newTemp(Ity_V256);
    IRTemp z256 = newTemp(Ity_V256);
    assign(z256, mkV256(0x0000));
 
@@ -9274,14 +9275,14 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
          }
          break;
       }
-      // case 0b10: {  //vsetanyeqz
-      //    DIP("vsetanyeqz.%s %u, %s", mkInsSize(insSz), cd, nameVReg(vj));
-      //    assign(eq, binop(mkVecCMPEQ(insSz), getVReg(vj), mkexpr(z128)));
-      //    assign(res, unop(Iop_NotV128,
-      //                     binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128))));
-      //    ops64 = Iop_Or64;
-      //    break;
-      // }
+      case 0b10: {  //xvsetanyeqz
+         DIP("xvsetanyeqz.%s %u, %s", mkInsSize(insSz), cd, nameXReg(xj));
+         assign(eq, binop(mkV256CMPEQ(insSz), getXReg(xj), mkexpr(z256)));
+         assign(res, unop(Iop_NotV256,
+                          binop(Iop_CmpEQ64x4, mkexpr(eq), mkexpr(z256))));
+         ops64 = Iop_Or64;
+         break;
+      }
       // case 0b11: {  //vsetqllnez
       //    DIP("vsetqllnez.%s %u, %s", mkInsSize(insSz), cd, nameVReg(vj));
       //    assign(eq, binop(mkVecCMPEQ(insSz), getVReg(vj), mkexpr(z128)));
