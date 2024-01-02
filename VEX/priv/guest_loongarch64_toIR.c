@@ -684,12 +684,12 @@ static IRExpr* mkV256from64s ( IRTemp t3, IRTemp t2,
 //    return ops[size];
 // }
 
-// static IROp mkVecADD ( UInt size ) {
-//    const IROp ops[5]
-//       = { Iop_Add8x16, Iop_Add16x8, Iop_Add32x4, Iop_Add64x2, Iop_Add128x1 };
-//    vassert(size < 5);
-//    return ops[size];
-// }
+static IROp mkVecADD ( UInt size ) {
+   const IROp ops[5]
+      = { Iop_Add8x16, Iop_Add16x8, Iop_Add32x4, Iop_Add64x2, Iop_Add128x1 };
+   vassert(size < 5);
+   return ops[size];
+}
 
 // static IROp mkVecQADDU ( UInt size ) {
 //    const IROp ops[4]
@@ -705,12 +705,12 @@ static IRExpr* mkV256from64s ( IRTemp t3, IRTemp t2,
 //    return ops[size];
 // }
 
-// static IROp mkVecSUB ( UInt size ) {
-//    const IROp ops[5]
-//       = { Iop_Sub8x16, Iop_Sub16x8, Iop_Sub32x4, Iop_Sub64x2, Iop_Sub128x1 };
-//    vassert(size < 5);
-//    return ops[size];
-// }
+static IROp mkVecSUB ( UInt size ) {
+   const IROp ops[5]
+      = { Iop_Sub8x16, Iop_Sub16x8, Iop_Sub32x4, Iop_Sub64x2, Iop_Sub128x1 };
+   vassert(size < 5);
+   return ops[size];
+}
 
 // static IROp mkVecQSUBU ( UInt size ) {
 //    const IROp ops[4]
@@ -8621,6 +8621,24 @@ static Bool gen_bgeu ( DisResult* dres, UInt insn,
 /*--- Helpers for Vector integer arithmetic insns          ---*/
 /*------------------------------------------------------------*/
 
+static Bool gen_vadd_vsub ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isAdd = SLICE(insn, 17, 17);
+
+   const HChar *nm[2] = { "vsub", "vadd" };
+   IROp mathOp = isAdd ? mkVecADD(insSz): mkVecSUB(insSz);
+   DIP("%s.%s %s, %s, %s\n", nm[isAdd], mkInsSize(insSz),
+                             nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   putVReg(vd, binop(mathOp, getVReg(vj), getVReg(vk)));
+   return True;
+}
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -11408,13 +11426,16 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0000 ( DisResult* dres, UInt insn,
 
    switch (SLICE(insn, 21, 18)) {
       case 0b0000: case 0b0001:
-         ok = gen_vcmp_integer(dres, insn, archinfo, abiinfo); break;
+         ok = gen_vcmp_integer(dres, insn, archinfo, abiinfo);
+         break;
       case 0b0010:
          if (SLICE(insn, 17, 17) == 0b0)
             ok = gen_vcmp_integer(dres, insn, archinfo, abiinfo);
          else
-            ok = False;
+            ok = gen_vadd_vsub(dres, insn, archinfo, abiinfo);
          break;
+      case 0b0011:
+         ok = gen_vadd_vsub(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
