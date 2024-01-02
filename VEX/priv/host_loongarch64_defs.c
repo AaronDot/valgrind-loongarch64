@@ -914,6 +914,8 @@ static inline const HChar* showLOONGARCH64VecBinOp ( LOONGARCH64VecBinOp op )
       case LAvecbin_VSLT_HU:           return "vslt.hu";
       case LAvecbin_VSLT_WU:           return "vslt.wu";
       case LAvecbin_VSLT_DU:           return "vslt.du";
+      case LAvecbin_VADD_B:            return "vadd.h";
+      case LAvecbin_VADD_H:            return "vadd.h";
       case LAvecbin_VADD_W:            return "vadd.w";
       case LAvecbin_VADD_D:            return "vadd.d";
       case LAvecbin_VSUB_B:            return "vsub.b";
