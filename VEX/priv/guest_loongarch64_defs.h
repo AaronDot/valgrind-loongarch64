@@ -121,6 +121,7 @@ extern ULong loongarch64_calculate_fclass_s  ( ULong src );
 extern ULong loongarch64_calculate_fclass_d  ( ULong src );
 extern ULong loongarch64_calculate_FCSR      ( enum fpop op, ULong src1,
                                                ULong src2, ULong src3 );
+extern ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo );
 
 #endif /* ndef __VEX_GUEST_LOONGARCH64_DEFS_H */
 

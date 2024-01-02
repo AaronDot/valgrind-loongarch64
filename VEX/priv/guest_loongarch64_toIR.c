@@ -9156,6 +9156,50 @@ static Bool gen_vbiti ( DisResult* dres, UInt insn,
 /*--- Helpers for Vector String Processing insns           ---*/
 /*------------------------------------------------------------*/
 
+static Bool gen_vfrstpi ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt ui5   = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   UInt i;
+   IRTemp data[2];
+   IRTemp res = newTempV128();
+
+   for (i = 0; i < 2; i++) {
+      data[i] = newTemp(Ity_I64);
+      assign(data[i], binop(Iop_GetElem64x2, getVReg(vj), mkU8(i)));
+   }
+
+   IRExpr** arg = mkIRExprVec_3(mkU64(insSz), mkexpr(data[1]), mkexpr(data[0]));
+   IRExpr* call = mkIRExprCCall(Ity_I64, 0/*regparms*/,
+                                "loongarch64_calculate_negative_id",
+                                &loongarch64_calculate_negative_id,
+                                arg);
+   switch (insSz) {
+      case 0b00:
+         assign(res, triop(Iop_SetElem8x16,
+                           getVReg(vd),
+                           mkU8(ui5 % 16),
+                           unop(Iop_64to8, call)));
+         break;
+      case 0b01:
+         assign(res, triop(Iop_SetElem16x8,
+                           getVReg(vd),
+                           mkU8(ui5 % 8),
+                           unop(Iop_64to16, call)));
+         break;
+      default: vassert(0);
+   }
+   DIP("vfrstpi.%s %s, %s, %u\n", mkInsSize(insSz), nameVReg(vd), nameVReg(vj), ui5);
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
+
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector Floating-point Operation insns    ---*/
 /*------------------------------------------------------------*/
@@ -11633,6 +11677,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
       case 0b0000: case 0b0001:
       case 0b0010: case 0b0011:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1010_00xx(dres, insn, archinfo, abiinfo); break;
+      case 0b0110:
+         ok = gen_vfrstpi(dres, insn, archinfo, abiinfo); break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1010_0111(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;

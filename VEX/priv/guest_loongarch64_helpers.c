@@ -478,6 +478,30 @@ ULong loongarch64_calculate_fclass_d ( ULong src )
    }
 }
 
+ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo )
+{
+   V128 src; src.w64[1] = sHi, src.w64[0] = sLo;
+   UInt i;
+
+   switch (insSz) {
+      case 0b00: {
+         for (i = 0; i < 16; i++) {
+            if ((Char)src.w8[i] < 0) break;
+         }
+         break;
+      }
+      case 0b01: {
+         for (i = 0; i < 8; i++) {
+            if ((Short)src.w16[i] < 0) break;
+         }
+         break;
+      }
+      default: vassert(0);
+   }
+
+   return (ULong)i++;
+}
+
 #if defined(__loongarch__)
 #define ASM_VOLATILE_UNARY(inst)                         \
    __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
