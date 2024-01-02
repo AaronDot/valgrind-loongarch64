@@ -9305,6 +9305,52 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
 /*--- Helpers for Vector moving and shuffling insns        ---*/
 /*------------------------------------------------------------*/
 
+static Bool gen_vpickve2gr ( DisResult* dres, UInt insn,
+                             const VexArchInfo* archinfo,
+                             const VexAbiInfo* abiinfo )
+{
+   UInt rd     = SLICE(insn, 4, 0);
+   UInt vj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 15, 10);
+   UInt isS    = SLICE(insn, 18, 18);
+
+   UInt uImm, insSz;
+   IRExpr *immExpr;
+   IRType extTy = Ity_INVALID;
+   IRTemp res = newTemp(Ity_I64);
+
+   if ((insImm & 0x30) == 0x20) {        // 10mmmm; b
+      uImm = insImm & 0xf;
+      insSz = 0;
+      extTy = Ity_I8;
+   } else if ((insImm & 0x38) == 0x30) { // 110mmm; h
+      uImm = insImm & 0x7;
+      insSz = 1;
+      extTy = Ity_I16;
+   } else if ((insImm & 0x3c) == 0x38) { // 1110mm; w
+      uImm = insImm & 0x3;
+      insSz = 2;
+      extTy = Ity_I32;
+   } else if ((insImm & 0x3e) == 0x3c) { // 11110m; d
+      uImm = insImm & 0x1;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   immExpr = binop(mkVecGetElem(insSz), getVReg(vj), mkU8(uImm));
+   if (insSz != 3)
+      assign(res, isS ? extendS(extTy, immExpr) :
+                        extendU(extTy, immExpr));
+   else
+      assign(res, binop(Iop_Or64, mkU64(0), immExpr));
+   UInt nmId = isS ? insSz : (insSz + 4);
+   DIP("vpickve2gr.%s %s, %s", mkInsSize(nmId),
+                               nameIReg(rd), nameVReg(vj));
+   putIReg(rd, mkexpr(res));
+   return True;
+}
+
 static Bool gen_vreplgr2vr ( DisResult* dres, UInt insn,
                              const VexArchInfo* archinfo,
                              const VexAbiInfo*  abiinfo )
@@ -11360,6 +11406,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_1011 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 16)) {
+      case 0b101111: case 0b110011:
+         ok = gen_vpickve2gr(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100_1100 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -11396,6 +11457,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
          ok = disInstr_LOONGARCH64_WRK_01_1100_0100(dres, insn, archinfo, abiinfo); break;
       case 0b1010:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1010(dres, insn, archinfo, abiinfo); break;
+      case 0b1011:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1011(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1100(dres, insn, archinfo, abiinfo); break;
       default:
