@@ -3230,7 +3230,7 @@ static void iselStmtDirty ( ISelEnv* env, IRStmt* stmt )
          vassert(addToSp >= 16);
          HReg dst = lookupIRTemp(env, d->tmp);
          HReg res = newVRegI(env); // the address of the returned value
-         addInstr(env, LOONGARCH64Instr_Move(res, hregGSP()));
+         addInstr(env, LOONGARCH64Instr_Move(res, hregSP()));
          addInstr(env, LOONGARCH64Instr_Binary(LAbin_ADDI_D,
                                                LOONGARCH64RI_I(rloc.spOff, 12, True),
                                                res, res));
@@ -3250,7 +3250,7 @@ static void iselStmtDirty ( ISelEnv* env, IRStmt* stmt )
          HReg dstLo, dstHi;
          lookupIRTempPair(&dstHi, &dstLo, env, d->tmp);
          HReg res = newVRegI(env);
-         addInstr(env, LOONGARCH64Instr_Move(res, hregGSP()));
+         addInstr(env, LOONGARCH64Instr_Move(res, hregSP()));
          addInstr(env, LOONGARCH64Instr_Binary(LAbin_ADDI_D,
                                                LOONGARCH64RI_I(rloc.spOff, 12, True),
                                                res, res));
