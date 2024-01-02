@@ -8639,6 +8639,34 @@ static Bool gen_vadd_vsub ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vaddi_vsubi ( DisResult* dres, UInt insn,
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt vj     = SLICE(insn, 9, 5);
+   UInt ui5    = SLICE(insn, 14, 10);
+   UInt insSz  = SLICE(insn, 16, 15);
+   UInt isAdd  = SLICE(insn, 17, 17);
+
+   IRTemp res = newTempV128();
+   IROp mathOp = isAdd ? mkVecADD(insSz) : mkVecSUB(insSz);
+
+   switch (insSz) {
+      case 0b00: assign(res, unop(Iop_Dup8x16, mkU8(ui5)));  break;
+      case 0b01: assign(res, unop(Iop_Dup16x8, mkU16(ui5))); break;
+      case 0b10: assign(res, unop(Iop_Dup32x4, mkU32(ui5))); break;
+      case 0b11: assign(res, binop(Iop_64HLtoV128, mkU64(ui5), mkU64(ui5))); break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[2] = { "vsubi", "vaddi" };
+   DIP("%s.%s %s, %s, %u\n", nm[isAdd], mkInsSize(insSz + 4),
+                             nameVReg(vd), nameVReg(vj), ui5);
+   putVReg(vd, binop(mathOp, getVReg(vj), mkexpr(res)));
+   return True;
+}
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -11568,6 +11596,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010_00xx ( DisResult* dres, UInt i
       case 0b000: case 0b001:
       case 0b010: case 0b011: case 0b100:
          ok = gen_vcmpi_integer(dres, insn, archinfo, abiinfo); break;
+      case 0b101: case 0b110:
+         ok = gen_vaddi_vsubi(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
