@@ -9194,6 +9194,86 @@ static Bool gen_vcmp_integer ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vcmpi_integer ( DisResult* dres, UInt insn,
+                                const VexArchInfo* archinfo,
+                                const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt si5   = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isS   = SLICE(insn, 17, 17);
+   UInt insTy = SLICE(insn, 19, 17);
+
+   UInt szId   = insSz;
+   IRTemp res  = newTempV128();
+   IRTemp argL = newTempV128();
+   IRTemp argR = newTempV128();
+   assign(argL, getVReg(vj));
+
+   IRExpr *si5Expr;
+   IRTemp s64  = newTemp(Ity_I64);
+   assign(s64, mkU64(extend64(si5, 5)));
+
+   if (insTy == 0b000) //vseqi is signed
+      isS = 1;
+
+   switch (insSz) {
+      case 0b00: {
+         si5Expr = isS ? unop(Iop_64to8, mkexpr(s64)) : mkU8(si5);
+         assign(argR, unop(Iop_Dup8x16, si5Expr));
+         break;
+      }
+      case 0b01: {
+         si5Expr = isS ? unop(Iop_64to16, mkexpr(s64)) : mkU16(si5);
+         assign(argR, unop(Iop_Dup16x8, si5Expr));
+         break;
+      }
+      case 0b10: {
+         si5Expr = isS ? unop(Iop_64to32, mkexpr(s64)) : mkU32(si5);
+         assign(argR, unop(Iop_Dup32x4, si5Expr));
+         break;
+      }
+      case 0b11: {
+         si5Expr = isS ? mkexpr(s64) : mkU64(si5);
+         assign(argR, binop(Iop_64HLtoV128, si5Expr, si5Expr));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   switch (insTy) {
+      case 0b000: //vseqi
+         assign(res, binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR)));
+         break;
+      case 0b001: //vslei
+         assign(res, binop(Iop_OrV128,
+                           binop(mkVecCMPGTS(insSz), mkexpr(argR), mkexpr(argL)),
+                           binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
+         break;
+      case 0b010: //vslei{u}
+         assign(res, binop(Iop_OrV128,
+                           binop(mkVecCMPGTU(insSz), mkexpr(argR), mkexpr(argL)),
+                           binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
+         szId = insSz + 4;
+         break;
+      case 0b011: //vslti
+         assign(res, binop(mkVecCMPGTS(insSz), mkexpr(argR), mkexpr(argL)));
+         break;
+      case 0b100: //vslti{u}
+         assign(res, binop(mkVecCMPGTU(insSz), mkexpr(argR), mkexpr(argL)));
+         szId = insSz + 4;
+         break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[10] = { "vseqi", "vslei", "vslei", "vslti", "vslti" };
+   DIP("%s.%s %s, %s, %d\n", nm[insTy], mkInsSize(szId), nameVReg(vd),
+                             nameVReg(vj), (Int)extend32(si5, 5));
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
 static Bool gen_xvcmp_integer ( DisResult* dres, UInt insn,
                                 const VexArchInfo* archinfo,
                                 const VexAbiInfo* abiinfo )
@@ -11478,6 +11558,22 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_1010_00xx ( DisResult* dres, UInt insn,
+                                                         const VexArchInfo* archinfo,
+                                                         const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 19, 17)) {
+      case 0b000: case 0b001:
+      case 0b010: case 0b011: case 0b100:
+         ok = gen_vcmpi_integer(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100_1010_0111 ( DisResult* dres, UInt insn,
                                                          const VexArchInfo* archinfo,
                                                          const VexAbiInfo*  abiinfo )
@@ -11504,6 +11600,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0000: case 0b0001:
+      case 0b0010: case 0b0011:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1010_00xx(dres, insn, archinfo, abiinfo); break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1010_0111(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
