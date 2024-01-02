@@ -52,8 +52,6 @@ IRExpr* guest_loongarch64_spechelper ( const HChar * function_name,
 void LibVEX_GuestLOONGARCH64_initialise ( /*OUT*/
                                           VexGuestLOONGARCH64State* vex_state )
 {
-   Int i;
-
    /* Event check fail addr and counter. */
    vex_state->host_EvC_FAILADDR = 0;
    vex_state->host_EvC_COUNTER  = 0;
@@ -95,40 +93,43 @@ void LibVEX_GuestLOONGARCH64_initialise ( /*OUT*/
    vex_state->guest_PC   = 0; /* Program counter */
 
    /* FPU/SIMD Registers */
-   for (i = 0; i < 8; i++) {
-      vex_state->guest_X0[i]   = 0xff;
-      vex_state->guest_X1[i]   = 0xff;
-      vex_state->guest_X2[i]   = 0xff;
-      vex_state->guest_X3[i]   = 0xff;
-      vex_state->guest_X4[i]   = 0xff;
-      vex_state->guest_X5[i]   = 0xff;
-      vex_state->guest_X6[i]   = 0xff;
-      vex_state->guest_X7[i]   = 0xff;
-      vex_state->guest_X8[i]   = 0xff;
-      vex_state->guest_X9[i]   = 0xff;
-      vex_state->guest_X10[i]  = 0xff;
-      vex_state->guest_X11[i]  = 0xff;
-      vex_state->guest_X12[i]  = 0xff;
-      vex_state->guest_X13[i]  = 0xff;
-      vex_state->guest_X14[i]  = 0xff;
-      vex_state->guest_X15[i]  = 0xff;
-      vex_state->guest_X16[i]  = 0xff;
-      vex_state->guest_X17[i]  = 0xff;
-      vex_state->guest_X18[i]  = 0xff;
-      vex_state->guest_X19[i]  = 0xff;
-      vex_state->guest_X20[i]  = 0xff;
-      vex_state->guest_X21[i]  = 0xff;
-      vex_state->guest_X22[i]  = 0xff;
-      vex_state->guest_X23[i]  = 0xff;
-      vex_state->guest_X24[i]  = 0xff;
-      vex_state->guest_X25[i]  = 0xff;
-      vex_state->guest_X26[i]  = 0xff;
-      vex_state->guest_X27[i]  = 0xff;
-      vex_state->guest_X28[i]  = 0xff;
-      vex_state->guest_X29[i]  = 0xff;
-      vex_state->guest_X30[i]  = 0xff;
-      vex_state->guest_X31[i]  = 0xff;
-   }
+#  define XRINIT(xr) \
+      do { xr[0]= xr[1] = xr[2] = xr[3] = 0xffffffff; \
+           xr[4]= xr[5] = xr[6] = xr[7] = 0xffffffff; \
+      } while (0)
+   XRINIT(vex_state->guest_X0);
+   XRINIT(vex_state->guest_X1);
+   XRINIT(vex_state->guest_X2);
+   XRINIT(vex_state->guest_X3);
+   XRINIT(vex_state->guest_X4);
+   XRINIT(vex_state->guest_X5);
+   XRINIT(vex_state->guest_X6);
+   XRINIT(vex_state->guest_X7);
+   XRINIT(vex_state->guest_X8);
+   XRINIT(vex_state->guest_X9);
+   XRINIT(vex_state->guest_X10);
+   XRINIT(vex_state->guest_X11);
+   XRINIT(vex_state->guest_X12);
+   XRINIT(vex_state->guest_X13);
+   XRINIT(vex_state->guest_X14);
+   XRINIT(vex_state->guest_X15);
+   XRINIT(vex_state->guest_X16);
+   XRINIT(vex_state->guest_X17);
+   XRINIT(vex_state->guest_X18);
+   XRINIT(vex_state->guest_X19);
+   XRINIT(vex_state->guest_X20);
+   XRINIT(vex_state->guest_X21);
+   XRINIT(vex_state->guest_X22);
+   XRINIT(vex_state->guest_X23);
+   XRINIT(vex_state->guest_X24);
+   XRINIT(vex_state->guest_X25);
+   XRINIT(vex_state->guest_X26);
+   XRINIT(vex_state->guest_X27);
+   XRINIT(vex_state->guest_X28);
+   XRINIT(vex_state->guest_X29);
+   XRINIT(vex_state->guest_X30);
+   XRINIT(vex_state->guest_X31);
+#  undef XRINIT
 
    vex_state->guest_FCC0 = 0; /* Condition Flag Registers */
    vex_state->guest_FCC1 = 0;
