@@ -644,21 +644,20 @@ static void breakupV256to32s ( IRTemp t256,
 }
 
 /* Construct a V256-bit value from eight 32-bit ints. */
-// static IRExpr* mkV256from32s ( IRTemp t7, IRTemp t6,
-//                                IRTemp t5, IRTemp t4,
-//                                IRTemp t3, IRTemp t2,
-//                                IRTemp t1, IRTemp t0 )
-// {
-//    return
-//       binop( Iop_V128HLtoV256,
-//              binop( Iop_64HLtoV128,
-//                     binop(Iop_32HLto64, mkexpr(t7), mkexpr(t6)),
-//                     binop(Iop_32HLto64, mkexpr(t5), mkexpr(t4)) ),
-//              binop( Iop_64HLtoV128,
-//                     binop(Iop_32HLto64, mkexpr(t3), mkexpr(t2)),
-//                     binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0)) )
-//    );
-// }
+static IRExpr* mkV256from32s ( IRTemp t7, IRTemp t6,
+                               IRTemp t5, IRTemp t4,
+                               IRTemp t3, IRTemp t2,
+                               IRTemp t1, IRTemp t0 )
+{
+   return binop(Iop_V128HLtoV256,
+                binop(Iop_64HLtoV128,
+                      binop(Iop_32HLto64, mkexpr(t7), mkexpr(t6)),
+                      binop(Iop_32HLto64, mkexpr(t5), mkexpr(t4))),
+                binop(Iop_64HLtoV128,
+                      binop(Iop_32HLto64, mkexpr(t3), mkexpr(t2)),
+                      binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0)))
+   );
+}
 
 /* Construct a V256-bit value from four 64-bit ints. */
 static IRExpr* mkV256from64s ( IRTemp t3, IRTemp t2,
@@ -9554,6 +9553,62 @@ static Bool gen_vshuf_b ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvpermi ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt ui8   = SLICE(insn, 17, 10);
+   UInt InsSz = SLICE(insn, 19, 18);
+
+   UInt id0 = ui8 & 0x03;
+   UInt id1 = (ui8 & 0x0c) >> 2;
+   UInt id2 = (ui8 & 0x30) >> 4;
+   UInt id3 = (ui8 & 0xc0) >> 6;
+
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp sJ = newTemp(Ity_V256);
+   assign(sJ, getXReg(xj));
+   IRTemp sD = newTemp(Ity_V256);
+   assign(sD, getXReg(xd));
+
+   switch (InsSz) {
+      case 0b01: { //x.w
+         IRTemp s[16];
+         s[7] = s[6] = s[5] = s[4] = s[3] = s[2] = s[1] = s[0] = IRTemp_INVALID;
+         s[15] = s[14] = s[13] = s[12] = s[11] = s[10] = s[9] = s[8] = IRTemp_INVALID;
+         breakupV256to32s(sJ, &s[7], &s[6], &s[5], &s[4],
+                              &s[3], &s[2], &s[1], &s[0]);
+         breakupV256to32s(sD, &s[15], &s[14], &s[13], &s[12],
+                              &s[11], &s[10], &s[9], &s[8]);
+         assign(res, mkV256from32s(s[id0], s[id1], s[id2], s[id3],
+                                   s[id0 + 4], s[id1 + 4], s[id2 + 4], s[id3 + 4]));
+         break;
+      }
+      case 0b10: { //x.d
+         IRTemp s[4];
+         s[3] = s[2] = s[1] = s[0] = IRTemp_INVALID;
+         breakupV256to64s(sJ, &s[3], &s[2], &s[1], &s[0]);
+         assign(res, mkV256from64s(s[id0], s[id1], s[id2], s[id3]));
+         break;
+      }
+      case 0b11: { //x.q
+         IRTemp s[4];
+         s[3] = s[2] = s[1] = s[0] = IRTemp_INVALID;
+         breakupV256toV128s(sJ, &s[1], &s[0]);
+         breakupV256toV128s(sD, &s[3], &s[2]);
+         assign(res, binop(Iop_V128HLtoV256, mkexpr(s[id0]), mkexpr(s[id2])));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   DIP("xvpermi.%s %s, %s, %u\n", mkInsSize(InsSz), nameXReg(xd), nameXReg(xj), ui8);
+   putXReg(xd, mkexpr(res));
+   return True;
+}
+
 
 /*------------------------------------------------------------*/
 /*--- Helpers for Vector load/store insns                  ---*/
@@ -11444,6 +11499,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_1111 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b1001: case 0b1010: case 0b1011:
+         ok = gen_xvpermi(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
                                                const VexArchInfo* archinfo,
                                                const VexAbiInfo*  abiinfo )
@@ -11467,6 +11537,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1100(dres, insn, archinfo, abiinfo); break;
+      case 0b1111:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_1111(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False; break;
    }
