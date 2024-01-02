@@ -8994,6 +8994,46 @@ static Bool gen_logical_xv ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vlogical_u8 ( DisResult* dres, UInt insn,
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt ui8   = SLICE(insn, 17, 10);
+   UInt insTy = SLICE(insn, 19, 18);
+
+   IRTemp res  = newTempV128();
+   switch (insTy) {
+      case 0b00: //vandi.b
+         assign(res, binop(Iop_AndV128,
+                           getVReg(vj),
+                           unop(Iop_Dup8x16, mkU8(ui8))));
+         break;
+      case 0b01: //vori.b
+         assign(res, binop(Iop_OrV128,
+                           getVReg(vj),
+                           unop(Iop_Dup8x16, mkU8(ui8))));
+         break;
+      case 0b10: //vxori.b
+         assign(res, binop(Iop_XorV128,
+                           getVReg(vj),
+                           unop(Iop_Dup8x16, mkU8(ui8))));
+         break;
+      case 0b11: //vnori.b
+         assign(res, unop(Iop_NotV128,
+                          binop(Iop_OrV128,
+                                getVReg(vj),
+                                unop(Iop_Dup8x16, mkU8(ui8)))));
+         break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[4] = { "vandi.b", "vori.b", "vxori.b", "vnori.b" };
+   DIP("%s %s, %s, %u\n", nm[insTy], nameVReg(vd), nameVReg(vj), ui8);
+   putVReg(vd, mkexpr(res));
+   return True;
+}
 
 static Bool gen_vbiti ( DisResult* dres, UInt insn,
                         const VexArchInfo* archinfo,
@@ -11481,6 +11521,22 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_1111 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0100: case 0b0101:
+      case 0b0110: case 0b0111:
+         ok = gen_vlogical_u8(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
                                                const VexArchInfo* archinfo,
                                                const VexAbiInfo*  abiinfo )
@@ -11506,6 +11562,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
          ok = disInstr_LOONGARCH64_WRK_01_1100_1011(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1100(dres, insn, archinfo, abiinfo); break;
+      case 0b1111:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1111(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False; break;
    }
