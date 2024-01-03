@@ -2767,7 +2767,7 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                   HReg src1           = iselV128Expr(env, triop->arg1);
                   LOONGARCH64RI* src2 = iselIntExpr_RI(env, triop->arg2, size, False);
                   HReg src3           = iselIntExpr_R(env, triop->arg3);
-                  LOONGARCH64Instr_VecMove(dst, src1);
+                  addInstr(env, LOONGARCH64Instr_VecMove(dst, src1));
                   addInstr(env, LOONGARCH64Instr_VecBinary(op, src2, src3, dst));
                   return dst;
             }
