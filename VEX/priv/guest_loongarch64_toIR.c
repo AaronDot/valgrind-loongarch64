@@ -9897,7 +9897,7 @@ static Bool gen_xvpermi ( DisResult* dres, UInt insn,
          s[3] = s[2] = s[1] = s[0] = IRTemp_INVALID;
          breakupV256toV128s(sJ, &s[1], &s[0]);
          breakupV256toV128s(sD, &s[3], &s[2]);
-         assign(res, binop(Iop_V128HLtoV256, mkexpr(s[id0]), mkexpr(s[id2])));
+         assign(res, binop(Iop_V128HLtoV256, mkexpr(s[id2]), mkexpr(s[id0])));
          break;
       }
       default: vassert(0);
