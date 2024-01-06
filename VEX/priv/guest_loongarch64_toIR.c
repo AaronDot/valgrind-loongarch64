@@ -458,7 +458,7 @@ static IRExpr* mkV256from32s ( IRTemp t7, IRTemp t6,
    );
 }
 
-static IROp mkVecGetElem ( UInt size ) {
+static IROp mkV128GetElem ( UInt size ) {
    const IROp ops[4]
       = { Iop_GetElem8x16, Iop_GetElem16x8,
           Iop_GetElem32x4, Iop_GetElem64x2 };
@@ -466,6 +466,149 @@ static IROp mkVecGetElem ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV128ADD ( UInt size ) {
+   const IROp ops[5]
+      = { Iop_Add8x16, Iop_Add16x8, Iop_Add32x4, Iop_Add64x2, Iop_Add128x1 };
+   vassert(size < 5);
+   return ops[size];
+}
+
+static IROp mkV128SUB ( UInt size ) {
+   const IROp ops[5]
+      = { Iop_Sub8x16, Iop_Sub16x8, Iop_Sub32x4, Iop_Sub64x2, Iop_Sub128x1 };
+   vassert(size < 5);
+   return ops[size];
+}
+
+static IROp mkV128MAXU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Max8Ux16, Iop_Max16Ux8, Iop_Max32Ux4, Iop_Max64Ux2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128MAXS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Max8Sx16, Iop_Max16Sx8, Iop_Max32Sx4, Iop_Max64Sx2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128MINU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Min8Ux16, Iop_Min16Ux8, Iop_Min32Ux4, Iop_Min64Ux2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128MINS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Min8Sx16, Iop_Min16Sx8, Iop_Min32Sx4, Iop_Min64Sx2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128CMPGTS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpGT8Sx16, Iop_CmpGT16Sx8, Iop_CmpGT32Sx4, Iop_CmpGT64Sx2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128SHLN ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_ShlN8x16, Iop_ShlN16x8, Iop_ShlN32x4, Iop_ShlN64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128SHRN ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_ShrN8x16, Iop_ShrN16x8, Iop_ShrN32x4, Iop_ShrN64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128CMPEQ ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpEQ8x16, Iop_CmpEQ16x8, Iop_CmpEQ32x4, Iop_CmpEQ64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256CMPEQ ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpEQ8x32, Iop_CmpEQ16x16, Iop_CmpEQ32x8, Iop_CmpEQ64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128CMPGTU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpGT8Ux16, Iop_CmpGT16Ux8, Iop_CmpGT32Ux4, Iop_CmpGT64Ux2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128PACKOD ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_PackOddLanes8x16, Iop_PackOddLanes16x8,
+          Iop_PackOddLanes32x4, Iop_InterleaveHI64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128PACKEV ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_PackEvenLanes8x16, Iop_PackEvenLanes16x8,
+          Iop_PackEvenLanes32x4, Iop_InterleaveLO64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128INTERLEAVELO ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_InterleaveLO8x16, Iop_InterleaveLO16x8,
+          Iop_InterleaveLO32x4, Iop_InterleaveLO64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128INTERLEAVEHI ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_InterleaveHI8x16, Iop_InterleaveHI16x8,
+          Iop_InterleaveHI32x4, Iop_InterleaveHI64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MAXU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MAXS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8, Iop_Max64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MINU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8, Iop_Min64Ux4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MINS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
 
 /*------------------------------------------------------------*/
 /*--- Helpers for accessing guest registers.               ---*/
@@ -8121,97 +8264,6 @@ static Bool gen_bgeu ( DisResult* dres, UInt insn,
 /*--- Helpers for vector integer arithmetic insns          ---*/
 /*------------------------------------------------------------*/
 
-static IROp mkVecADD ( UInt size ) {
-   const IROp ops[5]
-      = { Iop_Add8x16, Iop_Add16x8, Iop_Add32x4, Iop_Add64x2, Iop_Add128x1 };
-   vassert(size < 5);
-   return ops[size];
-}
-
-static IROp mkVecSUB ( UInt size ) {
-   const IROp ops[5]
-      = { Iop_Sub8x16, Iop_Sub16x8, Iop_Sub32x4, Iop_Sub64x2, Iop_Sub128x1 };
-   vassert(size < 5);
-   return ops[size];
-}
-
-static IROp mkVecMAXU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Max8Ux16, Iop_Max16Ux8, Iop_Max32Ux4, Iop_Max64Ux2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecMAXS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Max8Sx16, Iop_Max16Sx8, Iop_Max32Sx4, Iop_Max64Sx2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecMINU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Min8Ux16, Iop_Min16Ux8, Iop_Min32Ux4, Iop_Min64Ux2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecMINS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Min8Sx16, Iop_Min16Sx8, Iop_Min32Sx4, Iop_Min64Sx2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV256MAXU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV256MAXS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8, Iop_Max64Sx4 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV256MINU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8, Iop_Min64Ux4 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV256MINS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecCMPGTS ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_CmpGT8Sx16, Iop_CmpGT16Sx8, Iop_CmpGT32Sx4, Iop_CmpGT64Sx2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecSHLN ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_ShlN8x16, Iop_ShlN16x8, Iop_ShlN32x4, Iop_ShlN64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecSHRN ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_ShrN8x16, Iop_ShrN16x8, Iop_ShrN32x4, Iop_ShrN64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
 static Bool gen_vadd_vsub ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -8223,7 +8275,7 @@ static Bool gen_vadd_vsub ( DisResult* dres, UInt insn,
    UInt isAdd = SLICE(insn, 17, 17);
 
    const HChar *nm[2] = { "vsub", "vadd" };
-   IROp mathOp = isAdd ? mkVecADD(insSz): mkVecSUB(insSz);
+   IROp mathOp = isAdd ? mkV128ADD(insSz): mkV128SUB(insSz);
 
    DIP("%s.%s %s, %s, %s\n", nm[isAdd], mkInsSize(insSz),
                              nameVReg(vd), nameVReg(vj), nameVReg(vk));
@@ -8250,14 +8302,14 @@ static Bool gen_vaddi_vsubi ( DisResult* dres, UInt insn,
    UInt isAdd  = SLICE(insn, 17, 17);
 
    IRTemp res = newTemp(Ity_V128);
-   IROp mathOp = isAdd ? mkVecADD(insSz) : mkVecSUB(insSz);
+   IROp mathOp = isAdd ? mkV128ADD(insSz) : mkV128SUB(insSz);
 
    switch (insSz) {
       case 0b00: assign(res, unop(Iop_Dup8x16, mkU8(ui5)));                  break;
       case 0b01: assign(res, unop(Iop_Dup16x8, mkU16(ui5)));                 break;
       case 0b10: assign(res, unop(Iop_Dup32x4, mkU32(ui5)));                 break;
       case 0b11: assign(res, binop(Iop_64HLtoV128, mkU64(ui5), mkU64(ui5))); break;
-      default:   vassert(0);                                                 break;
+      default: vassert(0);
    }
 
    const HChar *nm[2] = { "vsubi", "vaddi" };
@@ -8287,8 +8339,8 @@ static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
    UInt isMin = SLICE(insn, 17, 17);
    UInt isU   = SLICE(insn, 18, 18);
 
-   IROp op = isMin ? isU ? mkVecMINU(insSz) : mkVecMINS(insSz) :
-                     isU ? mkVecMAXU(insSz) : mkVecMAXS(insSz);
+   IROp op = isMin ? isU ? mkV128MINU(insSz) : mkV128MINS(insSz) :
+                     isU ? mkV128MAXU(insSz) : mkV128MAXS(insSz);
    UInt id = isU ? (insSz + 4) : insSz;
    const HChar *nm[2] = { "vmax", "vmin" };
 
@@ -8469,8 +8521,8 @@ static Bool gen_vmsk ( DisResult* dres, UInt insn,
             return True;
          }
 
-         assign(cmp, binop(mkVecCMPGTS(insSz), mkV128(0x0000), mkexpr(src)));
-         assign(shr, binop(mkVecSHRN(insSz), mkexpr(cmp), mkU8(shrNum[insSz])));
+         assign(cmp, binop(mkV128CMPGTS(insSz), mkV128(0x0000), mkexpr(src)));
+         assign(shr, binop(mkV128SHRN(insSz), mkexpr(cmp), mkU8(shrNum[insSz])));
 
          switch(insSz) {
             case 0b00: res = gen_vmsk_b(shr); break;
@@ -8774,7 +8826,7 @@ static Bool gen_vbiti ( DisResult* dres, UInt insn,
          break;
    }
 
-   assign(argR, binop(mkVecSHLN(insSz), mkexpr(c1), mkU8(uImm)));
+   assign(argR, binop(mkV128SHLN(insSz), mkexpr(c1), mkU8(uImm)));
    switch (insTy) {
       case 0b00:
          assign(res, binop(Iop_AndV128,
@@ -8870,27 +8922,6 @@ static Bool gen_vfrstpi ( DisResult* dres, UInt insn,
 /*--- Helpers for vector comparison and selection insns    ---*/
 /*------------------------------------------------------------*/
 
-static IROp mkVecCMPEQ ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_CmpEQ8x16, Iop_CmpEQ16x8, Iop_CmpEQ32x4, Iop_CmpEQ64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV256CMPEQ ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_CmpEQ8x32, Iop_CmpEQ16x16, Iop_CmpEQ32x8, Iop_CmpEQ64x4 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecCMPGTU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_CmpGT8Ux16, Iop_CmpGT16Ux8, Iop_CmpGT32Ux4, Iop_CmpGT64Ux2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
 static Bool gen_vcmp_integer ( DisResult* dres, UInt insn,
                                const VexArchInfo* archinfo,
                                const VexAbiInfo* abiinfo )
@@ -8910,24 +8941,24 @@ static Bool gen_vcmp_integer ( DisResult* dres, UInt insn,
 
    switch (insTy) {
       case 0b000:
-         assign(res, binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR)));
+         assign(res, binop(mkV128CMPEQ(insSz), mkexpr(argL), mkexpr(argR)));
          break;
       case 0b001:
          assign(res, binop(Iop_OrV128,
-                           binop(mkVecCMPGTS(insSz), mkexpr(argR), mkexpr(argL)),
-                           binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
+                           binop(mkV128CMPGTS(insSz), mkexpr(argR), mkexpr(argL)),
+                           binop(mkV128CMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
          break;
       case 0b010:
          assign(res, binop(Iop_OrV128,
-                           binop(mkVecCMPGTU(insSz), mkexpr(argR), mkexpr(argL)),
-                           binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
+                           binop(mkV128CMPGTU(insSz), mkexpr(argR), mkexpr(argL)),
+                           binop(mkV128CMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
          szId = insSz + 4;
          break;
       case 0b011:
-         assign(res, binop(mkVecCMPGTS(insSz), mkexpr(argR), mkexpr(argL)));
+         assign(res, binop(mkV128CMPGTS(insSz), mkexpr(argR), mkexpr(argL)));
          break;
       case 0b100:
-         assign(res, binop(mkVecCMPGTU(insSz), mkexpr(argR), mkexpr(argL)));
+         assign(res, binop(mkV128CMPGTU(insSz), mkexpr(argR), mkexpr(argL)));
          szId = insSz + 4;
          break;
       default:
@@ -8998,24 +9029,24 @@ static Bool gen_vcmpi_integer ( DisResult* dres, UInt insn,
 
    switch (insTy) {
       case 0b000:
-         assign(res, binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR)));
+         assign(res, binop(mkV128CMPEQ(insSz), mkexpr(argL), mkexpr(argR)));
          break;
       case 0b001:
          assign(res, binop(Iop_OrV128,
-                           binop(mkVecCMPGTS(insSz), mkexpr(argR), mkexpr(argL)),
-                           binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
+                           binop(mkV128CMPGTS(insSz), mkexpr(argR), mkexpr(argL)),
+                           binop(mkV128CMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
          break;
       case 0b010:
          assign(res, binop(Iop_OrV128,
-                           binop(mkVecCMPGTU(insSz), mkexpr(argR), mkexpr(argL)),
-                           binop(mkVecCMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
+                           binop(mkV128CMPGTU(insSz), mkexpr(argR), mkexpr(argL)),
+                           binop(mkV128CMPEQ(insSz), mkexpr(argL), mkexpr(argR))));
          szId = insSz + 4;
          break;
       case 0b011:
-         assign(res, binop(mkVecCMPGTS(insSz), mkexpr(argR), mkexpr(argL)));
+         assign(res, binop(mkV128CMPGTS(insSz), mkexpr(argR), mkexpr(argL)));
          break;
       case 0b100:
-         assign(res, binop(mkVecCMPGTU(insSz), mkexpr(argR), mkexpr(argL)));
+         assign(res, binop(mkV128CMPGTU(insSz), mkexpr(argR), mkexpr(argL)));
          szId = insSz + 4;
          break;
       default:
@@ -9135,7 +9166,7 @@ static Bool gen_vset ( DisResult* dres, UInt insn,
             return True;
          }
 
-         assign(eq, binop(mkVecCMPEQ(insSz), getVReg(vj), mkexpr(z128)));
+         assign(eq, binop(mkV128CMPEQ(insSz), getVReg(vj), mkexpr(z128)));
          assign(res, unop(Iop_NotV128,
                           binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128))));
          ops64 = Iop_Or64;
@@ -9151,7 +9182,7 @@ static Bool gen_vset ( DisResult* dres, UInt insn,
             return True;
          }
 
-         assign(eq, binop(mkVecCMPEQ(insSz), getVReg(vj), mkexpr(z128)));
+         assign(eq, binop(mkV128CMPEQ(insSz), getVReg(vj), mkexpr(z128)));
          assign(res, binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128)));
          ops64 = Iop_And64;
          break;
@@ -9222,8 +9253,8 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
          IRTemp hi, lo;
          hi = lo = IRTemp_INVALID;
          breakupV256toV128s(src, &hi, &lo);
-         assign(eqHi, binop(mkVecCMPEQ(insSz), mkexpr(hi), mkexpr(z128)));
-         assign(eqLo, binop(mkVecCMPEQ(insSz), mkexpr(lo), mkexpr(z128)));
+         assign(eqHi, binop(mkV128CMPEQ(insSz), mkexpr(hi), mkexpr(z128)));
+         assign(eqLo, binop(mkV128CMPEQ(insSz), mkexpr(lo), mkexpr(z128)));
          assign(res, binop(Iop_V128HLtoV256,
                            unop(Iop_NotV128,
                                 binop(Iop_CmpEQ64x2, mkexpr(eqHi), mkexpr(z128))),
@@ -9250,38 +9281,6 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
 /*------------------------------------------------------------*/
 /*--- Helpers for vector moving and shuffling insns        ---*/
 /*------------------------------------------------------------*/
-
-static IROp mkVecPACKOD ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_PackOddLanes8x16, Iop_PackOddLanes16x8,
-          Iop_PackOddLanes32x4, Iop_InterleaveHI64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecPACKEV ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_PackEvenLanes8x16, Iop_PackEvenLanes16x8,
-          Iop_PackEvenLanes32x4, Iop_InterleaveLO64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecINTERLEAVELO ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_InterleaveLO8x16, Iop_InterleaveLO16x8,
-          Iop_InterleaveLO32x4, Iop_InterleaveLO64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkVecINTERLEAVEHI ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_InterleaveHI8x16, Iop_InterleaveHI16x8,
-          Iop_InterleaveHI32x4, Iop_InterleaveHI64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
 
 static Bool gen_vpickve2gr ( DisResult* dres, UInt insn,
                              const VexArchInfo* archinfo,
@@ -9316,7 +9315,7 @@ static Bool gen_vpickve2gr ( DisResult* dres, UInt insn,
       vassert(0);
    }
 
-   immExpr = binop(mkVecGetElem(insSz), getVReg(vj), mkU8(uImm));
+   immExpr = binop(mkV128GetElem(insSz), getVReg(vj), mkU8(uImm));
    if (insSz != 3)
       assign(res, isS ? extendS(extTy, immExpr) :
                         extendU(extTy, immExpr));
@@ -9441,7 +9440,7 @@ static Bool gen_vreplve ( DisResult* dres, UInt insn,
                                getIReg64(rk),
                                mkU64(div[insSz])))));
 
-   elem = binop(mkVecGetElem(insSz), getVReg(vj), mkexpr(mod));
+   elem = binop(mkV128GetElem(insSz), getVReg(vj), mkexpr(mod));
    switch (insSz) {
       case 0b00:
          assign(res, unop(Iop_Dup8x16, elem));
@@ -9539,49 +9538,49 @@ static Bool gen_evod ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 19, 17)) {
       case 0b011:
          nm = "vpackev";
-         assign(argL, binop(mkVecPACKEV(insSz),
+         assign(argL, binop(mkV128PACKEV(insSz),
                             getVReg(vj),
                             mkV128(0x0000)));
-         assign(argR, binop(mkVecPACKEV(insSz),
+         assign(argR, binop(mkV128PACKEV(insSz),
                             getVReg(vk),
                             mkV128(0x0000)));
-         assign(res, binop(mkVecINTERLEAVEHI(insSz),
+         assign(res, binop(mkV128INTERLEAVEHI(insSz),
                            mkexpr(argL),
                            mkexpr(argR)));
          break;
       case 0b100:
          nm = "vpackod";
-         assign(argL, binop(mkVecPACKOD(insSz),
+         assign(argL, binop(mkV128PACKOD(insSz),
                             getVReg(vj),
                             mkV128(0x0000)));
-         assign(argR, binop(mkVecPACKOD(insSz),
+         assign(argR, binop(mkV128PACKOD(insSz),
                             getVReg(vk),
                             mkV128(0x0000)));
-         assign(res, binop(mkVecINTERLEAVEHI(insSz),
+         assign(res, binop(mkV128INTERLEAVEHI(insSz),
                            mkexpr(argL),
                            mkexpr(argR)));
          break;
       case 0b101:
          nm = "vilvl";
-         assign(res, binop(mkVecINTERLEAVELO(insSz),
+         assign(res, binop(mkV128INTERLEAVELO(insSz),
                            getVReg(vj),
                            getVReg(vk)));
          break;
       case 0b110:
          nm = "vilvh";
-         assign(res, binop(mkVecINTERLEAVEHI(insSz),
+         assign(res, binop(mkV128INTERLEAVEHI(insSz),
                            getVReg(vj),
                            getVReg(vk)));
          break;
       case 0b111:
          nm = "vpickev";
-         assign(res, binop(mkVecPACKEV(insSz),
+         assign(res, binop(mkV128PACKEV(insSz),
                            getVReg(vj),
                            getVReg(vk)));
          break;
       case 0b000:
          nm = "vpickod";
-         assign(res, binop(mkVecPACKOD(insSz),
+         assign(res, binop(mkV128PACKOD(insSz),
                            getVReg(vj),
                            getVReg(vk)));
          break;
@@ -9983,7 +9982,7 @@ static Bool gen_vstelm ( DisResult* dres, UInt insn,
       return True;
    }
 
-   store(addr, binop(mkVecGetElem(insSz), getVReg(vd), mkU8(idx)));
+   store(addr, binop(mkV128GetElem(insSz), getVReg(vd), mkU8(idx)));
 
    return True;
 }
