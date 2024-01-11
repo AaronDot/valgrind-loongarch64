@@ -2652,6 +2652,11 @@ static IRAtom* mkPCast128x1 ( MCEnv* mce, IRAtom* at )
    return assignNew('V', mce, Ity_V128, unop(Iop_CmpNEZ128x1, at));
 }
 
+static IRAtom* mkPCast128x2 ( MCEnv* mce, IRAtom* at )
+{
+   return assignNew('V', mce, Ity_V256, unop(Iop_CmpNEZ128x2, at));
+}
+
 static IRAtom* mkPCast64x4 ( MCEnv* mce, IRAtom* at )
 {
    return assignNew('V', mce, Ity_V256, unop(Iop_CmpNEZ64x4, at));
@@ -3293,6 +3298,15 @@ IRAtom* binary64Ix4 ( MCEnv* mce, IRAtom* vatom1, IRAtom* vatom2 )
    at = mkUifUV256(mce, vatom1, vatom2);
    at = mkPCast64x4(mce, at);
    return at;   
+}
+
+static
+IRAtom* binary128Ix2 ( MCEnv* mce, IRAtom* vatom1, IRAtom* vatom2 )
+{
+   IRAtom* at;
+   at = mkUifUV256(mce, vatom1, vatom2);
+   at = mkPCast128x2(mce, at);
+   return at;
 }
 
 /* --- V128-bit versions --- */
@@ -5041,6 +5055,10 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_Min64Sx4:
       case Iop_Min64Ux4:
          return binary64Ix4(mce, vatom1, vatom2);
+
+      case Iop_Sub128x2:
+      case Iop_Add128x2:
+         return binary128Ix2(mce, vatom1, vatom2);
 
       case Iop_I32StoF32x8:
       case Iop_F32toI32Sx8:
