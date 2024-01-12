@@ -3257,6 +3257,29 @@ IRAtom* vectorWidenI64 ( MCEnv* mce, IROp longen_op,
    return at2;
 }
 
+static
+IRAtom* vectorWidenUnV128 ( MCEnv* mce, IROp longen_op,
+                            IRAtom* vatom1)
+{
+   IRAtom *at1, *at2;
+   IRAtom* (*pcast)( MCEnv*, IRAtom* );
+   switch (longen_op) {
+      case Iop_WidenHIto16Sx8:  pcast = mkPCast16x8; break;
+      case Iop_WidenHIto16Ux8:  pcast = mkPCast16x8; break;
+      case Iop_WidenHIto32Sx4:  pcast = mkPCast32x4; break;
+      case Iop_WidenHIto32Ux4:  pcast = mkPCast32x4; break;
+      case Iop_WidenHIto64Sx2:  pcast = mkPCast64x2; break;
+      case Iop_WidenHIto64Ux2:  pcast = mkPCast64x2; break;
+      case Iop_WidenHIto128Sx1: pcast = mkPCast128x1; break;
+      case Iop_WidenHIto128Ux1: pcast = mkPCast128x1; break;
+      default: VG_(tool_panic)("vectorWidenUnV128");
+   }
+   tl_assert(isShadowAtom(mce,vatom1));
+   at1 = assignNew('V', mce, Ity_V128, unop(longen_op, vatom1));
+   at2 = assignNew('V', mce, Ity_V128, pcast(mce, at1));
+   return at2;
+}
+
 
 /* --- --- Vector integer arithmetic --- --- */
 
@@ -5531,6 +5554,16 @@ IRExpr* expr2vbits_Unop ( MCEnv* mce, IROp op, IRAtom* atom )
       case Iop_Widen32Sto64x2:
       case Iop_Widen32Uto64x2:
          return vectorWidenI64(mce, op, vatom);
+
+      case Iop_WidenHIto16Sx8:
+      case Iop_WidenHIto32Sx4:
+      case Iop_WidenHIto64Sx2:
+      case Iop_WidenHIto128Sx1:
+      case Iop_WidenHIto16Ux8:
+      case Iop_WidenHIto32Ux4:
+      case Iop_WidenHIto64Ux2:
+      case Iop_WidenHIto128Ux1:
+         return vectorWidenUnV128(mce, op, vatom);
 
       case Iop_F16toF32x4:
          // JRS 2019 Mar 17: this definitely isn't right, but it probably works
