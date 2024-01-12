@@ -2986,7 +2986,11 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
             case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
             case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
             case Iop_Add8x32: case Iop_Add16x16: case Iop_Add32x8: case Iop_Add64x4: case Iop_Add128x2:
-            case Iop_Sub8x32: case Iop_Sub16x16: case Iop_Sub32x8: case Iop_Sub64x4: case Iop_Sub128x2: {
+            case Iop_Sub8x32: case Iop_Sub16x16: case Iop_Sub32x8: case Iop_Sub64x4: case Iop_Sub128x2:
+            case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
+            case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
+            case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
+            case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4: {
                LOONGARCH64VecBinOp op;
                switch (e->Iex.Binop.op) {
                   case Iop_XorV256:    op = LAvecbin_VXOR_V; break;
@@ -3020,6 +3024,22 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                   case Iop_Sub32x8:    op = LAvecbin_VSUB_W; break;
                   case Iop_Sub64x4:    op = LAvecbin_VSUB_D; break;
                   case Iop_Sub128x2:   op = LAvecbin_VSUB_Q; break;
+                  case Iop_QAdd8Sx32:  op = LAvecbin_VSADD_B; break;
+                  case Iop_QAdd16Sx16: op = LAvecbin_VSADD_H; break;
+                  case Iop_QAdd32Sx8:  op = LAvecbin_VSADD_W; break;
+                  case Iop_QAdd64Sx4:  op = LAvecbin_VSADD_D; break;
+                  case Iop_QAdd8Ux32:  op = LAvecbin_VSADD_BU; break;
+                  case Iop_QAdd16Ux16: op = LAvecbin_VSADD_HU; break;
+                  case Iop_QAdd32Ux8:  op = LAvecbin_VSADD_WU; break;
+                  case Iop_QAdd64Ux4:  op = LAvecbin_VSADD_DU; break;
+                  case Iop_QSub8Sx32:  op = LAvecbin_VSSUB_B; break;
+                  case Iop_QSub16Sx16: op = LAvecbin_VSSUB_H; break;
+                  case Iop_QSub32Sx8:  op = LAvecbin_VSSUB_W; break;
+                  case Iop_QSub64Sx4:  op = LAvecbin_VSSUB_D; break;
+                  case Iop_QSub8Ux32:  op = LAvecbin_VSSUB_BU; break;
+                  case Iop_QSub16Ux16: op = LAvecbin_VSSUB_HU; break;
+                  case Iop_QSub32Ux8:  op = LAvecbin_VSSUB_WU; break;
+                  case Iop_QSub64Ux4:  op = LAvecbin_VSSUB_DU; break;
                   default: vassert(0);
                }
                HReg s1Hi, s1Lo, s2Hi, s2Lo;

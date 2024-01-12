@@ -1310,12 +1310,20 @@ void ppIROp ( IROp op )
       case Iop_Sub128x2:  vex_printf("Sub128x2"); return;
       case Iop_QAdd8Ux32: vex_printf("QAdd8Ux32"); return;
       case Iop_QAdd16Ux16: vex_printf("QAdd16Ux16"); return;
+      case Iop_QAdd32Ux8: vex_printf("QAdd32Ux8"); return;
+      case Iop_QAdd64Ux4: vex_printf("QAdd64Ux4"); return;
       case Iop_QAdd8Sx32: vex_printf("QAdd8Sx32"); return;
       case Iop_QAdd16Sx16: vex_printf("QAdd16Sx16"); return;
+      case Iop_QAdd32Sx8: vex_printf("QAdd32Sx8"); return;
+      case Iop_QAdd64Sx4: vex_printf("QAdd64Sx4"); return;
       case Iop_QSub8Ux32: vex_printf("QSub8Ux32"); return;
       case Iop_QSub16Ux16: vex_printf("QSub16Ux16"); return;
+      case Iop_QSub32Ux8: vex_printf("QSub32Ux8"); return;
+      case Iop_QSub64Ux4: vex_printf("QSub64Ux4"); return;
       case Iop_QSub8Sx32: vex_printf("QSub8Sx32"); return;
       case Iop_QSub16Sx16: vex_printf("QSub16Sx16"); return;
+      case Iop_QSub32Sx8: vex_printf("QSub32Sx8"); return;
+      case Iop_QSub64Sx4: vex_printf("QSub64Sx4"); return;
 
       case Iop_Mul16x16:    vex_printf("Mul16x16"); return;
       case Iop_Mul32x8:     vex_printf("Mul32x8"); return;
@@ -1827,10 +1835,10 @@ Bool primopMightTrap ( IROp op )
    case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
    case Iop_Mul16x16: case Iop_Mul32x8:
    case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
-   case Iop_QAdd8Ux32: case Iop_QAdd16Ux16:
-   case Iop_QAdd8Sx32: case Iop_QAdd16Sx16:
-   case Iop_QSub8Ux32: case Iop_QSub16Ux16:
-   case Iop_QSub8Sx32: case Iop_QSub16Sx16:
+   case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
+   case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
+   case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
+   case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4:
    case Iop_Avg8Ux32: case Iop_Avg16Ux16:
    case Iop_Perm32x8:
    case Iop_CipherV128: case Iop_CipherLV128: case Iop_CipherSV128:
@@ -4162,10 +4170,10 @@ void typeOfPrimop ( IROp op,
       case Iop_CmpEQ32x8:  case Iop_CmpEQ64x4:
       case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16:
       case Iop_CmpGT32Sx8: case Iop_CmpGT64Sx4:
-      case Iop_QAdd8Ux32: case Iop_QAdd16Ux16:
-      case Iop_QAdd8Sx32: case Iop_QAdd16Sx16:
-      case Iop_QSub8Ux32: case Iop_QSub16Ux16:
-      case Iop_QSub8Sx32: case Iop_QSub16Sx16:
+      case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
+      case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
+      case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
+      case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4:
       case Iop_Perm32x8:
          BINARY(Ity_V256,Ity_V256, Ity_V256);
 

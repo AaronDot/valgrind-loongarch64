@@ -2021,10 +2021,10 @@ typedef
       Iop_Mul16x16, Iop_Mul32x8,
       Iop_MulHi16Ux16, Iop_MulHi16Sx16,
 
-      Iop_QAdd8Ux32, Iop_QAdd16Ux16,
-      Iop_QAdd8Sx32, Iop_QAdd16Sx16,
-      Iop_QSub8Ux32, Iop_QSub16Ux16,
-      Iop_QSub8Sx32, Iop_QSub16Sx16,
+      Iop_QAdd8Ux32, Iop_QAdd16Ux16, Iop_QAdd32Ux8, Iop_QAdd64Ux4,
+      Iop_QAdd8Sx32, Iop_QAdd16Sx16, Iop_QAdd32Sx8, Iop_QAdd64Sx4,
+      Iop_QSub8Ux32, Iop_QSub16Ux16, Iop_QSub32Ux8, Iop_QSub64Ux4,
+      Iop_QSub8Sx32, Iop_QSub16Sx16, Iop_QSub32Sx8, Iop_QSub64Sx4,
 
       Iop_Avg8Ux32, Iop_Avg16Ux16,
 
