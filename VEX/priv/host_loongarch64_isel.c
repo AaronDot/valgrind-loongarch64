@@ -2985,8 +2985,55 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
          }
       }
 
-      default:
-         break;
+      case Iex_Const: {
+         IRConst *con = e->Iex.Const.con;
+
+         if (con->tag != Ico_V256) {
+            vpanic("iselV256Expr.const(LoongArch)");
+            goto irreducible;
+         }
+
+         HReg dstHi = newVRegV(env);
+         HReg dstLo = newVRegV(env);
+         UShort val = con->Ico.V256;
+
+         switch (val) {
+            case 0: { /* likely */
+               addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_D, hregZERO(), dstHi));
+               addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_D, hregZERO(), dstLo));
+               break;
+            }
+            // default: {
+            //    HReg r_tmp = newVRegI(env);
+            //    UInt i;
+            //    addInstr(env, LOONGARCH64Instr_LI(0xfful, r_tmp));
+
+            //    if (val & 1) {
+            //       addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_B, r_tmp, dst));
+            //    } else {
+            //       addInstr(env, LOONGARCH64Instr_VecUnary(LAvecun_VREPLGR2VR_B, hregZERO(), dst));
+            //    }
+
+            //    for (i = 1; i < 16; i++) {
+            //       val >>= 1;
+
+            //       if (val & 1) {
+            //          addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_B,
+            //                                             LOONGARCH64RI_I(i, 4, False), r_tmp, dst));
+            //       } else {
+            //          addInstr(env, LOONGARCH64Instr_VecBinary(LAvecbin_VINSGR2VR_B,
+            //                                             LOONGARCH64RI_I(i, 4, False), hregZERO(), dst));
+            //       }
+            //    }
+            //    break;
+            // }
+         }
+         *hi = dstHi;
+         *lo = dstLo;
+         return;
+      }
+
+      default: break;
    }
 
    /* We get here if no pattern matched. */

@@ -433,6 +433,12 @@ static void breakupV256to32s ( IRTemp t256,
    breakupV128to32s(t128_0, t3, t2, t1, t0);
 }
 
+/* Construct a V256-bit value from two V128 ints. */
+static IRExpr* mkV256from128s ( IRTemp t1, IRTemp t0 )
+{
+   return binop(Iop_V128HLtoV256, mkexpr(t1), mkexpr(t0));
+}
+
 /* Construct a V256-bit value from four 64-bit ints. */
 static IRExpr* mkV256from64s ( IRTemp t3, IRTemp t2,
                                IRTemp t1, IRTemp t0 )
@@ -454,8 +460,7 @@ static IRExpr* mkV256from32s ( IRTemp t7, IRTemp t6,
                       binop(Iop_32HLto64, mkexpr(t5), mkexpr(t4))),
                 binop(Iop_64HLtoV128,
                       binop(Iop_32HLto64, mkexpr(t3), mkexpr(t2)),
-                      binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0)))
-   );
+                      binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0))));
 }
 
 static IROp mkV128GetElem ( UInt size ) {
@@ -623,6 +628,7 @@ static IROp mkV256MINS ( UInt size ) {
    vassert(size < 4);
    return ops[size];
 }
+
 
 /*------------------------------------------------------------*/
 /*--- Helpers for accessing guest registers.               ---*/
@@ -8387,7 +8393,6 @@ static Bool gen_vaddi_vsubi ( DisResult* dres, UInt insn,
    }
 
    const HChar *nm[2] = { "vsubi", "vaddi" };
-
    DIP("%s.%s %s, %s, %u\n", nm[isAdd], mkInsSize(insSz + 4),
                              nameVReg(vd), nameVReg(vj), ui5);
 
@@ -8398,7 +8403,41 @@ static Bool gen_vaddi_vsubi ( DisResult* dres, UInt insn,
    }
 
    putVReg(vd, binop(mathOp, getVReg(vj), mkexpr(res)));
+   return True;
+}
 
+static Bool gen_xvaddi_xvsubi ( DisResult* dres, UInt insn,
+                                const VexArchInfo* archinfo,
+                                const VexAbiInfo* abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt ui5    = SLICE(insn, 14, 10);
+   UInt insSz  = SLICE(insn, 16, 15);
+   UInt isAdd  = SLICE(insn, 17, 17);
+
+   IRTemp dup = newTemp(Ity_V128);
+   IROp mathOp = isAdd ? mkV256ADD(insSz) : mkV256SUB(insSz);
+
+   switch (insSz) {
+      case 0b00: assign(dup, unop(Iop_Dup8x16, mkU8(ui5)));                  break;
+      case 0b01: assign(dup, unop(Iop_Dup16x8, mkU16(ui5)));                 break;
+      case 0b10: assign(dup, unop(Iop_Dup32x4, mkU32(ui5)));                 break;
+      case 0b11: assign(dup, binop(Iop_64HLtoV128, mkU64(ui5), mkU64(ui5))); break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[2] = { "xvsubi", "xvaddi" };
+   DIP("%s.%s %s, %s, %u\n", nm[isAdd], mkInsSize(insSz + 4),
+                             nameXReg(xd), nameXReg(xj), ui5);
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+
+   putXReg(xd, binop(mathOp, getXReg(xj), mkV256from128s(dup, dup)));
    return True;
 }
 
@@ -11878,12 +11917,13 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0010: case 0b0011:
+         ok = gen_xvaddi_xvsubi(dres, insn, archinfo, abiinfo);
+         break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010_0111(dres, insn, archinfo, abiinfo);
          break;
-      default:
-         ok = False;
-         break;
+      default: ok = False; break;
    }
 
    return ok;
