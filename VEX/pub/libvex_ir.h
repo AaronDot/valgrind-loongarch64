@@ -2009,9 +2009,22 @@ typedef
       Iop_CmpEQ8x32,  Iop_CmpEQ16x16,  Iop_CmpEQ32x8,  Iop_CmpEQ64x4,
       Iop_CmpGT8Sx32, Iop_CmpGT16Sx16, Iop_CmpGT32Sx8, Iop_CmpGT64Sx4,
 
-      Iop_ShlN16x16, Iop_ShlN32x8, Iop_ShlN64x4,
-      Iop_ShrN16x16, Iop_ShrN32x8, Iop_ShrN64x4,
-      Iop_SarN16x16, Iop_SarN32x8,
+      /* VECTOR x SCALAR SHIFT (shift amt :: Ity_I8) */
+      Iop_ShlN8x32, Iop_ShlN16x16, Iop_ShlN32x8, Iop_ShlN64x4,
+      Iop_ShrN8x32, Iop_ShrN16x16, Iop_ShrN32x8, Iop_ShrN64x4,
+      Iop_SarN8x32, Iop_SarN16x16, Iop_SarN32x8, Iop_SarN64x4,
+
+      /* VECTOR x VECTOR SHIFT / ROTATE */
+      /* FIXME: I'm pretty sure the ARM32 front/back ends interpret these
+         differently from all other targets.  The intention is that
+         the shift amount (2nd arg) is interpreted as unsigned and
+         only the lowest log2(lane-bits) bits are relevant.  But the
+         ARM32 versions treat the shift amount as an 8 bit signed
+         number.  The ARM32 uses should be replaced by the relevant
+         vector x vector bidirectional shifts instead. */
+      Iop_Shl8x32, Iop_Shl16x16, Iop_Shl32x8, Iop_Shl64x4,
+      Iop_Shr8x32, Iop_Shr16x16, Iop_Shr32x8, Iop_Shr64x4,
+      Iop_Sar8x32, Iop_Sar16x16, Iop_Sar32x8, Iop_Sar64x4,
 
       Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8, Iop_Max64Sx4,
       Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4,
@@ -2026,7 +2039,9 @@ typedef
       Iop_QSub8Ux32, Iop_QSub16Ux16, Iop_QSub32Ux8, Iop_QSub64Ux4,
       Iop_QSub8Sx32, Iop_QSub16Sx16, Iop_QSub32Sx8, Iop_QSub64Sx4,
 
-      Iop_Avg8Ux32, Iop_Avg16Ux16,
+      /* AVERAGING: note: (arg1 + arg2 + 1) >>u 1 */
+      Iop_Avg8Ux32, Iop_Avg16Ux16, Iop_Avg32Ux8, Iop_Avg64Ux4,
+      Iop_Avg8Sx32, Iop_Avg16Sx16, Iop_Avg32Sx8, Iop_Avg64Sx4,
 
       Iop_Perm32x8,
 

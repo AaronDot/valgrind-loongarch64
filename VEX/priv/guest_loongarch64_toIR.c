@@ -525,6 +525,20 @@ static IROp mkV128QSUBS ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV128AVGU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Avg8Ux16, Iop_Avg16Ux8, Iop_Avg32Ux4, Iop_Avg64Ux2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128AVGS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Avg8Sx16, Iop_Avg16Sx8, Iop_Avg32Sx4, Iop_Avg64Sx2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
 static IROp mkV128CLS ( UInt size ) {
    const IROp ops[3]
       = { Iop_Cls8x16, Iop_Cls16x8, Iop_Cls32x4 };
@@ -567,6 +581,20 @@ static IROp mkV128MINS ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV128CMPEQ ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpEQ8x16, Iop_CmpEQ16x8, Iop_CmpEQ32x4, Iop_CmpEQ64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128CMPGTU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpGT8Ux16, Iop_CmpGT16Ux8, Iop_CmpGT32Ux4, Iop_CmpGT64Ux2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
 static IROp mkV128CMPGTS ( UInt size ) {
    const IROp ops[4]
       = { Iop_CmpGT8Sx16, Iop_CmpGT16Sx8, Iop_CmpGT32Sx4, Iop_CmpGT64Sx2 };
@@ -588,23 +616,9 @@ static IROp mkV128SHRN ( UInt size ) {
    return ops[size];
 }
 
-static IROp mkV128CMPEQ ( UInt size ) {
+static IROp mkV128SARN ( UInt size ) {
    const IROp ops[4]
-      = { Iop_CmpEQ8x16, Iop_CmpEQ16x8, Iop_CmpEQ32x4, Iop_CmpEQ64x2 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV256CMPEQ ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_CmpEQ8x32, Iop_CmpEQ16x16, Iop_CmpEQ32x8, Iop_CmpEQ64x4 };
-   vassert(size < 4);
-   return ops[size];
-}
-
-static IROp mkV128CMPGTU ( UInt size ) {
-   const IROp ops[4]
-      = { Iop_CmpGT8Ux16, Iop_CmpGT16Ux8, Iop_CmpGT32Ux4, Iop_CmpGT64Ux2 };
+      = { Iop_SarN8x16, Iop_SarN16x8, Iop_SarN32x4, Iop_SarN64x2 };
    vassert(size < 4);
    return ops[size];
 }
@@ -699,6 +713,13 @@ static IROp mkV256QSUBS ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV256CMPEQ ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_CmpEQ8x32, Iop_CmpEQ16x16, Iop_CmpEQ32x8, Iop_CmpEQ64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
 static IROp mkV256MAXU ( UInt size ) {
    const IROp ops[4]
       = { Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4 };
@@ -723,6 +744,41 @@ static IROp mkV256MINU ( UInt size ) {
 static IROp mkV256MINS ( UInt size ) {
    const IROp ops[4]
       = { Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256SHLN ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_ShlN8x32, Iop_ShlN16x16, Iop_ShlN32x8, Iop_ShlN64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256SHRN ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_ShrN8x32, Iop_ShrN16x16, Iop_ShrN32x8, Iop_ShrN64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256SARN ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_SarN8x32, Iop_SarN16x16, Iop_SarN32x8, Iop_SarN64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256AVGU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Avg8Ux32, Iop_Avg16Ux16, Iop_Avg32Ux8, Iop_Avg64Ux4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256AVGS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Avg8Sx32, Iop_Avg16Sx16, Iop_Avg32Sx8, Iop_Avg64Sx4 };
    vassert(size < 4);
    return ops[size];
 }
@@ -9091,6 +9147,96 @@ static Bool gen_xvaddw_xvsubw_x_x_x ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vavg ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isU   = SLICE(insn, 17, 17);
+   UInt isR   = SLICE(insn, 19, 19);
+
+   IRTemp srcL = newTemp(Ity_V128);
+   IRTemp srcR = newTemp(Ity_V128);
+   IRTemp res  = newTemp(Ity_V128);
+   IROp avgOp  = isU ? mkV128AVGU(insSz) : mkV128AVGS(insSz);
+   IROp shrOp  = isU ? mkV128SHRN(insSz) : mkV128SARN(insSz);
+   UInt id     = isU ? (insSz + 4) : insSz;
+   UInt shlNum[4] = { 7, 15, 31, 63 };
+
+   assign(srcL, getVReg(vj));
+   assign(srcR, getVReg(vk));
+
+   if (isR) {
+      assign(res, binop(avgOp, mkexpr(srcL), mkexpr(srcR)));
+   } else {
+      assign(res, binop(mkV128ADD(insSz),
+                        binop(mkV128ADD(insSz),
+                              binop(shrOp, mkexpr(srcL), mkU8(1)),
+                              binop(shrOp, mkexpr(srcR), mkU8(1))),
+                        binop(mkV128SHRN(insSz),
+                              binop(mkV128SHLN(insSz),
+                                    binop(Iop_AndV128,
+                                          mkexpr(srcL),
+                                          mkexpr(srcR)),
+                                    mkU8(shlNum[insSz])),
+                              mkU8(shlNum[insSz]))));
+   }
+
+   const HChar *nm[2] = { "vavg", "vavgr" };
+   DIP("%s.%s %s, %s, %s\n", nm[isR], mkInsSize(id),
+                             nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
+static Bool gen_xvavg ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isU   = SLICE(insn, 17, 17);
+   UInt isR   = SLICE(insn, 19, 19);
+
+   IRTemp srcL = newTemp(Ity_V256);
+   IRTemp srcR = newTemp(Ity_V256);
+   IRTemp res  = newTemp(Ity_V256);
+   IROp avgOp  = isU ? mkV256AVGU(insSz) : mkV256AVGS(insSz);
+   IROp shrOp  = isU ? mkV256SHRN(insSz) : mkV256SARN(insSz);
+   UInt id     = isU ? (insSz + 4) : insSz;
+   UInt shlNum[4] = { 7, 15, 31, 63 };
+
+   assign(srcL, getXReg(xj));
+   assign(srcR, getXReg(xk));
+
+   if (isR) {
+      assign(res, binop(avgOp, mkexpr(srcL), mkexpr(srcR)));
+   } else {
+      assign(res, binop(mkV256ADD(insSz),
+                        binop(mkV256ADD(insSz),
+                              binop(shrOp, mkexpr(srcL), mkU8(1)),
+                              binop(shrOp, mkexpr(srcR), mkU8(1))),
+                        binop(mkV256SHRN(insSz),
+                              binop(mkV256SHLN(insSz),
+                                    binop(Iop_AndV256,
+                                          mkexpr(srcL),
+                                          mkexpr(srcR)),
+                                    mkU8(shlNum[insSz])),
+                              mkU8(shlNum[insSz]))));
+   }
+
+   const HChar *nm[2] = { "xvavg", "xvavgr" };
+   DIP("%s.%s %s, %s, %s\n", nm[isR], mkInsSize(id),
+                             nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, mkexpr(res));
+   return True;
+}
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -12282,6 +12428,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0001 ( DisResult* dres, UInt insn,
          ok = gen_vsadd_vssub(dres, insn, archinfo, abiinfo); break;
       case 0b0101: case 0b0110:
          ok = gen_vhaddw_vhsubw(dres, insn, archinfo, abiinfo); break;
+      case 0b1001: case 0b1010:
+         ok = gen_vavg(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
       case 0b1101:
          ok = gen_vmax_vmin(dres, insn, archinfo, abiinfo);
@@ -12533,6 +12681,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
          ok = gen_xvsadd_xvssub(dres, insn, archinfo, abiinfo); break;
       case 0b0101: case 0b0110:
          ok = gen_xvhaddw_xvhsubw(dres, insn, archinfo, abiinfo); break;
+      case 0b1001: case 0b1010:
+         ok = gen_xvavg(dres, insn, archinfo, abiinfo); break;
       case 0b1101:
          ok = gen_xvmax_xvmin(dres, insn, archinfo, abiinfo);
          break;

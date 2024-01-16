@@ -3005,7 +3005,7 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                *lo = iselV128Expr(env, e->Iex.Binop.arg2);
                return;
             }
-            case Iop_XorV256:
+            case Iop_AndV256: case Iop_XorV256:
             case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8: case Iop_CmpEQ64x4:
             case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
             case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
@@ -3020,9 +3020,14 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
             case Iop_InterleaveHI8x32: case Iop_InterleaveHI16x16: case Iop_InterleaveHI32x8: case Iop_InterleaveHI64x4:
             case Iop_InterleaveLO8x32: case Iop_InterleaveLO16x16: case Iop_InterleaveLO32x8: case Iop_InterleaveLO64x4:
             case Iop_PackOddLanes8x32: case Iop_PackOddLanes16x16: case Iop_PackOddLanes32x8:
-            case Iop_PackEvenLanes8x32: case Iop_PackEvenLanes16x16: case Iop_PackEvenLanes32x8: {
+            case Iop_PackEvenLanes8x32: case Iop_PackEvenLanes16x16: case Iop_PackEvenLanes32x8:
+            case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
+            case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
+            case Iop_Shr8x32: case Iop_Shr16x16: case Iop_Shr32x8: case Iop_Shr64x4:
+            case Iop_Sar8x32: case Iop_Sar16x16: case Iop_Sar32x8: case Iop_Sar64x4: {
                LOONGARCH64VecBinOp op;
                switch (e->Iex.Binop.op) {
+                  case Iop_AndV256:    op = LAvecbin_VAND_V; break;
                   case Iop_XorV256:    op = LAvecbin_VXOR_V; break;
                   case Iop_CmpEQ8x32:  op = LAvecbin_VSEQ_B; break;
                   case Iop_CmpEQ16x16: op = LAvecbin_VSEQ_H; break;
@@ -3084,6 +3089,26 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                   case Iop_PackEvenLanes8x32:  op = LAvecbin_VPICKEV_B; break;
                   case Iop_PackEvenLanes16x16: op = LAvecbin_VPICKEV_H; break;
                   case Iop_PackEvenLanes32x8:  op = LAvecbin_VPICKEV_W; break;
+                  case Iop_Avg8Ux32:  op = LAvecbin_VAVGR_BU; break;
+                  case Iop_Avg16Ux16: op = LAvecbin_VAVGR_HU; break;
+                  case Iop_Avg32Ux8:  op = LAvecbin_VAVGR_WU; break;
+                  case Iop_Avg64Ux4:  op = LAvecbin_VAVGR_DU; break;
+                  case Iop_Avg8Sx32:  op = LAvecbin_VAVGR_B;  break;
+                  case Iop_Avg16Sx16: op = LAvecbin_VAVGR_H;  break;
+                  case Iop_Avg32Sx8:  op = LAvecbin_VAVGR_W;  break;
+                  case Iop_Avg64Sx4:  op = LAvecbin_VAVGR_D;  break;
+                  case Iop_Shl8x32:  op = LAvecbin_VSLL_B; break;
+                  case Iop_Shl16x16: op = LAvecbin_VSLL_H; break;
+                  case Iop_Shl32x8:  op = LAvecbin_VSLL_W; break;
+                  case Iop_Shl64x4:  op = LAvecbin_VSLL_D; break;
+                  case Iop_Shr8x32:  op = LAvecbin_VSRL_B; break;
+                  case Iop_Shr16x16: op = LAvecbin_VSRL_H; break;
+                  case Iop_Shr32x8:  op = LAvecbin_VSRL_W; break;
+                  case Iop_Shr64x4:  op = LAvecbin_VSRL_D; break;
+                  case Iop_Sar8x32:  op = LAvecbin_VSRA_B; break;
+                  case Iop_Sar16x16: op = LAvecbin_VSRA_H; break;
+                  case Iop_Sar32x8:  op = LAvecbin_VSRA_W; break;
+                  case Iop_Sar64x4:  op = LAvecbin_VSRA_D; break;
                   default: vassert(0);
                }
                HReg s1Hi, s1Lo, s2Hi, s2Lo;
@@ -3093,6 +3118,40 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                HReg dLo = newVRegV(env);
                addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s2Hi), s1Hi, dHi));
                addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s2Lo), s1Lo, dLo));
+               *hi = dHi;
+               *lo = dLo;
+               return;
+            }
+            case Iop_ShlN8x32: case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
+            case Iop_ShrN8x32: case Iop_ShrN16x16: case Iop_ShrN32x8: case Iop_ShrN64x4:
+            case Iop_SarN8x32: case Iop_SarN16x16: case Iop_SarN32x8: case Iop_SarN64x4: {
+               UChar size;
+               LOONGARCH64VecBinOp op;
+               switch (e->Iex.Binop.op) {
+                  case Iop_ShlN8x32:  op = LAvecbin_VSLLI_B; size = 3; break;
+                  case Iop_ShlN16x16: op = LAvecbin_VSLLI_H; size = 4; break;
+                  case Iop_ShlN32x8:  op = LAvecbin_VSLLI_W; size = 5; break;
+                  case Iop_ShlN64x4:  op = LAvecbin_VSLLI_D; size = 6; break;
+                  case Iop_ShrN8x32:  op = LAvecbin_VSRLI_B; size = 3; break;
+                  case Iop_ShrN16x16: op = LAvecbin_VSRLI_H; size = 4; break;
+                  case Iop_ShrN32x8:  op = LAvecbin_VSRLI_W; size = 5; break;
+                  case Iop_ShrN64x4:  op = LAvecbin_VSRLI_D; size = 6; break;
+                  case Iop_SarN8x32:  op = LAvecbin_VSRAI_B; size = 3; break;
+                  case Iop_SarN16x16: op = LAvecbin_VSRAI_H; size = 4; break;
+                  case Iop_SarN32x8:  op = LAvecbin_VSRAI_W; size = 5; break;
+                  case Iop_SarN64x4:  op = LAvecbin_VSRAI_D; size = 6; break;
+                  default: vassert(0);
+               }
+               HReg sHi, sLo;
+               iselV256Expr(&sHi, &sLo, env, e->Iex.Binop.arg1);
+               LOONGARCH64RI* src2 = iselIntExpr_RI(env, e->Iex.Binop.arg2, size, False);
+               vassert(e->Iex.Binop.arg2->tag == Iex_Const);
+               vassert(e->Iex.Binop.arg2->Iex.Const.con->tag == Ico_U8);
+               vassert(e->Iex.Binop.arg2->Iex.Const.con->Ico.U8 <= 63);
+               HReg dHi = newVRegV(env);
+               HReg dLo = newVRegV(env);
+               addInstr(env, LOONGARCH64Instr_VecBinary(op, src2, sHi, dHi));
+               addInstr(env, LOONGARCH64Instr_VecBinary(op, src2, sLo, dLo));
                *hi = dHi;
                *lo = dLo;
                return;

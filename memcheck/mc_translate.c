@@ -5055,11 +5055,15 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
 
       /* V256-bit SIMD */
 
+      case Iop_ShrN8x32:
       case Iop_ShrN16x16:
       case Iop_ShrN32x8:
       case Iop_ShrN64x4:
+      case Iop_SarN8x32:
       case Iop_SarN16x16:
       case Iop_SarN32x8:
+      case Iop_SarN64x4:
+      case Iop_ShlN8x32:
       case Iop_ShlN16x16:
       case Iop_ShlN32x8:
       case Iop_ShlN64x4:
@@ -5079,9 +5083,13 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_CmpGT8Sx32:
       case Iop_CmpEQ8x32:
       case Iop_Avg8Ux32:
+      case Iop_Avg8Sx32:
       case Iop_QAdd8Ux32:
       case Iop_QAdd8Sx32:
       case Iop_Add8x32:
+      case Iop_Shl8x32:
+      case Iop_Shr8x32:
+      case Iop_Sar8x32:
          return binary8Ix32(mce, vatom1, vatom2);
 
       case Iop_QSub16Ux16:
@@ -5097,9 +5105,13 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_CmpGT16Sx16:
       case Iop_CmpEQ16x16:
       case Iop_Avg16Ux16:
+      case Iop_Avg16Sx16:
       case Iop_QAdd16Ux16:
       case Iop_QAdd16Sx16:
       case Iop_Add16x16:
+      case Iop_Shl16x16:
+      case Iop_Shr16x16:
+      case Iop_Sar16x16:
          return binary16Ix16(mce, vatom1, vatom2);
 
       case Iop_QSub32Ux8:
@@ -5115,6 +5127,11 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_Min32Ux8:
       case Iop_Min32Sx8:
       case Iop_Mul32x8:
+      case Iop_Avg32Ux8:
+      case Iop_Avg32Sx8:
+      case Iop_Shl32x8:
+      case Iop_Shr32x8:
+      case Iop_Sar32x8:
          return binary32Ix8(mce, vatom1, vatom2);
 
       case Iop_QSub64Ux4:
@@ -5129,6 +5146,11 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_Max64Ux4:
       case Iop_Min64Sx4:
       case Iop_Min64Ux4:
+      case Iop_Avg64Ux4:
+      case Iop_Avg64Sx4:
+      case Iop_Shl64x4:
+      case Iop_Shr64x4:
+      case Iop_Sar64x4:
          return binary64Ix4(mce, vatom1, vatom2);
 
       case Iop_Sub128x2:
