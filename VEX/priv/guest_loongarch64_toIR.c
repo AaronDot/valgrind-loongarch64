@@ -9039,6 +9039,58 @@ static Bool gen_xvaddw_xvsubw_x_x ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vaddw_vsubw_x_x_x ( DisResult* dres, UInt insn,
+                                    const VexArchInfo* archinfo,
+                                    const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isOd  = SLICE(insn, 22, 22);
+
+   IRTemp argL = newTemp(Ity_V128);
+   IRTemp argR = newTemp(Ity_V128);
+   IROp packOp = isOd ? mkV128PACKOD(insSz): mkV128PACKEV(insSz);
+
+   assign(argL, unop(mkV128EXTHTU(insSz), binop(packOp,
+                                               getVReg(vj), mkV128(0x0000))));
+   assign(argR, unop(mkV128EXTHTS(insSz), binop(packOp,
+                                               getVReg(vk), mkV128(0x0000))));
+   const HChar *nm[2] = { "vaddwev", "vaddwod" };
+   const HChar *ns[4] = { "h.bu.b", "w.hu.h", "d.wu.w", "q.du.d" };
+   DIP("%s.%s %s, %s, %s\n", nm[isOd], ns[insSz], nameVReg(vd),
+                             nameVReg(vj), nameVReg(vk));
+   putVReg(vd, binop(mkV128ADD(insSz + 1), mkexpr(argL), mkexpr(argR)));
+   return True;
+}
+
+static Bool gen_xvaddw_xvsubw_x_x_x ( DisResult* dres, UInt insn,
+                                      const VexArchInfo* archinfo,
+                                      const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isOd  = SLICE(insn, 22, 22);
+
+   IRTemp argL = newTemp(Ity_V256);
+   IRTemp argR = newTemp(Ity_V256);
+   IROp packOp = isOd ? mkV256PACKOD(insSz): mkV256PACKEV(insSz);
+
+   assign(argL, unop(mkV256EXTHTU(insSz), binop(packOp,
+                                               getXReg(xj), mkV256(0x0000))));
+   assign(argR, unop(mkV256EXTHTS(insSz), binop(packOp,
+                                               getXReg(xk), mkV256(0x0000))));
+   const HChar *nm[2] = { "xvaddwev", "xvaddwod" };
+   const HChar *ns[4] = { "h.bu.b", "w.hu.h", "d.wu.w", "q.du.d" };
+   DIP("%s.%s %s, %s, %s\n", nm[isOd], ns[insSz], nameXReg(xd),
+                             nameXReg(xj), nameXReg(xk));
+   putXReg(xd, binop(mkV256ADD(insSz + 1), mkexpr(argL), mkexpr(argR)));
+   return True;
+}
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -12208,6 +12260,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0000 ( DisResult* dres, UInt insn,
       case 0b10000: case 0b10001: case 0b10010: case 0b10111:
       case 0b11000: case 0b11001: case 0b11010:
          ok = gen_vaddw_vsubw_x_x(dres, insn, archinfo, abiinfo); break;
+      case 0b11111:
+         ok = gen_vaddw_vsubw_x_x_x(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
@@ -12221,6 +12275,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0001 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0000:
+         ok = gen_vaddw_vsubw_x_x_x(dres, insn, archinfo, abiinfo); break;
       case 0b0001: case 0b0010:
       case 0b0011:
          ok = gen_vsadd_vssub(dres, insn, archinfo, abiinfo); break;
@@ -12455,6 +12511,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0000 ( DisResult* dres, UInt insn,
       case 0b0111: case 0b1000: case 0b1001:
       case 0b1011: case 0b1100: case 0b1101:
          ok = gen_xvaddw_xvsubw_x_x(dres, insn, archinfo, abiinfo); break;
+      case 0b1111:
+         ok = gen_xvaddw_xvsubw_x_x_x(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
@@ -12468,6 +12526,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0000:
+         ok = gen_xvaddw_xvsubw_x_x_x(dres, insn, archinfo, abiinfo); break;
       case 0b0001: case 0b0010:
       case 0b0011:
          ok = gen_xvsadd_xvssub(dres, insn, archinfo, abiinfo); break;
