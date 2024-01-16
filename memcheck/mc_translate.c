@@ -3280,6 +3280,28 @@ IRAtom* vectorWidenUnV128 ( MCEnv* mce, IROp longen_op,
    return at2;
 }
 
+static
+IRAtom* vectorWidenUnV256 ( MCEnv* mce, IROp longen_op,
+                            IRAtom* vatom1)
+{
+   IRAtom *at1, *at2;
+   IRAtom* (*pcast)( MCEnv*, IRAtom* );
+   switch (longen_op) {
+      case Iop_WidenHIto16Sx16: pcast = mkPCast16x16; break;
+      case Iop_WidenHIto16Ux16: pcast = mkPCast16x16; break;
+      case Iop_WidenHIto32Sx8:  pcast = mkPCast32x8;  break;
+      case Iop_WidenHIto32Ux8:  pcast = mkPCast32x8;  break;
+      case Iop_WidenHIto64Sx4:  pcast = mkPCast64x4;  break;
+      case Iop_WidenHIto64Ux4:  pcast = mkPCast64x4;  break;
+      case Iop_WidenHIto128Sx2: pcast = mkPCast128x2; break;
+      case Iop_WidenHIto128Ux2: pcast = mkPCast128x2; break;
+      default: VG_(tool_panic)("vectorWidenUnV256");
+   }
+   tl_assert(isShadowAtom(mce,vatom1));
+   at1 = assignNew('V', mce, Ity_V256, unop(longen_op, vatom1));
+   at2 = assignNew('V', mce, Ity_V256, pcast(mce, at1));
+   return at2;
+}
 
 /* --- --- Vector integer arithmetic --- --- */
 
@@ -3486,6 +3508,28 @@ IRAtom* expr2vbits_Qop ( MCEnv* mce,
          return mkLazy4(mce, Ity_I128, vatom1, vatom2, vatom3, vatom4);
 
       /* V256-bit data-steering */
+      case Iop_InterleaveLO64x4:
+      case Iop_InterleaveLO32x8:
+      case Iop_InterleaveLO16x16:
+      case Iop_InterleaveLO8x32:
+      case Iop_InterleaveHI64x4:
+      case Iop_InterleaveHI32x8:
+      case Iop_InterleaveHI16x16:
+      case Iop_InterleaveHI8x32:
+      case Iop_InterleaveOddLanes8x32:
+      case Iop_InterleaveOddLanes16x16:
+      case Iop_InterleaveOddLanes32x8:
+      case Iop_InterleaveEvenLanes8x32:
+      case Iop_InterleaveEvenLanes16x16:
+      case Iop_InterleaveEvenLanes32x8:
+      case Iop_PackOddLanes8x32:
+      case Iop_PackOddLanes16x16:
+      case Iop_PackOddLanes32x8:
+      case Iop_PackEvenLanes8x32:
+      case Iop_PackEvenLanes16x16:
+      case Iop_PackEvenLanes32x8:
+         return assignNew('V', mce, Ity_V256, binop(op, vatom1, atom2));
+
       case Iop_64x4toV256:
          return assignNew('V', mce, Ity_V256,
                           IRExpr_Qop(op, vatom1, vatom2, vatom3, vatom4));
@@ -5572,6 +5616,16 @@ IRExpr* expr2vbits_Unop ( MCEnv* mce, IROp op, IRAtom* atom )
       case Iop_WidenHIto64Ux2:
       case Iop_WidenHIto128Ux1:
          return vectorWidenUnV128(mce, op, vatom);
+
+      case Iop_WidenHIto16Sx16:
+      case Iop_WidenHIto32Sx8:
+      case Iop_WidenHIto64Sx4:
+      case Iop_WidenHIto128Sx2:
+      case Iop_WidenHIto16Ux16:
+      case Iop_WidenHIto32Ux8:
+      case Iop_WidenHIto64Ux4:
+      case Iop_WidenHIto128Ux2:
+         return vectorWidenUnV256(mce, op, vatom);
 
       case Iop_F16toF32x4:
          // JRS 2019 Mar 17: this definitely isn't right, but it probably works

@@ -2041,6 +2041,28 @@ typedef
        * vshasigmad and vshasigmaw insns.*/
       Iop_SHA512, Iop_SHA256,
 
+      Iop_WidenHIto16Sx16, Iop_WidenHIto32Sx8, Iop_WidenHIto64Sx4, Iop_WidenHIto128Sx2,
+      Iop_WidenHIto16Ux16, Iop_WidenHIto32Ux8, Iop_WidenHIto64Ux4, Iop_WidenHIto128Ux2,
+
+      /* INTERLEAVING */
+      /* Interleave lanes from low or high halves of
+         operands.  Most-significant result lane is from the left
+         arg. */
+      Iop_InterleaveHI8x32, Iop_InterleaveHI16x16,
+      Iop_InterleaveHI32x8, Iop_InterleaveHI64x4,
+      Iop_InterleaveLO8x32, Iop_InterleaveLO16x16,
+      Iop_InterleaveLO32x8, Iop_InterleaveLO64x4,
+      /* Interleave odd/even lanes of operands.  Most-significant result lane
+         is from the left arg. */
+      Iop_InterleaveOddLanes8x32, Iop_InterleaveEvenLanes8x32,
+      Iop_InterleaveOddLanes16x16, Iop_InterleaveEvenLanes16x16,
+      Iop_InterleaveOddLanes32x8, Iop_InterleaveEvenLanes32x8,
+
+      /* Pack even/odd lanes. */
+      Iop_PackOddLanes8x32, Iop_PackEvenLanes8x32,
+      Iop_PackOddLanes16x16, Iop_PackEvenLanes16x16,
+      Iop_PackOddLanes32x8, Iop_PackEvenLanes32x8,
+
       /* ------------------ 256-bit SIMD FP. ------------------ */
 
       /* ternary :: IRRoundingMode(I32) x V256 x V256 -> V256 */

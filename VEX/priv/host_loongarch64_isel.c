@@ -2967,6 +2967,32 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                *lo = dLo;
                return;
             }
+            case Iop_WidenHIto16Sx16:  case Iop_WidenHIto16Ux16:
+            case Iop_WidenHIto32Sx8:  case Iop_WidenHIto32Ux8:
+            case Iop_WidenHIto64Sx4:  case Iop_WidenHIto64Ux4:
+            case Iop_WidenHIto128Sx2: case Iop_WidenHIto128Ux2: {
+               LOONGARCH64VecUnOp op;
+               switch (e->Iex.Unop.op) {
+                  case Iop_WidenHIto16Sx16: op = LAvecun_VEXTH_H_B;   break;
+                  case Iop_WidenHIto16Ux16: op = LAvecun_VEXTH_HU_BU; break;
+                  case Iop_WidenHIto32Sx8:  op = LAvecun_VEXTH_W_H;   break;
+                  case Iop_WidenHIto32Ux8:  op = LAvecun_VEXTH_WU_HU; break;
+                  case Iop_WidenHIto64Sx4:  op = LAvecun_VEXTH_D_W;   break;
+                  case Iop_WidenHIto64Ux4:  op = LAvecun_VEXTH_DU_WU; break;
+                  case Iop_WidenHIto128Sx2: op = LAvecun_VEXTH_Q_D;   break;
+                  case Iop_WidenHIto128Ux2: op = LAvecun_VEXTH_QU_DU; break;
+                  default: vassert(0);
+               }
+               HReg sHi, sLo;
+               iselV256Expr(&sHi, &sLo, env, e->Iex.Unop.arg);
+               HReg dHi = newVRegV(env);
+               HReg dLo = newVRegV(env);
+               addInstr(env, LOONGARCH64Instr_VecUnary(op, sHi, dHi));
+               addInstr(env, LOONGARCH64Instr_VecUnary(op, sLo, dLo));
+               *hi = dHi;
+               *lo = dLo;
+               return;
+            }
             default: goto irreducible;
          }
       }
@@ -2990,7 +3016,11 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
             case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
             case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
             case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
-            case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4: {
+            case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4:
+            case Iop_InterleaveHI8x32: case Iop_InterleaveHI16x16: case Iop_InterleaveHI32x8: case Iop_InterleaveHI64x4:
+            case Iop_InterleaveLO8x32: case Iop_InterleaveLO16x16: case Iop_InterleaveLO32x8: case Iop_InterleaveLO64x4:
+            case Iop_PackOddLanes8x32: case Iop_PackOddLanes16x16: case Iop_PackOddLanes32x8:
+            case Iop_PackEvenLanes8x32: case Iop_PackEvenLanes16x16: case Iop_PackEvenLanes32x8: {
                LOONGARCH64VecBinOp op;
                switch (e->Iex.Binop.op) {
                   case Iop_XorV256:    op = LAvecbin_VXOR_V; break;
@@ -3040,6 +3070,20 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                   case Iop_QSub16Ux16: op = LAvecbin_VSSUB_HU; break;
                   case Iop_QSub32Ux8:  op = LAvecbin_VSSUB_WU; break;
                   case Iop_QSub64Ux4:  op = LAvecbin_VSSUB_DU; break;
+                  case Iop_InterleaveHI8x32:  op = LAvecbin_VILVH_B; break;
+                  case Iop_InterleaveHI16x16: op = LAvecbin_VILVH_H; break;
+                  case Iop_InterleaveHI32x8:  op = LAvecbin_VILVH_W; break;
+                  case Iop_InterleaveHI64x4:  op = LAvecbin_VILVH_D; break;
+                  case Iop_InterleaveLO8x32:  op = LAvecbin_VILVL_B; break;
+                  case Iop_InterleaveLO16x16: op = LAvecbin_VILVL_H; break;
+                  case Iop_InterleaveLO32x8:  op = LAvecbin_VILVL_W; break;
+                  case Iop_InterleaveLO64x4:  op = LAvecbin_VILVL_D; break;
+                  case Iop_PackOddLanes8x32:   op = LAvecbin_VPICKOD_B; break;
+                  case Iop_PackOddLanes16x16:  op = LAvecbin_VPICKOD_H; break;
+                  case Iop_PackOddLanes32x8:   op = LAvecbin_VPICKOD_W; break;
+                  case Iop_PackEvenLanes8x32:  op = LAvecbin_VPICKEV_B; break;
+                  case Iop_PackEvenLanes16x16: op = LAvecbin_VPICKEV_H; break;
+                  case Iop_PackEvenLanes32x8:  op = LAvecbin_VPICKEV_W; break;
                   default: vassert(0);
                }
                HReg s1Hi, s1Lo, s2Hi, s2Lo;

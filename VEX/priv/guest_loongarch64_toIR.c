@@ -208,6 +208,13 @@ static const HChar *mkInsSize ( UInt size ) {
    return insSize[size];
 }
 
+static const HChar *mkInsExtSize ( UInt size ) {
+   const HChar *insSize[8]
+      = { "h.b",  "w.h",  "d.w",  "q.d", "hu.bu", "wu.hu", "du.wu", "qu.du" };
+   vassert(size < 8);
+   return insSize[size];
+}
+
 
 /*------------------------------------------------------------*/
 /*--- Helper bits and pieces for creating IR fragments.    ---*/
@@ -634,6 +641,22 @@ static IROp mkV128INTERLEAVEHI ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV128EXTHTS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_WidenHIto16Sx8, Iop_WidenHIto32Sx4,
+          Iop_WidenHIto64Sx2, Iop_WidenHIto128Sx1 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV128EXTHTU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_WidenHIto16Ux8, Iop_WidenHIto32Ux4,
+          Iop_WidenHIto64Ux2, Iop_WidenHIto128Ux1 };
+   vassert(size < 4);
+   return ops[size];
+}
+
 static IROp mkV256ADD ( UInt size ) {
    const IROp ops[5]
       = { Iop_Add8x32, Iop_Add16x16, Iop_Add32x8, Iop_Add64x4, Iop_Add128x2 };
@@ -700,6 +723,54 @@ static IROp mkV256MINU ( UInt size ) {
 static IROp mkV256MINS ( UInt size ) {
    const IROp ops[4]
       = { Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256PACKOD ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_PackOddLanes8x32, Iop_PackOddLanes16x16,
+          Iop_PackOddLanes32x8, Iop_InterleaveHI64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256PACKEV ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_PackEvenLanes8x32, Iop_PackEvenLanes16x16,
+          Iop_PackEvenLanes32x8, Iop_InterleaveLO64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256INTERLEAVELO ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_InterleaveLO8x32, Iop_InterleaveLO16x16,
+          Iop_InterleaveLO32x8, Iop_InterleaveLO64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256INTERLEAVEHI ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_InterleaveHI8x32, Iop_InterleaveHI16x16,
+          Iop_InterleaveHI32x8, Iop_InterleaveHI64x4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256EXTHTS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_WidenHIto16Sx16, Iop_WidenHIto32Sx8,
+          Iop_WidenHIto64Sx4,  Iop_WidenHIto128Sx2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256EXTHTU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_WidenHIto16Ux16, Iop_WidenHIto32Ux8,
+          Iop_WidenHIto64Ux4,  Iop_WidenHIto128Ux2 };
    vassert(size < 4);
    return ops[size];
 }
@@ -8734,6 +8805,63 @@ static Bool gen_xvsadd_xvssub ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vhaddw_vhsubw ( DisResult* dres, UInt insn,
+                                const VexArchInfo* archinfo,
+                                const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isSub = SLICE(insn, 17, 17);
+   UInt isU   = SLICE(insn, 19, 19);
+
+   IRTemp tmpOd = newTemp(Ity_V128);
+   IRTemp tmpEv = newTemp(Ity_V128);
+   IROp widenOp = isU ? mkV128EXTHTU(insSz) : mkV128EXTHTS(insSz);
+   IROp mathOp  = isSub ? mkV128SUB(insSz + 1) : mkV128ADD(insSz + 1);
+   UInt id = isU ? (insSz + 4) : insSz;
+
+   assign(tmpOd, unop(widenOp, binop(mkV128PACKOD(insSz),
+                                     getVReg(vj), mkV128(0x0000))));
+   assign(tmpEv, unop(widenOp, binop(mkV128PACKEV(insSz),
+                                     getVReg(vk), mkV128(0x0000))));
+   const HChar *nm[2] = { "vhaddw", "vhsubw" };
+   DIP("%s.%s %s, %s, %s\n", nm[isSub], mkInsExtSize(id),
+                             nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   putVReg(vd, binop(mathOp, mkexpr(tmpOd), mkexpr(tmpEv)));
+   return True;
+}
+
+static Bool gen_xvhaddw_xvhsubw ( DisResult* dres, UInt insn,
+                                  const VexArchInfo* archinfo,
+                                  const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isSub = SLICE(insn, 17, 17);
+   UInt isU   = SLICE(insn, 19, 19);
+
+   IRTemp tmpOd = newTemp(Ity_V256);
+   IRTemp tmpEv = newTemp(Ity_V256);
+   IROp widenOp = isU ? mkV256EXTHTU(insSz) : mkV256EXTHTS(insSz);
+   IROp mathOp  = isSub ? mkV256SUB(insSz + 1) : mkV256ADD(insSz + 1);
+   UInt id = isU ? (insSz + 4) : insSz;
+
+   assign(tmpOd, unop(widenOp, binop(mkV256PACKOD(insSz),
+                                     getXReg(xj), mkV256(0x0000))));
+   assign(tmpEv, unop(widenOp, binop(mkV256PACKEV(insSz),
+                                     getXReg(xk), mkV256(0x0000))));
+   const HChar *nm[2] = { "xvhaddw", "xvhsubw" };
+   DIP("%s.%s %s, %s, %s\n", nm[isSub], mkInsExtSize(id),
+                             nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, binop(mathOp, mkexpr(tmpOd), mkexpr(tmpEv)));
+   return True;
+}
+
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -11917,6 +12045,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0001 ( DisResult* dres, UInt insn,
       case 0b0001: case 0b0010:
       case 0b0011:
          ok = gen_vsadd_vssub(dres, insn, archinfo, abiinfo); break;
+      case 0b0101: case 0b0110:
+         ok = gen_vhaddw_vhsubw(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
       case 0b1101:
          ok = gen_vmax_vmin(dres, insn, archinfo, abiinfo);
@@ -12159,6 +12289,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
       case 0b0001: case 0b0010:
       case 0b0011:
          ok = gen_xvsadd_xvssub(dres, insn, archinfo, abiinfo); break;
+      case 0b0101: case 0b0110:
+         ok = gen_xvhaddw_xvhsubw(dres, insn, archinfo, abiinfo); break;
       case 0b1101:
          ok = gen_xvmax_xvmin(dres, insn, archinfo, abiinfo);
          break;
