@@ -893,12 +893,16 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
                return dst;
             }
             case Iop_32HLto64: {
-               HReg          dst = newVRegI(env);
-               HReg           hi = iselIntExpr_R(env, e->Iex.Binop.arg1);
-               LOONGARCH64RI* lo = iselIntExpr_RI(env, e->Iex.Binop.arg2, 0, False);
-               LOONGARCH64RI* ri = LOONGARCH64RI_I(32, 6, False);
-               addInstr(env, LOONGARCH64Instr_Binary(LAbin_SLLI_D, ri, hi, dst));
-               addInstr(env, LOONGARCH64Instr_Binary(LAbin_OR, lo, dst, dst));
+               HReg          dst    = newVRegI(env);
+               HReg          tHi    = newVRegI(env);
+               HReg          tLow   = newVRegI(env);
+               HReg          sHi    = iselIntExpr_R(env, e->Iex.Binop.arg1);
+               HReg          sLow   = iselIntExpr_R(env, e->Iex.Binop.arg2);
+               LOONGARCH64RI* ui6   = LOONGARCH64RI_I(32, 6, False);
+               addInstr(env, LOONGARCH64Instr_Binary(LAbin_SLLI_D, ui6, sHi, tHi));
+               addInstr(env, LOONGARCH64Instr_Binary(LAbin_SLLI_D, ui6, sLow, tLow));
+               addInstr(env, LOONGARCH64Instr_Binary(LAbin_SRLI_D, ui6, tLow, tLow));
+               addInstr(env, LOONGARCH64Instr_Binary(LAbin_OR, LOONGARCH64RI_R(tHi), tLow, dst));
                return dst;
             }
             case Iop_Add32: {
@@ -1339,6 +1343,14 @@ static HReg iselIntExpr_R_wrk ( ISelEnv* env, IRExpr* e )
                HReg          dst = newVRegI(env);
                HReg          src = iselIntExpr_R(env, e->Iex.Unop.arg);
                LOONGARCH64RI* ri = LOONGARCH64RI_I(32, 6, False);
+               addInstr(env, LOONGARCH64Instr_Binary(LAbin_SLLI_D, ri, src, dst));
+               addInstr(env, LOONGARCH64Instr_Binary(LAbin_SRLI_D, ri, dst, dst));
+               return dst;
+            }
+            case Iop_64to16: {
+               HReg          dst = newVRegI(env);
+               HReg          src = iselIntExpr_R(env, e->Iex.Unop.arg);
+               LOONGARCH64RI* ri = LOONGARCH64RI_I(48, 6, False);
                addInstr(env, LOONGARCH64Instr_Binary(LAbin_SLLI_D, ri, src, dst));
                addInstr(env, LOONGARCH64Instr_Binary(LAbin_SRLI_D, ri, dst, dst));
                return dst;

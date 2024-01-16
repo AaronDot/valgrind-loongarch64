@@ -445,6 +445,56 @@ static void breakupV256to32s ( IRTemp t256,
    breakupV128to32s(t128_0, t3, t2, t1, t0);
 }
 
+/* Construct a V128-bit value from 16 8-bit ints. */
+static IRExpr* mkV128from8s ( IRTemp t15, IRTemp t14, IRTemp t13, IRTemp t12,
+                              IRTemp t11, IRTemp t10, IRTemp t9,  IRTemp t8,
+                              IRTemp t7,  IRTemp t6,  IRTemp t5,  IRTemp t4,
+                              IRTemp t3,  IRTemp t2,  IRTemp t1,  IRTemp t0 )
+{
+   return binop(Iop_64HLtoV128,
+                binop(Iop_32HLto64,
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(t15), mkexpr(t14)),
+                            binop(Iop_8HLto16, mkexpr(t13), mkexpr(t12))),
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(t11), mkexpr(t10)),
+                            binop(Iop_8HLto16, mkexpr(t9), mkexpr(t8)))),
+                binop(Iop_32HLto64,
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(t7), mkexpr(t6)),
+                            binop(Iop_8HLto16, mkexpr(t5), mkexpr(t4))),
+                      binop(Iop_16HLto32,
+                            binop(Iop_8HLto16, mkexpr(t3), mkexpr(t2)),
+                            binop(Iop_8HLto16, mkexpr(t1), mkexpr(t0)))));
+}
+
+/* Construct a V128-bit value from 8 16-bit ints. */
+static IRExpr* mkV128from16s ( IRTemp t7, IRTemp t6, IRTemp t5, IRTemp t4,
+                               IRTemp t3, IRTemp t2, IRTemp t1, IRTemp t0 )
+{
+   return binop(Iop_64HLtoV128,
+                binop(Iop_32HLto64,
+                      binop(Iop_16HLto32, mkexpr(t7), mkexpr(t6)),
+                      binop(Iop_16HLto32, mkexpr(t5), mkexpr(t4))),
+                binop(Iop_32HLto64,
+                      binop(Iop_16HLto32, mkexpr(t3), mkexpr(t2)),
+                      binop(Iop_16HLto32, mkexpr(t1), mkexpr(t0))));
+}
+
+/* Construct a V128-bit value from 4 32-bit ints. */
+static IRExpr* mkV128from32s ( IRTemp t3, IRTemp t2, IRTemp t1, IRTemp t0 )
+{
+   return binop(Iop_64HLtoV128,
+                binop(Iop_32HLto64, mkexpr(t3), mkexpr(t2)),
+                binop(Iop_32HLto64, mkexpr(t1), mkexpr(t0)));
+}
+
+/* Construct a V128-bit value from 2 64-bit ints. */
+static IRExpr* mkV128from64s ( IRTemp t1, IRTemp t0 )
+{
+   return binop(Iop_64HLtoV128, mkexpr(t1), mkexpr(t0));
+}
+
 /* Construct a V256-bit value from two V128 ints. */
 static IRExpr* mkV256from128s ( IRTemp t1, IRTemp t0 )
 {
@@ -9237,6 +9287,213 @@ static Bool gen_xvavg ( DisResult* dres, UInt insn,
    return True;
 }
 
+static IRTemp gen_vabsd_b ( IRTemp sJ,  IRTemp sK, UInt isU )
+{
+   UInt i;
+   IRTemp argL[16];
+   IRTemp argR[16];
+   IRTemp arg[16];
+   IRTemp res = newTemp(Ity_V128);
+   IROp cmpOp = isU ? Iop_CmpLT64U: Iop_CmpLT64S;
+
+   for (i = 0; i < 16; i++) {
+      argL[i] = newTemp(Ity_I64);
+      argR[i] = newTemp(Ity_I64);
+      arg[i]  = newTemp(Ity_I8);
+      if (isU) {
+         assign(argL[i], extendU(Ity_I8, binop(Iop_GetElem8x16, mkexpr(sJ), mkU8(i))));
+         assign(argR[i], extendU(Ity_I8, binop(Iop_GetElem8x16, mkexpr(sK), mkU8(i))));
+      } else {
+         assign(argL[i], extendS(Ity_I8, binop(Iop_GetElem8x16, mkexpr(sJ), mkU8(i))));
+         assign(argR[i], extendS(Ity_I8, binop(Iop_GetElem8x16, mkexpr(sK), mkU8(i))));
+      }
+
+      assign(arg[i], IRExpr_ITE(binop(cmpOp, mkexpr(argR[i]), mkexpr(argL[i])),
+                                unop(Iop_64to8, binop(Iop_Sub64,
+                                                      mkexpr(argL[i]), mkexpr(argR[i]))),
+                                unop(Iop_64to8, binop(Iop_Sub64,
+                                                      mkexpr(argR[i]), mkexpr(argL[i])))));
+   }
+
+   assign(res, mkV128from8s(arg[15], arg[14], arg[13], arg[12],
+                            arg[11], arg[10], arg[9],  arg[8],
+                            arg[7],  arg[6],  arg[5],  arg[4],
+                            arg[3],  arg[2],  arg[1],  arg[0]));
+   return res;
+}
+
+static IRTemp gen_vabsd_h ( IRTemp sJ,  IRTemp sK, UInt isU )
+{
+   UInt i;
+   IRTemp argL[8];
+   IRTemp argR[8];
+   IRTemp arg[8];
+   IRTemp res = newTemp(Ity_V128);
+   IROp cmpOp = isU ? Iop_CmpLT64U: Iop_CmpLT64S;
+
+   for (i = 0; i < 8; i++) {
+      argL[i] = newTemp(Ity_I64);
+      argR[i] = newTemp(Ity_I64);
+      arg[i]  = newTemp(Ity_I16);
+      if (isU) {
+         assign(argL[i], extendU(Ity_I16, binop(Iop_GetElem16x8, mkexpr(sJ), mkU8(i))));
+         assign(argR[i], extendU(Ity_I16, binop(Iop_GetElem16x8, mkexpr(sK), mkU8(i))));
+      } else {
+         assign(argL[i], extendS(Ity_I16, binop(Iop_GetElem16x8, mkexpr(sJ), mkU8(i))));
+         assign(argR[i], extendS(Ity_I16, binop(Iop_GetElem16x8, mkexpr(sK), mkU8(i))));
+      }
+      assign(arg[i], IRExpr_ITE(binop(cmpOp, mkexpr(argR[i]), mkexpr(argL[i])),
+                                 unop(Iop_64to16, binop(Iop_Sub64,
+                                                        mkexpr(argL[i]), mkexpr(argR[i]))),
+                                 unop(Iop_64to16, binop(Iop_Sub64,
+                                                        mkexpr(argR[i]), mkexpr(argL[i])))));
+   }
+
+   assign(res, mkV128from16s(arg[7], arg[6], arg[5], arg[4],
+                             arg[3], arg[2], arg[1], arg[0]));
+   return res;
+}
+
+static IRTemp gen_vabsd_w ( IRTemp sJ,  IRTemp sK, UInt isU )
+{
+   UInt i;
+   IRTemp argL[4];
+   IRTemp argR[4];
+   IRTemp arg[4];
+   IRTemp res = newTemp(Ity_V128);
+   IROp cmpOp = isU ? Iop_CmpLT64U: Iop_CmpLT64S;
+
+   for (i = 0; i < 4; i++) {
+      argL[i] = newTemp(Ity_I64);
+      argR[i] = newTemp(Ity_I64);
+      arg[i]  = newTemp(Ity_I32);
+      if (isU) {
+         assign(argL[i], extendU(Ity_I32, binop(Iop_GetElem32x4, mkexpr(sJ), mkU8(i))));
+         assign(argR[i], extendU(Ity_I32, binop(Iop_GetElem32x4, mkexpr(sK), mkU8(i))));
+      } else {
+         assign(argL[i], extendS(Ity_I32, binop(Iop_GetElem32x4, mkexpr(sJ), mkU8(i))));
+         assign(argR[i], extendS(Ity_I32, binop(Iop_GetElem32x4, mkexpr(sK), mkU8(i))));
+      }
+      assign(arg[i], IRExpr_ITE(binop(cmpOp, mkexpr(argR[i]), mkexpr(argL[i])),
+                                 unop(Iop_64to32, binop(Iop_Sub64,
+                                                         mkexpr(argL[i]), mkexpr(argR[i]))),
+                                 unop(Iop_64to32, binop(Iop_Sub64,
+                                                         mkexpr(argR[i]), mkexpr(argL[i])))));
+   }
+
+   assign(res, mkV128from32s(arg[3], arg[2], arg[1], arg[0]));
+   return res;
+}
+
+static IRTemp gen_vabsd_d ( IRTemp sJ,  IRTemp sK, UInt isU )
+{
+   UInt i;
+   IRTemp argL[2];
+   IRTemp argR[2];
+   IRTemp arg[2];
+   IRTemp res = newTemp(Ity_V128);
+   IROp cmpOp = isU ? Iop_CmpLT64U: Iop_CmpLT64S;
+
+   for (i = 0; i < 2; i++) {
+      argL[i] = newTemp(Ity_I64);
+      argR[i] = newTemp(Ity_I64);
+      arg[i]  = newTemp(Ity_I64);
+      assign(argL[i], binop(Iop_GetElem64x2, mkexpr(sJ), mkU8(i)));
+      assign(argR[i], binop(Iop_GetElem64x2, mkexpr(sK), mkU8(i)));
+      assign(arg[i], IRExpr_ITE(binop(cmpOp, mkexpr(argR[i]), mkexpr(argL[i])),
+                                binop(Iop_Sub64, mkexpr(argL[i]), mkexpr(argR[i])),
+                                binop(Iop_Sub64, mkexpr(argR[i]), mkexpr(argL[i]))));
+   }
+   assign(res, mkV128from64s(arg[1], arg[0]));
+
+   return res;
+}
+
+static Bool gen_vabsd ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isU   = SLICE(insn, 17, 17);
+
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V128);
+   IRTemp sK  = newTemp(Ity_V128);
+
+   assign(sJ, getVReg(vj));
+   assign(sK, getVReg(vk));
+
+   switch (insSz) {
+      case 0b00:
+         res = gen_vabsd_b(sJ, sK, isU); break;
+      case 0b01:
+         res = gen_vabsd_h(sJ, sK, isU); break;
+      case 0b10:
+         res = gen_vabsd_w(sJ, sK, isU); break;
+      case 0b11:
+         res = gen_vabsd_d(sJ, sK, isU); break;
+      default: vassert(0);
+   }
+
+   DIP("vabsd.%s %s, %s, %s\n", mkInsSize(insSz),
+                                nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
+static Bool gen_xvabsd ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isU   = SLICE(insn, 17, 17);
+
+   IRTemp rHi = newTemp(Ity_V128);
+   IRTemp rLo = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sK  = newTemp(Ity_V256);
+   IRTemp jHi = IRTemp_INVALID;
+   IRTemp jLo = IRTemp_INVALID;
+   IRTemp kHi = IRTemp_INVALID;
+   IRTemp kLo = IRTemp_INVALID;
+
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xk));
+   breakupV256toV128s(sJ, &jHi, &jLo);
+   breakupV256toV128s(sK, &kHi, &kLo);
+
+   switch (insSz) {
+      case 0b00:
+         rHi = gen_vabsd_b(jHi, kHi, isU);
+         rLo = gen_vabsd_b(jLo, kLo, isU);
+         break;
+      case 0b01:
+         rHi = gen_vabsd_h(jHi, kHi, isU);
+         rLo = gen_vabsd_h(jLo, kLo, isU);
+         break;
+      case 0b10:
+         rHi = gen_vabsd_w(jHi, kHi, isU);
+         rLo = gen_vabsd_w(jLo, kLo, isU);
+         break;
+      case 0b11:
+         rHi = gen_vabsd_d(jHi, kHi, isU);
+         rLo = gen_vabsd_d(jLo, kLo, isU);
+         break;
+      default: vassert(0);
+   }
+
+   DIP("xvabsd.%s %s, %s, %s\n", mkInsSize(insSz),
+                                 nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, mkV256from128s(rHi, rLo));
+   return True;
+}
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -10567,22 +10824,10 @@ static Bool gen_vshuf_b ( DisResult* dres, UInt insn,
                            mkU8(0x0)));
    }
 
-   putVReg(vd,
-            binop(Iop_64HLtoV128,
-                  binop(Iop_32HLto64,
-                        binop(Iop_16HLto32,
-                              binop(Iop_8HLto16, mkexpr(res[15]), mkexpr(res[14])),
-                              binop(Iop_8HLto16, mkexpr(res[13]), mkexpr(res[12]))),
-                        binop(Iop_16HLto32,
-                              binop(Iop_8HLto16, mkexpr(res[11]), mkexpr(res[10])),
-                              binop(Iop_8HLto16, mkexpr(res[9]), mkexpr(res[8])))),
-                  binop(Iop_32HLto64,
-                        binop(Iop_16HLto32,
-                              binop(Iop_8HLto16, mkexpr(res[7]), mkexpr(res[6])),
-                              binop(Iop_8HLto16, mkexpr(res[5]), mkexpr(res[4]))),
-                        binop(Iop_16HLto32,
-                              binop(Iop_8HLto16, mkexpr(res[3]), mkexpr(res[2])),
-                              binop(Iop_8HLto16, mkexpr(res[1]), mkexpr(res[0]))))));
+   putVReg(vd, mkV128from8s(res[15], res[14], res[13], res[12],
+                            res[11], res[10], res[9],  res[8],
+                            res[7],  res[6],  res[5],  res[4],
+                            res[3],  res[2],  res[1],  res[0]));
 
    return True;
 }
@@ -12428,6 +12673,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0001 ( DisResult* dres, UInt insn,
          ok = gen_vsadd_vssub(dres, insn, archinfo, abiinfo); break;
       case 0b0101: case 0b0110:
          ok = gen_vhaddw_vhsubw(dres, insn, archinfo, abiinfo); break;
+      case 0b1000:
+         ok = gen_vabsd(dres, insn, archinfo, abiinfo); break;
       case 0b1001: case 0b1010:
          ok = gen_vavg(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
@@ -12681,6 +12928,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
          ok = gen_xvsadd_xvssub(dres, insn, archinfo, abiinfo); break;
       case 0b0101: case 0b0110:
          ok = gen_xvhaddw_xvhsubw(dres, insn, archinfo, abiinfo); break;
+      case 0b1000:
+         ok = gen_xvabsd(dres, insn, archinfo, abiinfo); break;
       case 0b1001: case 0b1010:
          ok = gen_xvavg(dres, insn, archinfo, abiinfo); break;
       case 0b1101:
