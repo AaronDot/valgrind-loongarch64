@@ -2031,6 +2031,9 @@ typedef
       Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4,
       Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8, Iop_Min64Ux4,
 
+      /* ABSOLUTE VALUE */
+      Iop_Abs8x32, Iop_Abs16x16, Iop_Abs32x8, Iop_Abs64x4,
+
       Iop_Mul16x16, Iop_Mul32x8,
       Iop_MulHi16Ux16, Iop_MulHi16Sx16,
 

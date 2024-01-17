@@ -1217,6 +1217,10 @@ static irop_t irops[] = {
   { DEFOP(Iop_Avg16Sx16, UNDEF_UNKNOWN), },
   { DEFOP(Iop_Avg32Sx8, UNDEF_UNKNOWN), },
   { DEFOP(Iop_Avg64Sx4, UNDEF_UNKNOWN), },
+  { DEFOP(Iop_Abs8x32, UNDEF_UNKNOWN), },
+  { DEFOP(Iop_Abs16x16, UNDEF_UNKNOWN), },
+  { DEFOP(Iop_Abs32x8, UNDEF_UNKNOWN), },
+  { DEFOP(Iop_Abs64x4, UNDEF_UNKNOWN), },
   { DEFOP(Iop_Perm32x8, UNDEF_UNKNOWN), },
   /* ------------------ 256-bit SIMD FP. ------------------ */
   { DEFOP(Iop_Add64Fx4, UNDEF_UNKNOWN), },

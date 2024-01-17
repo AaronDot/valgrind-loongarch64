@@ -3005,6 +3005,40 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                *lo = dLo;
                return;
             }
+            case Iop_Abs8x32: case Iop_Abs16x16:
+            case Iop_Abs32x8: case Iop_Abs64x4: {
+               LOONGARCH64VecBinOp subOp, addOp;
+               switch (e->Iex.Unop.op) {
+                  case Iop_Abs8x32:
+                     subOp = LAvecbin_VSUB_B;
+                     addOp = LAvecbin_VADDA_B;
+                     break;
+                  case Iop_Abs16x16:
+                     subOp = LAvecbin_VSUB_H;
+                     addOp = LAvecbin_VADDA_H;
+                     break;
+                  case Iop_Abs32x8:
+                     subOp = LAvecbin_VSUB_W;
+                     addOp = LAvecbin_VADDA_W;
+                     break;
+                  case Iop_Abs64x4:
+                     subOp = LAvecbin_VSUB_D;
+                     addOp = LAvecbin_VADDA_D;
+                     break;
+                  default: vassert(0);
+               };
+               HReg sHi, sLo;
+               iselV256Expr(&sHi, &sLo, env, e->Iex.Unop.arg);
+               HReg dHi = newVRegV(env);
+               HReg dLo = newVRegV(env);
+               HReg sub = newVRegV(env);
+               addInstr(env, LOONGARCH64Instr_VecBinary(subOp, LOONGARCH64RI_R(sHi), sHi, sub));
+               addInstr(env, LOONGARCH64Instr_VecBinary(addOp, LOONGARCH64RI_R(sHi), sub, dHi));
+               addInstr(env, LOONGARCH64Instr_VecBinary(addOp, LOONGARCH64RI_R(sLo), sub, dLo));
+               *hi = dHi;
+               *lo = dLo;
+               return;
+            }
             default: goto irreducible;
          }
       }

@@ -575,6 +575,13 @@ static IROp mkV128QSUBS ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV128ABS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Abs8x16, Iop_Abs16x8, Iop_Abs32x4, Iop_Abs64x2 };
+   vassert(size < 4);
+   return ops[size];
+}
+
 static IROp mkV128AVGU ( UInt size ) {
    const IROp ops[4]
       = { Iop_Avg8Ux16, Iop_Avg16Ux8, Iop_Avg32Ux4, Iop_Avg64Ux2 };
@@ -759,6 +766,13 @@ static IROp mkV256QSUBU ( UInt size ) {
 static IROp mkV256QSUBS ( UInt size ) {
    const IROp ops[4]
       = { Iop_QSub8Sx32, Iop_QSub16Sx16, Iop_QSub32Sx8, Iop_QSub64Sx4 };
+   vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256ABS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Abs8x32, Iop_Abs16x16, Iop_Abs32x8, Iop_Abs64x4 };
    vassert(size < 4);
    return ops[size];
 }
@@ -9494,6 +9508,40 @@ static Bool gen_xvabsd ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vadda ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   DIP("vadda.%s %s, %s, %s\n", mkInsSize(insSz), nameVReg(vd),
+                                nameVReg(vj), nameVReg(vk));
+   putVReg(vd, binop(mkV128ADD(insSz),
+                     unop(mkV128ABS(insSz), getVReg(vj)),
+                     unop(mkV128ABS(insSz), getVReg(vk))));
+   return True;
+}
+
+static Bool gen_xvadda ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   DIP("xvadda.%s %s, %s, %s\n", mkInsSize(insSz), nameXReg(xd),
+                                 nameXReg(xj), nameXReg(xk));
+   putXReg(xd, binop(mkV256ADD(insSz),
+                     unop(mkV256ABS(insSz), getXReg(xj)),
+                     unop(mkV256ABS(insSz), getXReg(xk))));
+   return True;
+}
+
 static Bool gen_vmax_vmin ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -12675,6 +12723,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0001 ( DisResult* dres, UInt insn,
          ok = gen_vhaddw_vhsubw(dres, insn, archinfo, abiinfo); break;
       case 0b1000:
          ok = gen_vabsd(dres, insn, archinfo, abiinfo); break;
+      case 0b0111:
+         ok = gen_vadda(dres, insn, archinfo, abiinfo); break;
       case 0b1001: case 0b1010:
          ok = gen_vavg(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
@@ -12930,6 +12980,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
          ok = gen_xvhaddw_xvhsubw(dres, insn, archinfo, abiinfo); break;
       case 0b1000:
          ok = gen_xvabsd(dres, insn, archinfo, abiinfo); break;
+      case 0b0111:
+         ok = gen_xvadda(dres, insn, archinfo, abiinfo); break;
       case 0b1001: case 0b1010:
          ok = gen_xvavg(dres, insn, archinfo, abiinfo); break;
       case 0b1101:

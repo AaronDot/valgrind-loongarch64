@@ -1381,6 +1381,11 @@ void ppIROp ( IROp op )
       case Iop_Sar32x8: vex_printf("Sar32x8"); return;
       case Iop_Sar64x4: vex_printf("Sar64x4"); return;
 
+      case Iop_Abs8x32:   vex_printf("Abs8x32"); return;
+      case Iop_Abs16x16:  vex_printf("Abs16x16"); return;
+      case Iop_Abs32x8:   vex_printf("Abs32x8"); return;
+      case Iop_Abs64x4:   vex_printf("Abs64x4"); return;
+
       case Iop_Max8Sx32:  vex_printf("Max8Sx32"); return;
       case Iop_Max16Sx16: vex_printf("Max16Sx16"); return;
       case Iop_Max32Sx8:  vex_printf("Max32Sx8"); return;
@@ -1896,6 +1901,7 @@ Bool primopMightTrap ( IROp op )
    case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4:
    case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
    case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
+   case Iop_Abs8x32: case Iop_Abs16x16: case Iop_Abs32x8: case Iop_Abs64x4:
    case Iop_Perm32x8:
    case Iop_CipherV128: case Iop_CipherLV128: case Iop_CipherSV128:
    case Iop_NCipherV128: case Iop_NCipherLV128:
@@ -4296,6 +4302,7 @@ void typeOfPrimop ( IROp op,
       case Iop_WidenHIto64Sx4:  case Iop_WidenHIto128Sx2:
       case Iop_WidenHIto16Ux16: case Iop_WidenHIto32Ux8:
       case Iop_WidenHIto64Ux4:  case Iop_WidenHIto128Ux2:
+      case Iop_Abs8x32: case Iop_Abs16x16: case Iop_Abs32x8: case Iop_Abs64x4:
          UNARY(Ity_V256, Ity_V256);
 
       case Iop_ShlN8x32: case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
