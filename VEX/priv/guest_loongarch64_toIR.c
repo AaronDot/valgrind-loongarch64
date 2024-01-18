@@ -12984,7 +12984,7 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
          ok = gen_xvadda(dres, insn, archinfo, abiinfo); break;
       case 0b1001: case 0b1010:
          ok = gen_xvavg(dres, insn, archinfo, abiinfo); break;
-      case 0b1101:
+      case 0b1100: case 0b1101:
          ok = gen_xvmax_xvmin(dres, insn, archinfo, abiinfo);
          break;
       default:
