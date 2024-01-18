@@ -2007,6 +2007,7 @@ typedef
       Iop_Sub8x32,    Iop_Sub16x16,    Iop_Sub32x8,    Iop_Sub64x4,  Iop_Sub128x2,
 
       Iop_CmpEQ8x32,  Iop_CmpEQ16x16,  Iop_CmpEQ32x8,  Iop_CmpEQ64x4,
+      Iop_CmpGT8Ux32, Iop_CmpGT16Ux16, Iop_CmpGT32Ux8, Iop_CmpGT64Ux4,
       Iop_CmpGT8Sx32, Iop_CmpGT16Sx16, Iop_CmpGT32Sx8, Iop_CmpGT64Sx4,
 
       /* VECTOR x SCALAR SHIFT (shift amt :: Ity_I8) */

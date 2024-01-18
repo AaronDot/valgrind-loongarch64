@@ -1413,6 +1413,10 @@ void ppIROp ( IROp op )
       case Iop_CmpEQ16x16:  vex_printf("CmpEQ16x16"); return;
       case Iop_CmpEQ32x8:   vex_printf("CmpEQ32x8"); return;
       case Iop_CmpEQ64x4:   vex_printf("CmpEQ64x4"); return;
+      case Iop_CmpGT8Ux32:  vex_printf("CmpGT8Ux32"); return;
+      case Iop_CmpGT16Ux16: vex_printf("CmpGT16Ux16"); return;
+      case Iop_CmpGT32Ux8:  vex_printf("CmpGT32Ux8"); return;
+      case Iop_CmpGT64Ux4:  vex_printf("CmpGT64Ux4"); return;
       case Iop_CmpGT8Sx32:  vex_printf("CmpGT8Sx32"); return;
       case Iop_CmpGT16Sx16: vex_printf("CmpGT16Sx16"); return;
       case Iop_CmpGT32Sx8:  vex_printf("CmpGT32Sx8"); return;
@@ -1886,8 +1890,8 @@ Bool primopMightTrap ( IROp op )
    case Iop_Sub8x32: case Iop_Sub16x16: case Iop_Sub32x8: case Iop_Sub64x4: case Iop_Sub128x2:
    case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8:
    case Iop_CmpEQ64x4:
-   case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16: case Iop_CmpGT32Sx8:
-   case Iop_CmpGT64Sx4:
+   case Iop_CmpGT8Ux32: case Iop_CmpGT16Ux16: case Iop_CmpGT32Ux8: case Iop_CmpGT64Ux4:
+   case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16: case Iop_CmpGT32Sx8: case Iop_CmpGT64Sx4:
    case Iop_ShlN8x32: case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
    case Iop_ShrN8x32: case Iop_ShrN16x16: case Iop_ShrN32x8: case Iop_ShrN64x4:
    case Iop_SarN8x32: case Iop_SarN16x16: case Iop_SarN32x8: case Iop_SarN64x4:
@@ -4255,6 +4259,8 @@ void typeOfPrimop ( IROp op,
       case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
       case Iop_CmpEQ8x32:  case Iop_CmpEQ16x16:
       case Iop_CmpEQ32x8:  case Iop_CmpEQ64x4:
+      case Iop_CmpGT8Ux32: case Iop_CmpGT16Ux16:
+      case Iop_CmpGT32Ux8: case Iop_CmpGT64Ux4:
       case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16:
       case Iop_CmpGT32Sx8: case Iop_CmpGT64Sx4:
       case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:

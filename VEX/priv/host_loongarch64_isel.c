@@ -3068,8 +3068,10 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                *lo = iselV128Expr(env, e->Iex.Binop.arg2);
                return;
             }
-            case Iop_AndV256: case Iop_XorV256:
+            case Iop_AndV256: case Iop_XorV256: case Iop_OrV256:
             case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8: case Iop_CmpEQ64x4:
+            case Iop_CmpGT8Ux32: case Iop_CmpGT16Ux16: case Iop_CmpGT32Ux8: case Iop_CmpGT64Ux4:
+            case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16: case Iop_CmpGT32Sx8: case Iop_CmpGT64Sx4:
             case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
             case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
             case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
@@ -3092,13 +3094,23 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
             case Iop_MulHi8Ux32: case Iop_MulHi16Ux16: case Iop_MulHi32Ux8:
             case Iop_MulHi8Sx32: case Iop_MulHi16Sx16: case Iop_MulHi32Sx8: {
                LOONGARCH64VecBinOp op;
+               Bool reverse = False;
                switch (e->Iex.Binop.op) {
                   case Iop_AndV256:    op = LAvecbin_VAND_V; break;
                   case Iop_XorV256:    op = LAvecbin_VXOR_V; break;
+                  case Iop_OrV256:     op = LAvecbin_VOR_V;  break;
                   case Iop_CmpEQ8x32:  op = LAvecbin_VSEQ_B; break;
                   case Iop_CmpEQ16x16: op = LAvecbin_VSEQ_H; break;
                   case Iop_CmpEQ32x8:  op = LAvecbin_VSEQ_W; break;
                   case Iop_CmpEQ64x4:  op = LAvecbin_VSEQ_D; break;
+                  case Iop_CmpGT8Sx32: op = LAvecbin_VSLT_B;  reverse = True; break;
+                  case Iop_CmpGT16Sx16:op = LAvecbin_VSLT_H;  reverse = True; break;
+                  case Iop_CmpGT32Sx8: op = LAvecbin_VSLT_W;  reverse = True; break;
+                  case Iop_CmpGT64Sx4: op = LAvecbin_VSLT_D;  reverse = True; break;
+                  case Iop_CmpGT8Ux32: op = LAvecbin_VSLT_BU; reverse = True; break;
+                  case Iop_CmpGT16Ux16:op = LAvecbin_VSLT_HU; reverse = True; break;
+                  case Iop_CmpGT32Ux8: op = LAvecbin_VSLT_WU; reverse = True; break;
+                  case Iop_CmpGT64Ux4: op = LAvecbin_VSLT_DU; reverse = True; break;
                   case Iop_Max8Sx32:   op = LAvecbin_VMAX_B; break;
                   case Iop_Max16Sx16:  op = LAvecbin_VMAX_H; break;
                   case Iop_Max32Sx8:   op = LAvecbin_VMAX_W; break;
@@ -3191,8 +3203,13 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                iselV256Expr(&s2Hi, &s2Lo, env, e->Iex.Binop.arg2);
                HReg dHi = newVRegV(env);
                HReg dLo = newVRegV(env);
-               addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s2Hi), s1Hi, dHi));
-               addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s2Lo), s1Lo, dLo));
+               if (reverse) {
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s1Hi), s2Hi, dHi));
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s1Lo), s2Lo, dLo));
+               } else {
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s2Hi), s1Hi, dHi));
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s2Lo), s1Lo, dLo));
+               }
                *hi = dHi;
                *lo = dLo;
                return;
