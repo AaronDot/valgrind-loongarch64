@@ -2034,8 +2034,9 @@ typedef
       /* ABSOLUTE VALUE */
       Iop_Abs8x32, Iop_Abs16x16, Iop_Abs32x8, Iop_Abs64x4,
 
-      Iop_Mul16x16, Iop_Mul32x8,
-      Iop_MulHi16Ux16, Iop_MulHi16Sx16,
+      Iop_Mul8x32, Iop_Mul16x16, Iop_Mul32x8,
+      Iop_MulHi8Ux32, Iop_MulHi16Ux16, Iop_MulHi32Ux8,
+      Iop_MulHi8Sx32, Iop_MulHi16Sx16, Iop_MulHi32Sx8,
 
       Iop_QAdd8Ux32, Iop_QAdd16Ux16, Iop_QAdd32Ux8, Iop_QAdd64Ux4,
       Iop_QAdd8Sx32, Iop_QAdd16Sx16, Iop_QAdd32Sx8, Iop_QAdd64Sx4,

@@ -575,6 +575,27 @@ static IROp mkV128QSUBS ( UInt size ) {
    return ops[size];
 }
 
+static IROp mkV128MUL ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Mul8x16, Iop_Mul16x8, Iop_Mul32x4, Iop_INVALID };
+   vassert(size < 3);
+   return ops[size];
+}
+
+static IROp mkV128MUHS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_MulHi8Sx16, Iop_MulHi16Sx8, Iop_MulHi32Sx4, Iop_INVALID };
+   vassert(size < 3);
+   return ops[size];
+}
+
+static IROp mkV128MUHU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_MulHi8Ux16, Iop_MulHi16Ux8, Iop_MulHi32Ux4, Iop_INVALID };
+   vassert(size < 3);
+   return ops[size];
+}
+
 static IROp mkV128ABS ( UInt size ) {
    const IROp ops[4]
       = { Iop_Abs8x16, Iop_Abs16x8, Iop_Abs32x4, Iop_Abs64x2 };
@@ -767,6 +788,27 @@ static IROp mkV256QSUBS ( UInt size ) {
    const IROp ops[4]
       = { Iop_QSub8Sx32, Iop_QSub16Sx16, Iop_QSub32Sx8, Iop_QSub64Sx4 };
    vassert(size < 4);
+   return ops[size];
+}
+
+static IROp mkV256MUL ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_Mul8x32, Iop_Mul16x16, Iop_Mul32x8, Iop_INVALID };
+   vassert(size < 3);
+   return ops[size];
+}
+
+static IROp mkV256MUHS ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_MulHi8Sx32, Iop_MulHi16Sx16, Iop_MulHi32Sx8, Iop_INVALID };
+   vassert(size < 3);
+   return ops[size];
+}
+
+static IROp mkV256MUHU ( UInt size ) {
+   const IROp ops[4]
+      = { Iop_MulHi8Ux32, Iop_MulHi16Ux16, Iop_MulHi32Ux8, Iop_INVALID };
+   vassert(size < 3);
    return ops[size];
 }
 
@@ -9702,6 +9744,147 @@ static Bool gen_xvmaxi_xvmini ( DisResult* dres, UInt insn,
    return True;
 }
 
+#define EX(_tmp) \
+           mkexpr(_tmp)
+
+#define VMUD(_argL, _argR, _mulOp, _narOp) \
+      binop(Iop_64HLtoV128,   \
+            unop(_narOp, \
+                 binop(_mulOp,   \
+                       unop(Iop_V128HIto64, _argL), \
+                       unop(Iop_V128HIto64, _argR))), \
+            unop(_narOp, \
+                 binop(_mulOp, \
+                       unop(Iop_V128to64, _argL), \
+                       unop(Iop_V128to64, _argR))))
+
+static Bool gen_vmu ( DisResult* dres, UInt insn,
+                      const VexArchInfo* archinfo,
+                      const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRTemp res  = newTemp(Ity_V128);
+   IRTemp argL = newTemp(Ity_V128);
+   IRTemp argR = newTemp(Ity_V128);
+   assign(argL, getVReg(vj));
+   assign(argR, getVReg(vk));
+
+   switch (SLICE(insn, 18, 17)) {
+      case 0b10: {
+         DIP("vmul.%s %s, %s, %s\n", mkInsSize(insSz),
+                                     nameVReg(vd), nameVReg(vj), nameVReg(vk));
+
+         if (insSz != 0b11) {
+            assign(res, binop(mkV128MUL(insSz), EX(argL), EX(argR)));
+         } else {
+            assign(res, VMUD(EX(argL), EX(argR), Iop_MullS64, Iop_128to64));
+         }
+         break;
+      }
+      case 0b11: {
+         DIP("vmuh.%s %s, %s, %s\n", mkInsSize(insSz),
+                                     nameVReg(vd), nameVReg(vj), nameVReg(vk));
+
+         if (insSz != 0b11) {
+            assign(res, binop(mkV128MUHS(insSz), EX(argL), EX(argR)));
+         } else {
+            assign(res, VMUD(EX(argL), EX(argR), Iop_MullS64, Iop_128HIto64));
+         }
+         break;
+      }
+      case 0b00: {
+         DIP("vmuh.%s %s, %s, %s\n", mkInsSize(insSz + 4),
+                                     nameVReg(vd), nameVReg(vj), nameVReg(vk));
+
+         if (insSz != 0b11) {
+            assign(res, binop(mkV128MUHU(insSz), EX(argL), EX(argR)));
+         } else {
+            assign(res, VMUD(EX(argL), EX(argR), Iop_MullU64, Iop_128HIto64));
+         }
+         break;
+      }
+      default: vassert(0);
+   }
+
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
+static Bool gen_xvmu ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp rHi = newTemp(Ity_V128);
+   IRTemp rLo = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sK  = newTemp(Ity_V256);
+   IRTemp jHi = IRTemp_INVALID;
+   IRTemp jLo = IRTemp_INVALID;
+   IRTemp kHi = IRTemp_INVALID;
+   IRTemp kLo = IRTemp_INVALID;
+
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xk));
+   breakupV256toV128s(sJ, &jHi, &jLo);
+   breakupV256toV128s(sK, &kHi, &kLo);
+
+   switch (SLICE(insn, 18, 17)) {
+      case 0b10: {
+         DIP("xvmul.%s %s, %s, %s\n", mkInsSize(insSz),
+                                      nameXReg(xd), nameXReg(xj), nameXReg(xk));
+
+         if (insSz != 0b11) {
+            assign(res, binop(mkV256MUL(insSz), EX(sJ), EX(sK)));
+         } else {
+            assign(rHi, VMUD(EX(jHi), EX(kHi), Iop_MullS64, Iop_128to64));
+            assign(rLo, VMUD(EX(jLo), EX(kLo), Iop_MullS64, Iop_128to64));
+            assign(res, mkV256from128s(rHi, rLo));
+         }
+         break;
+      }
+      case 0b11: {
+         DIP("vmuh.%s %s, %s, %s\n", mkInsSize(insSz),
+                                     nameXReg(xd), nameXReg(xj), nameXReg(xk));
+
+         if (insSz != 0b11) {
+            assign(res, binop(mkV256MUHS(insSz), EX(sJ), EX(sK)));
+         } else {
+            assign(rHi, VMUD(EX(jHi), EX(kHi), Iop_MullS64, Iop_128HIto64));
+            assign(rLo, VMUD(EX(jLo), EX(kLo), Iop_MullS64, Iop_128HIto64));
+            assign(res, mkV256from128s(rHi, rLo));
+         }
+         break;
+      }
+      case 0b00: {
+         DIP("vmuh.%s %s, %s, %s\n", mkInsSize(insSz + 4),
+                                     nameXReg(xd), nameXReg(xj), nameXReg(xk));
+
+         if (insSz != 0b11) {
+            assign(res, binop(mkV256MUHU(insSz), EX(sJ), EX(sK)));
+         } else {
+            assign(rHi, VMUD(EX(jHi), EX(kHi), Iop_MullU64, Iop_128HIto64));
+            assign(rLo, VMUD(EX(jLo), EX(kLo), Iop_MullU64, Iop_128HIto64));
+            assign(res, mkV256from128s(rHi, rLo));
+         }
+         break;
+      }
+      default: vassert(0);
+   }
+
+   putXReg(xd, mkexpr(res));
+   return True;
+}
+
 static IRTemp gen_vmsk_b ( IRTemp shr )
 {
    UInt i;
@@ -12839,6 +13022,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0001 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_0010 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0001: case 0b0010:
+         ok = gen_vmu(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -13021,6 +13219,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
       case 0b0001:
          ok = disInstr_LOONGARCH64_WRK_01_1100_0001(dres, insn, archinfo, abiinfo);
          break;
+      case 0b0010:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_0010(dres, insn, archinfo, abiinfo); break;
       case 0b0100:
          ok = disInstr_LOONGARCH64_WRK_01_1100_0100(dres, insn, archinfo, abiinfo);
          break;
@@ -13092,6 +13292,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0001 ( DisResult* dres, UInt insn,
       default:
          ok = False;
          break;
+   }
+
+   return ok;
+}
+
+static Bool disInstr_LOONGARCH64_WRK_01_1101_0010 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0001: case 0b0010:
+         ok = gen_xvmu(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
    }
 
    return ok;
@@ -13212,6 +13427,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
       case 0b0001:
          ok = disInstr_LOONGARCH64_WRK_01_1101_0001(dres, insn, archinfo, abiinfo);
          break;
+      case 0b0010:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_0010(dres, insn, archinfo, abiinfo); break;
       case 0b0100:
          ok = disInstr_LOONGARCH64_WRK_01_1101_0100(dres, insn, archinfo, abiinfo);
          break;

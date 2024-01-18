@@ -5076,6 +5076,9 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_QSub8Ux32:
       case Iop_QSub8Sx32:
       case Iop_Sub8x32:
+      case Iop_Mul8x32:
+      case Iop_MulHi8Sx32:
+      case Iop_MulHi8Ux32:
       case Iop_Min8Ux32:
       case Iop_Min8Sx32:
       case Iop_Max8Ux32:
@@ -5127,6 +5130,8 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_Min32Ux8:
       case Iop_Min32Sx8:
       case Iop_Mul32x8:
+      case Iop_MulHi32Sx8:
+      case Iop_MulHi32Ux8:
       case Iop_Avg32Ux8:
       case Iop_Avg32Sx8:
       case Iop_Shl32x8:

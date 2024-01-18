@@ -3070,7 +3070,10 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
             case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
             case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
             case Iop_Shr8x32: case Iop_Shr16x16: case Iop_Shr32x8: case Iop_Shr64x4:
-            case Iop_Sar8x32: case Iop_Sar16x16: case Iop_Sar32x8: case Iop_Sar64x4: {
+            case Iop_Sar8x32: case Iop_Sar16x16: case Iop_Sar32x8: case Iop_Sar64x4:
+            case Iop_Mul8x32: case Iop_Mul16x16: case Iop_Mul32x8:
+            case Iop_MulHi8Ux32: case Iop_MulHi16Ux16: case Iop_MulHi32Ux8:
+            case Iop_MulHi8Sx32: case Iop_MulHi16Sx16: case Iop_MulHi32Sx8: {
                LOONGARCH64VecBinOp op;
                switch (e->Iex.Binop.op) {
                   case Iop_AndV256:    op = LAvecbin_VAND_V; break;
@@ -3155,6 +3158,15 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                   case Iop_Sar16x16: op = LAvecbin_VSRA_H; break;
                   case Iop_Sar32x8:  op = LAvecbin_VSRA_W; break;
                   case Iop_Sar64x4:  op = LAvecbin_VSRA_D; break;
+                  case Iop_Mul8x32:  op = LAvecbin_VMUL_B; break;
+                  case Iop_Mul16x16:    op = LAvecbin_VMUL_H;  break;
+                  case Iop_Mul32x8:     op = LAvecbin_VMUL_W;  break;
+                  case Iop_MulHi8Ux32:  op = LAvecbin_VMUH_BU; break;
+                  case Iop_MulHi16Ux16: op = LAvecbin_VMUH_HU; break;
+                  case Iop_MulHi32Ux8:  op = LAvecbin_VMUH_WU; break;
+                  case Iop_MulHi8Sx32:  op = LAvecbin_VMUH_B;  break;
+                  case Iop_MulHi16Sx16: op = LAvecbin_VMUH_H;  break;
+                  case Iop_MulHi32Sx8:  op = LAvecbin_VMUH_W;  break;
                   default: vassert(0);
                }
                HReg s1Hi, s1Lo, s2Hi, s2Lo;

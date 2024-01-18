@@ -1354,10 +1354,15 @@ void ppIROp ( IROp op )
       case Iop_QSub32Sx8: vex_printf("QSub32Sx8"); return;
       case Iop_QSub64Sx4: vex_printf("QSub64Sx4"); return;
 
-      case Iop_Mul16x16:    vex_printf("Mul16x16"); return;
-      case Iop_Mul32x8:     vex_printf("Mul32x8"); return;
+      case Iop_Mul8x32:    vex_printf("Mul8x32"); return;
+      case Iop_Mul16x16:   vex_printf("Mul16x16"); return;
+      case Iop_Mul32x8:    vex_printf("Mul32x8"); return;
+      case Iop_MulHi8Ux32: vex_printf("MulHi8Ux32"); return;
       case Iop_MulHi16Ux16: vex_printf("MulHi16Ux16"); return;
+      case Iop_MulHi32Ux8: vex_printf("MulHi32Ux8"); return;
+      case Iop_MulHi8Sx32: vex_printf("MulHi8Sx32"); return;
       case Iop_MulHi16Sx16: vex_printf("MulHi16Sx16"); return;
+      case Iop_MulHi32Sx8: vex_printf("MulHi32Sx8"); return;
 
       case Iop_Avg8Ux32:  vex_printf("Avg8Ux32"); return;
       case Iop_Avg16Ux16: vex_printf("Avg16Ux16"); return;
@@ -1893,8 +1898,9 @@ Bool primopMightTrap ( IROp op )
    case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
    case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
    case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
-   case Iop_Mul16x16: case Iop_Mul32x8:
-   case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
+   case Iop_Mul8x32: case Iop_Mul16x16: case Iop_Mul32x8:
+   case Iop_MulHi8Ux32: case Iop_MulHi16Ux16: case Iop_MulHi32Ux8:
+   case Iop_MulHi8Sx32: case Iop_MulHi16Sx16: case Iop_MulHi32Sx8:
    case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
    case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
    case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
@@ -4235,8 +4241,9 @@ void typeOfPrimop ( IROp op,
       case Iop_Add32x8:  case Iop_Add64x4: case Iop_Add128x2:
       case Iop_Sub8x32:  case Iop_Sub16x16:
       case Iop_Sub32x8:  case Iop_Sub64x4: case Iop_Sub128x2:
-      case Iop_Mul16x16: case Iop_Mul32x8:
-      case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
+      case Iop_Mul8x32: case Iop_Mul16x16: case Iop_Mul32x8:
+      case Iop_MulHi8Ux32: case Iop_MulHi16Ux16: case Iop_MulHi32Ux8:
+      case Iop_MulHi8Sx32: case Iop_MulHi16Sx16: case Iop_MulHi32Sx8:
       case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
       case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
       case Iop_Shl8x32:  case Iop_Shl16x16:  case Iop_Shl32x8:  case Iop_Shl64x4:
