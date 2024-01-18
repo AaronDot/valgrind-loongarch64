@@ -9602,6 +9602,106 @@ static Bool gen_xvmax_xvmin ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vmaxi_vmini ( DisResult* dres, UInt insn,
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt si5   = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isMin = SLICE(insn, 17, 17);
+   UInt isU   = SLICE(insn, 18, 18);
+
+   IRExpr *si5Expr;
+   IRTemp argR = newTemp(Ity_V128);
+   IRTemp s64  = newTemp(Ity_I64);
+   IROp op     = isMin ? isU ? mkV128MINU(insSz) : mkV128MINS(insSz) :
+                         isU ? mkV128MAXU(insSz) : mkV128MAXS(insSz);
+
+   assign(s64, mkU64(extend64(si5, 5)));
+   switch (insSz) {
+      case 0b00: {
+         si5Expr = isU ? mkU8(si5) : unop(Iop_64to8, mkexpr(s64));
+         assign(argR, unop(Iop_Dup8x16, si5Expr));
+         break;
+      }
+      case 0b01: {
+         si5Expr = isU ? mkU16(si5) : unop(Iop_64to16, mkexpr(s64));
+         assign(argR, unop(Iop_Dup16x8, si5Expr));
+         break;
+      }
+      case 0b10: {
+         si5Expr = isU ? mkU32(si5) : unop(Iop_64to32, mkexpr(s64));
+         assign(argR, unop(Iop_Dup32x4, si5Expr));
+         break;
+      }
+      case 0b11: {
+         si5Expr = isU ? mkU64(si5) : mkexpr(s64);
+         assign(argR, binop(Iop_64HLtoV128, si5Expr, si5Expr));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   UInt id = isU ? (insSz + 4) : insSz;
+   const HChar *nm[2] = { "vmaxi", "vmini" };
+   DIP("%s.%s %s, %s, %d\n", nm[isMin], mkInsSize(id), nameVReg(vd),
+                             nameVReg(vj), (Int)extend32(si5, 5));
+   putVReg(vd, binop(op, getVReg(vj), mkexpr(argR)));
+   return True;
+}
+
+static Bool gen_xvmaxi_xvmini ( DisResult* dres, UInt insn,
+                                const VexArchInfo* archinfo,
+                                const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt si5   = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+   UInt isMin = SLICE(insn, 17, 17);
+   UInt isU   = SLICE(insn, 18, 18);
+
+   IRExpr *si5Expr;
+   IRTemp dup = newTemp(Ity_V128);
+   IRTemp s64 = newTemp(Ity_I64);
+   IROp op    = isMin ? isU ? mkV256MINU(insSz) : mkV256MINS(insSz) :
+                        isU ? mkV256MAXU(insSz) : mkV256MAXS(insSz);
+
+   assign(s64, mkU64(extend64(si5, 5)));
+   switch (insSz) {
+      case 0b00: {
+         si5Expr = isU ? mkU8(si5) : unop(Iop_64to8, mkexpr(s64));
+         assign(dup, unop(Iop_Dup8x16, si5Expr));
+         break;
+      }
+      case 0b01: {
+         si5Expr = isU ? mkU16(si5) : unop(Iop_64to16, mkexpr(s64));
+         assign(dup, unop(Iop_Dup16x8, si5Expr));
+         break;
+      }
+      case 0b10: {
+         si5Expr = isU ? mkU32(si5) : unop(Iop_64to32, mkexpr(s64));
+         assign(dup, unop(Iop_Dup32x4, si5Expr));
+         break;
+      }
+      case 0b11: {
+         si5Expr = isU ? mkU64(si5) : mkexpr(s64);
+         assign(dup, binop(Iop_64HLtoV128, si5Expr, si5Expr));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   UInt id = isU ? (insSz + 4) : insSz;
+   const HChar *nm[2] = { "xvmaxi", "xvmini" };
+   DIP("%s.%s %s, %s, %d\n", nm[isMin], mkInsSize(id), nameXReg(xd),
+                             nameXReg(xj), (Int)extend32(si5, 5));
+   putXReg(xd, binop(op, getXReg(xj), mkV256from128s(dup, dup)));
+   return True;
+}
+
 static IRTemp gen_vmsk_b ( IRTemp shr )
 {
    UInt i;
@@ -12829,6 +12929,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010 ( DisResult* dres, UInt insn,
       case 0b00110:
          ok = gen_vaddi_vsubi(dres, insn, archinfo, abiinfo);
          break;
+      case 0b01000: case 0b01001: case 0b01010: case 0b01011:
+         ok = gen_vmaxi_vmini(dres, insn, archinfo, abiinfo); break;
       case 0b01101:
          ok = gen_vfrstpi(dres, insn, archinfo, abiinfo);
          break;
@@ -13048,6 +13150,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010 ( DisResult* dres, UInt insn,
       case 0b0010: case 0b0011:
          ok = gen_xvaddi_xvsubi(dres, insn, archinfo, abiinfo);
          break;
+      case 0b0100: case 0b0101:
+         ok = gen_xvmaxi_xvmini(dres, insn, archinfo, abiinfo); break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010_0111(dres, insn, archinfo, abiinfo);
          break;
