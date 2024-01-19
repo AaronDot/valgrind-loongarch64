@@ -10803,6 +10803,38 @@ static Bool gen_xvsat ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vexth ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt insSz = SLICE(insn, 11, 10);
+   UInt isU   = SLICE(insn, 12, 12);
+
+   IROp op = isU ? mkV128EXTHTU(insSz) : mkV128EXTHTS(insSz);
+   UInt id = isU ? (insSz + 4) : insSz;
+   DIP("vexth.%s %s, %s\n", mkInsSize(id), nameVReg(vd), nameVReg(vj));
+   putVReg(vd, unop(op, getVReg(vj)));
+   return True;
+}
+
+static Bool gen_xvexth ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt insSz = SLICE(insn, 11, 10);
+   UInt isU   = SLICE(insn, 12, 12);
+
+   IROp op = isU ? mkV256EXTHTU(insSz) : mkV256EXTHTS(insSz);
+   UInt id = isU ? (insSz + 4) : insSz;
+   DIP("xvexth.%s %s, %s\n", mkInsSize(id), nameXReg(xd), nameXReg(xj));
+   putXReg(xd, unop(op, getXReg(xj)));
+   return True;
+}
+
 static IRTemp gen_vmsk_b ( IRTemp shr )
 {
    UInt i;
@@ -14041,6 +14073,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010_01111 ( DisResult* dres, UInt 
    Bool ok;
 
    switch (SLICE(insn, 16, 14)) {
+      case 0b011:
+         ok = gen_vexth(dres, insn, archinfo, abiinfo); break;
       case 0b100:
          ok = gen_vreplgr2vr(dres, insn, archinfo, abiinfo);
          break;
@@ -14316,6 +14350,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010_0111 ( DisResult* dres, UInt i
       case 0b0010:
          ok = gen_xvset(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1011:
+         ok = gen_xvexth(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = gen_xvreplgr2vr(dres, insn, archinfo, abiinfo);
          break;
