@@ -11168,7 +11168,7 @@ static Bool gen_vmsk ( DisResult* dres, UInt insn,
          }
          assign(cmp, unop(Iop_NotV128,
                           binop(Iop_CmpEQ8x16, mkV128(0x0000), mkexpr(src))));
-         assign(shr, binop(Iop_ShrN8x16, mkexpr(cmp), mkU8(7)));
+         assign(shr, binop(Iop_ShrN8x16, EX(cmp), mkU8(7)));
          res = gen_vmsk_b(shr);
          break;
       }
@@ -11188,45 +11188,104 @@ static Bool gen_xvmsk ( DisResult* dres, UInt insn,
 {
    UInt xd    = SLICE(insn, 4, 0);
    UInt xj    = SLICE(insn, 9, 5);
+   UInt insSz = SLICE(insn, 11, 10);
    UInt insTy = SLICE(insn, 13, 12);
 
-   IRTemp shrHi = newTemp(Ity_V128);
-   IRTemp shrLo = newTemp(Ity_V128);
-   IRTemp cmpHi = newTemp(Ity_V128);
-   IRTemp cmpLo = newTemp(Ity_V128);
+   IRTemp shr = newTemp(Ity_V256);
+   IRTemp cmp = newTemp(Ity_V256);
    IRTemp res = newTemp(Ity_V256);
    IRTemp src = newTemp(Ity_V256);
    assign(src, getXReg(xj));
 
    switch (insTy) {
-      case 0b10: {
-         DIP("xvmsknz.b %s, %s\n", nameXReg(xd), nameXReg(xj));
+      case 0b00: {
+         UInt shrNum[4] = {7, 15, 31, 63};
 
-         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
+         DIP("xvmskltz.%s %s, %s\n", mkInsSize(insSz), nameXReg(xd), nameXReg(xj));
+
+         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
             dres->jk_StopHere = Ijk_SigILL;
             dres->whatNext    = Dis_StopHere;
             return True;
          }
 
+         assign(cmp, binop(mkV256CMPGTS(insSz), mkV256(0x0000), EX(src)));
+         assign(shr, binop(mkV256SHRN(insSz), EX(cmp), mkU8(shrNum[insSz])));
          IRTemp hi, lo;
          hi = lo = IRTemp_INVALID;
-         breakupV256toV128s(src, &hi, &lo);
-         assign(cmpHi, unop(Iop_NotV128,
-                          binop(Iop_CmpEQ8x16, mkV128(0x0000), mkexpr(hi))));
-         assign(shrHi, binop(Iop_ShrN8x16, mkexpr(cmpHi), mkU8(7)));
-         assign(cmpLo, unop(Iop_NotV128,
-                          binop(Iop_CmpEQ8x16, mkV128(0x0000), mkexpr(lo))));
-         assign(shrLo, binop(Iop_ShrN8x16, mkexpr(cmpLo), mkU8(7)));
-         assign(res, binop(Iop_V128HLtoV256, mkexpr(gen_vmsk_b(shrHi)), mkexpr(gen_vmsk_b(shrLo))));
+         breakupV256toV128s(shr, &hi, &lo);
+
+         IRTemp rHi = newTemp(Ity_V128);
+         IRTemp rLo = newTemp(Ity_V128);
+         switch(insSz) {
+            case 0b00: {
+               rHi = gen_vmsk_b(hi);
+               rLo = gen_vmsk_b(lo);
+               break;
+            }
+            case 0b01: {
+               rHi = gen_vmsk_h(hi);
+               rLo = gen_vmsk_h(lo);
+               break;
+            }
+            case 0b10: {
+               rHi = gen_vmsk_w(hi);
+               rLo = gen_vmsk_w(lo);
+               break;
+            }
+            case 0b11: {
+               rHi = gen_vmsk_d(hi);
+               rLo = gen_vmsk_d(lo);
+               break;
+            }
+            default: vassert(0);
+         }
+
+         assign(res, mkV256from128s(rHi, rLo));
          break;
       }
+      case 0b01: {
+         DIP("xvmskgez.b %s, %s\n", nameXReg(xd), nameXReg(xj));
 
-      default:
-         return False;
+         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+            dres->jk_StopHere = Ijk_SigILL;
+            dres->whatNext    = Dis_StopHere;
+            return True;
+         }
+
+         assign(cmp, binop(Iop_OrV256,
+                           binop(Iop_CmpGT8Sx32, EX(src), mkV256(0x0000)),
+                           binop(Iop_CmpEQ8x32, mkV256(0x0000), EX(src))));
+         assign(shr, binop(Iop_ShrN8x32, EX(cmp), mkU8(7)));
+         IRTemp hi, lo;
+         hi = lo = IRTemp_INVALID;
+         breakupV256toV128s(shr, &hi, &lo);
+         assign(res, mkV256from128s(gen_vmsk_b(hi), gen_vmsk_b(lo)));
+         break;
+      }
+      case 0b10: {
+         DIP("xvmsknz.b %s, %s\n", nameXReg(xd), nameXReg(xj));
+
+         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+            dres->jk_StopHere = Ijk_SigILL;
+            dres->whatNext    = Dis_StopHere;
+            return True;
+         }
+
+         assign(cmp, unop(Iop_NotV256,
+                          binop(Iop_CmpEQ8x32, mkV256(0x0000), EX(src))));
+         assign(shr, binop(Iop_ShrN8x32, EX(cmp), mkU8(7)));
+
+         IRTemp hi, lo;
+         hi = lo = IRTemp_INVALID;
+         breakupV256toV128s(shr, &hi, &lo);
+         assign(res, mkV256from128s(gen_vmsk_b(hi), gen_vmsk_b(lo)));
+         break;
+      }
+      default: vassert(0);
    }
 
    putXReg(xd, mkexpr(res));
-
    return True;
 }
 
