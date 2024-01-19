@@ -10925,6 +10925,76 @@ static Bool gen_vext2xv ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vsigncov ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRTemp eq   = newTemp(Ity_V128);
+   IRTemp lt   = newTemp(Ity_V128);
+   IRTemp gt   = newTemp(Ity_V128);
+   IRTemp z128 = newTemp(Ity_V128);
+   assign(z128, mkV128(0x0000));
+   UInt sarNum[4] = {7, 15, 31, 63};
+
+   assign(eq, unop(Iop_NotV128,
+                   binop(mkV128CMPEQ(insSz), getVReg(vj), EX(z128))));
+   assign(lt, binop(Iop_AndV128,
+                    binop(mkV128SARN(insSz), getVReg(vj), mkU8(sarNum[insSz])),
+                    binop(mkV128SUB(insSz), EX(z128), getVReg(vk))));
+   assign(gt, binop(Iop_AndV128,
+                    binop(mkV128CMPEQ(insSz),
+                          binop(mkV128SARN(insSz), getVReg(vj), mkU8(sarNum[insSz])),
+                          EX(z128)),
+                    getVReg(vk)));
+
+   DIP("vsigncov.%s %s, %s, %s\n", mkInsSize(insSz), nameVReg(vd),
+                                   nameVReg(vj), nameVReg(vk));
+   putVReg(vd, binop(Iop_AndV128,
+                     binop(Iop_OrV128, mkexpr(lt), mkexpr(gt)),
+                     mkexpr(eq)));
+   return True;
+}
+
+static Bool gen_xvsigncov ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRTemp eq   = newTemp(Ity_V256);
+   IRTemp lt   = newTemp(Ity_V256);
+   IRTemp gt   = newTemp(Ity_V256);
+   IRTemp z256 = newTemp(Ity_V256);
+   assign(z256, mkV256(0x0000));
+   UInt sarNum[4] = {7, 15, 31, 63};
+
+   assign(eq, unop(Iop_NotV256,
+                   binop(mkV256CMPEQ(insSz), getXReg(xj), EX(z256))));
+   assign(lt, binop(Iop_AndV256,
+                    binop(mkV256SARN(insSz), getXReg(xj), mkU8(sarNum[insSz])),
+                    binop(mkV256SUB(insSz), EX(z256), getXReg(xk))));
+   assign(gt, binop(Iop_AndV256,
+                    binop(mkV256CMPEQ(insSz),
+                          binop(mkV256SARN(insSz), getXReg(xj), mkU8(sarNum[insSz])),
+                          EX(z256)),
+                    getXReg(xk)));
+
+   DIP("xvsigncov.%s %s, %s, %s\n", mkInsSize(insSz), nameXReg(xd),
+                                    nameXReg(xj), nameXReg(xk));
+   putXReg(xd, binop(Iop_AndV256,
+                     binop(Iop_OrV256, mkexpr(lt), mkexpr(gt)),
+                     EX(eq)));
+   return True;
+}
+
 static IRTemp gen_vmsk_b ( IRTemp shr )
 {
    UInt i;
@@ -14126,6 +14196,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
          break;
       case 0b10110:
          ok = gen_vadd_vsub_q(dres, insn, archinfo, abiinfo); break;
+      case 0b10111:
+         ok = gen_vsigncov(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
@@ -14414,11 +14486,13 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0100 ( DisResult* dres, UInt insn,
 {
    Bool ok;
 
-   switch (SLICE(insn, 21, 18)) {
-      case 0b1001:
+   switch (SLICE(insn, 21, 17)) {
+      case 0b10011:
          ok = gen_logical_xv(dres, insn, archinfo, abiinfo); break;
-      case 0b1011:
+      case 0b10110:
          ok = gen_xvadd_xvsub_q(dres, insn, archinfo, abiinfo); break;
+      case 0b10111:
+         ok = gen_xvsigncov(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
