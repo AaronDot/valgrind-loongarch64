@@ -10835,6 +10835,96 @@ static Bool gen_xvexth ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vext2xv ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt insTy = SLICE(insn, 13, 10);
+
+   const HChar *ns;
+   IROp w128   = Iop_INVALID;
+   IROp w256   = Iop_INVALID;
+   IRTemp res  = newTemp(Ity_V256);
+   IRTemp sLo  = newTemp(Ity_V128);
+   IRTemp z128 = newTemp(Ity_V128);
+   IRTemp sL64 = newTemp(Ity_V128);
+   IRTemp sH64 = newTemp(Ity_V128);
+   assign(z128, mkV128(0x0000));
+   assign(sLo, unop(Iop_V256toV128_0, getXReg(xj)));
+   assign(sL64, binop(Iop_InterleaveLO64x2, EX(sLo), EX(z128)));
+   assign(sH64, binop(Iop_InterleaveHI64x2, EX(sLo), EX(z128)));
+
+   switch (insTy) {
+      case 0b0100: case 0b1010: {
+         ns   = (insTy == 0b0100) ? "h.b" : "hu.bu";
+         w256 = (insTy == 0b0100) ? Iop_WidenHIto16Sx16 : Iop_WidenHIto16Ux16;
+         assign(res, unop(w256, mkV256from128s(sH64, sL64)));
+         break;
+      }
+      case 0b0101: case 0b1011: {
+         IRTemp t1   = newTemp(Ity_V128);
+         IRTemp t1Lo = newTemp(Ity_V128);
+         IRTemp t1Hi = newTemp(Ity_V128);
+         ns   = (insTy == 0b0101) ? "w.b" : "wu.bu";
+         w128 = (insTy == 0b0101) ? Iop_WidenHIto16Sx8 : Iop_WidenHIto16Ux8;
+         w256 = (insTy == 0b0101) ? Iop_WidenHIto32Sx8 : Iop_WidenHIto32Ux8;
+         assign(t1, unop(w128, EX(sL64)));
+         assign(t1Lo, binop(Iop_InterleaveLO64x2, EX(t1), EX(z128)));
+         assign(t1Hi, binop(Iop_InterleaveHI64x2, EX(t1), EX(z128)));
+         assign(res, unop(w256, mkV256from128s(t1Hi, t1Lo)));
+         break;
+      }
+      case 0b0110: case 0b1100: {
+         IRTemp t1   = newTemp(Ity_V128);
+         IRTemp t2   = newTemp(Ity_V128);
+         IRTemp t2Lo = newTemp(Ity_V128);
+         IRTemp t2Hi = newTemp(Ity_V128);
+         ns   = (insTy == 0b0110) ? "d.b" : "du.bu";
+         w128 = (insTy == 0b0110) ? Iop_WidenHIto16Sx8 : Iop_WidenHIto16Ux8;
+         w256 = (insTy == 0b0110) ? Iop_WidenHIto64Sx4 : Iop_WidenHIto64Ux4;
+         assign(t1, binop(Iop_InterleaveLO64x2,
+                          unop(w128, EX(sL64)), EX(z128)));
+         assign(t2, unop(w128, EX(t1)));
+         assign(t2Lo, binop(Iop_InterleaveLO64x2, EX(t2), EX(z128)));
+         assign(t2Hi, binop(Iop_InterleaveHI64x2, EX(t2), EX(z128)));
+         assign(res, unop(w256, mkV256from128s(t2Hi, t2Lo)));
+         break;
+      }
+      case 0b0111: case 0b1101: {
+         ns   = (insTy == 0b0111) ? "w.h" : "wu.hu";
+         w256 = (insTy == 0b0111) ? Iop_WidenHIto32Sx8 : Iop_WidenHIto32Ux8;
+         assign(res, unop(w256, mkV256from128s(sH64, sL64)));
+         break;
+      }
+      case 0b1000: case 0b1110: {
+         IRTemp t1   = newTemp(Ity_V128);
+         IRTemp t1Lo = newTemp(Ity_V128);
+         IRTemp t1Hi = newTemp(Ity_V128);
+         ns   = (insTy == 0b1000) ? "d.h" : "du.hu";
+         w128 = (insTy == 0b1000) ? Iop_WidenHIto32Sx4 : Iop_WidenHIto32Ux4;
+         w256 = (insTy == 0b1000) ? Iop_WidenHIto64Sx4 : Iop_WidenHIto64Ux4;
+         assign(t1, unop(w128, EX(sL64)));
+         assign(t1Lo, binop(Iop_InterleaveLO64x2, EX(t1), EX(z128)));
+         assign(t1Hi, binop(Iop_InterleaveHI64x2, EX(t1), EX(z128)));
+         assign(res, unop(w256, mkV256from128s(t1Hi, t1Lo)));
+         break;
+      }
+      case 0b1001: case 0b1111: {
+         ns   = (insTy == 0b1001) ? "d.w" : "du.wu";
+         w256 = (insTy == 0b1001) ? Iop_WidenHIto64Sx4 : Iop_WidenHIto64Ux4;
+         assign(res, unop(w256, mkV256from128s(sH64, sL64)));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   DIP("vext2xv.%s %s, %s\n", ns, nameXReg(xd), nameXReg(xj));
+   putXReg(xd, EX(res));
+   return True;
+}
+
 static IRTemp gen_vmsk_b ( IRTemp shr )
 {
    UInt i;
@@ -14353,7 +14443,10 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010_0111 ( DisResult* dres, UInt i
       case 0b1011:
          ok = gen_xvexth(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
-         ok = gen_xvreplgr2vr(dres, insn, archinfo, abiinfo);
+         if (SLICE(insn, 13, 12) == 0b00)
+            ok = gen_xvreplgr2vr(dres, insn, archinfo, abiinfo);
+         else
+            ok = gen_vext2xv(dres, insn, archinfo, abiinfo);
          break;
       default:
          ok = False;
