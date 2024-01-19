@@ -11289,6 +11289,164 @@ static Bool gen_xvmsk ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vldi ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt vd  = SLICE(insn, 4, 0);
+   Int i13  = SLICE(insn, 17, 5);
+   UInt isX = SLICE(insn, 26, 26);
+
+   UInt i;
+   IRExpr *irex;
+   IRTemp data  = newTemp(Ity_I64);
+   UInt immX    = SLICE(i13, 5, 0);
+   UChar imm8   = SLICE(i13, 7, 0);
+   UShort imm10 = (SLICE(i13, 9, 9) == 0b1) ?
+                  (SLICE(i13, 9, 0) | 0xfc00): SLICE(i13, 9, 0);
+
+   if (SLICE(i13, 12, 12) == 0) {
+      switch (SLICE(i13, 11, 10)) {
+         case 0b00: {
+            irex = binop(Iop_8HLto16, mkU8(imm8), mkU8(imm8));
+            assign(data, binop(Iop_32HLto64,
+                               binop(Iop_16HLto32, irex, irex),
+                               binop(Iop_16HLto32, irex, irex)));
+            break;
+         }
+         case 0b01: {
+            irex = binop(Iop_16HLto32, mkU16(imm10), mkU16(imm10));
+            assign(data, binop(Iop_32HLto64, irex, irex));
+            break;
+         }
+         case 0b10: {
+            irex = unop(Iop_16Sto32, mkU16(imm10));
+            assign(data, binop(Iop_32HLto64, irex, irex));
+            break;
+         }
+         case 0b11: {
+            assign(data, extendS(Ity_I16, mkU16(imm10)));
+            break;
+         }
+         default: vassert(0);
+      }
+   } else {
+      switch (SLICE(i13, 11, 8)) {
+         case 0b0000: {
+            assign(data, binop(Iop_32HLto64,
+                               unop(Iop_8Uto32, mkU8(imm8)),
+                               unop(Iop_8Uto32, mkU8(imm8))));
+            break;
+         }
+         case 0b0001: {
+            irex = binop(Iop_Shl32, unop(Iop_8Uto32, mkU8(imm8)), mkU8(0x8));
+            assign(data, binop(Iop_32HLto64, irex, irex));
+            break;
+         }
+         case 0b0010: {
+            irex = binop(Iop_Shl32, unop(Iop_8Uto32, mkU8(imm8)), mkU8(0x10));
+            assign(data, binop(Iop_32HLto64, irex, irex));
+            break;
+         }
+         case 0b0011: {
+            irex = binop(Iop_Shl32, unop(Iop_8Uto32, mkU8(imm8)), mkU8(0x18));
+            assign(data, binop(Iop_32HLto64, irex, irex));
+            break;
+         }
+         case 0b0100: {
+            irex = unop(Iop_8Uto16, mkU8(imm8));
+            assign(data, binop(Iop_32HLto64,
+                               binop(Iop_16HLto32, irex, irex),
+                               binop(Iop_16HLto32, irex, irex)));
+            break;
+         }
+         case 0b0101: {
+            irex = binop(Iop_Shl16, unop(Iop_8Uto16, mkU8(imm8)), mkU8(0x8));
+            assign(data, binop(Iop_32HLto64,
+                               binop(Iop_16HLto32, irex, irex),
+                               binop(Iop_16HLto32, irex, irex)));
+            break;
+         }
+         case 0b0110: {
+            irex = binop(Iop_Or16,
+                         binop(Iop_Shl16,
+                               unop(Iop_8Uto16, mkU8(imm8)),
+                               mkU8(0x8)),
+                         mkU16(0xff));
+            assign(data, binop(Iop_32HLto64,
+                               binop(Iop_16HLto32, mkU16(0), irex),
+                               binop(Iop_16HLto32, mkU16(0), irex)));
+            break;
+         }
+         case 0b0111: {
+            irex = binop(Iop_16HLto32,
+                         unop(Iop_8Uto16, mkU8(imm8)),
+                         mkU16(0xffff));
+            assign(data, binop(Iop_32HLto64,  irex, irex));
+            break;
+         }
+         case 0b1000: {
+            irex = binop(Iop_8HLto16, mkU8(imm8), mkU8(imm8));
+            assign(data, binop(Iop_32HLto64,
+                               binop(Iop_16HLto32, irex, irex),
+                               binop(Iop_16HLto32, irex, irex)));
+            break;
+         }
+         case 0b1001: {
+            assign(data,
+                  binop(Iop_32HLto64,
+                        binop(Iop_16HLto32,
+                              binop(Iop_8HLto16,
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 7, 7))),
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 6, 6)))),
+                              binop(Iop_8HLto16,
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 5, 5))),
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 4, 4))))),
+                        binop(Iop_16HLto32,
+                              binop(Iop_8HLto16,
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 3, 3))),
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 2, 2)))),
+                              binop(Iop_8HLto16,
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 1, 1))),
+                                    unop(Iop_1Sto8, mkU1(SLICE(i13, 0, 0)))))));
+            break;
+         }
+         case 0b1010: {
+            for (i = 6; i < 11; i++)
+               immX |= SLICE(i13, 6, 6) << i;
+            immX |= !SLICE(i13, 6, 6) << 11 | SLICE(i13, 7, 7) << 12;
+            immX <<= 19;
+            assign(data, binop(Iop_32HLto64, mkU32(immX), mkU32(immX)));
+            break;
+         }
+         case 0b1011: {
+            for (i = 6; i < 11; i++)
+               immX |= SLICE(i13, 6, 6) << i;
+            immX |= !SLICE(i13, 6, 6) << 11 | SLICE(i13, 7, 7) << 12;
+            immX <<= 19;
+            assign(data, extendU(Ity_I32, mkU32(immX)));
+            break;
+         }
+         case 0b1100: {
+            for (i = 6; i < 14; i++)
+               immX |= SLICE(i13, 6, 6) << i;
+            immX |= !SLICE(i13, 6, 6) << 14 | SLICE(i13, 7, 7) << 15;
+            assign(data, binop(Iop_Shl64, extendU(Ity_I32, mkU32(immX)), mkU8(0x30)));
+            break;
+         }
+         default: vassert(0);
+      }
+   }
+
+   if (isX) {
+      DIP("xvldi %s, %d\n", nameXReg(vd), i13);
+      putXReg(vd, mkV256from64s(data, data, data, data));
+   } else {
+      DIP("vldi %s, %d\n", nameVReg(vd), i13);
+      putVReg(vd, mkV128from64s(data, data));
+   }
+   return True;
+}
 
 /*------------------------------------------------------------*/
 /*--- Helpers for vector bit operation insns               ---*/
@@ -14398,6 +14556,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1111 ( DisResult* dres, UInt insn,
       case 0b0111:
          ok = gen_vlogical_u8(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1000:
+         ok = gen_vldi(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False;
          break;
@@ -14642,6 +14802,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1111 ( DisResult* dres, UInt insn,
       case 0b1011:
          ok = gen_xvpermi(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1000:
+         ok = gen_vldi(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False;
          break;
