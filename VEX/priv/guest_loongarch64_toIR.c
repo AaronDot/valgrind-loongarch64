@@ -11521,17 +11521,36 @@ static Bool gen_logical_xv ( DisResult* dres, UInt insn,
    UInt insTy = SLICE(insn, 17, 15);
 
    IRTemp res = newTemp(Ity_V256);
-   IRTemp sL  = newTemp(Ity_V256);
-   IRTemp sR  = newTemp(Ity_V256);
-   assign(sL, getXReg(xj));
-   assign(sR, getXReg(xk));
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sK  = newTemp(Ity_V256);
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xk));
 
    switch (insTy) {
-      case 0b110:
-         assign(res, binop(Iop_XorV256, mkexpr(sL), mkexpr(sR)));
+      case 0b100:
+         assign(res, binop(Iop_AndV256, EX(sJ), EX(sK)));
          break;
-      default:
-         return False;
+      case 0b101:
+         assign(res, binop(Iop_OrV256, EX(sJ), EX(sK)));
+         break;
+      case 0b110:
+         assign(res, binop(Iop_XorV256, EX(sJ), EX(sK)));
+         break;
+      case 0b111:
+         assign(res, unop(Iop_NotV256, binop(Iop_OrV256,
+                                             EX(sJ), EX(sK))));
+         break;
+      case 0b000:
+         assign(res, binop(Iop_AndV256,
+                           unop(Iop_NotV256, EX(sJ)),
+                           EX(sK)));
+         break;
+      case 0b001:
+         assign(res, binop(Iop_OrV256,
+                           EX(sJ),
+                           unop(Iop_NotV256, EX(sK))));
+         break;
+      default: vassert(0);
    }
 
    const HChar *nm[8] = { "xvandn.v", "xvorn.v", "", "",
@@ -11545,8 +11564,7 @@ static Bool gen_logical_xv ( DisResult* dres, UInt insn,
       return True;
    }
 
-   putXReg(xd, mkexpr(res));
-
+   putXReg(xd, EX(res));
    return True;
 }
 
@@ -14706,7 +14724,7 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0100 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 17)) {
-      case 0b10011:
+      case 0b10011: case 0b10100:
          ok = gen_logical_xv(dres, insn, archinfo, abiinfo); break;
       case 0b10110:
          ok = gen_xvadd_xvsub_q(dres, insn, archinfo, abiinfo); break;
