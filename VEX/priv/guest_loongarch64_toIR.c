@@ -11577,46 +11577,73 @@ static Bool gen_vlogical_u8 ( DisResult* dres, UInt insn,
    UInt ui8   = SLICE(insn, 17, 10);
    UInt insTy = SLICE(insn, 19, 18);
 
-   IRTemp res  = newTemp(Ity_V128);
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp dup = newTemp(Ity_V128);
+   assign(dup, unop(Iop_Dup8x16, mkU8(ui8)));
    switch (insTy) {
       case 0b00:
-         assign(res, binop(Iop_AndV128,
-                           getVReg(vj),
-                           unop(Iop_Dup8x16, mkU8(ui8))));
+         assign(res, binop(Iop_AndV128, getVReg(vj), EX(dup)));
          break;
       case 0b01:
-         assign(res, binop(Iop_OrV128,
-                           getVReg(vj),
-                           unop(Iop_Dup8x16, mkU8(ui8))));
+         assign(res, binop(Iop_OrV128, getVReg(vj), EX(dup)));
          break;
       case 0b10:
-         assign(res, binop(Iop_XorV128,
-                           getVReg(vj),
-                           unop(Iop_Dup8x16, mkU8(ui8))));
+         assign(res, binop(Iop_XorV128, getVReg(vj), EX(dup)));
          break;
       case 0b11:
          assign(res, unop(Iop_NotV128,
                           binop(Iop_OrV128,
-                                getVReg(vj),
-                                unop(Iop_Dup8x16, mkU8(ui8)))));
+                                getVReg(vj), EX(dup))));
          break;
-      default:
-         vassert(0);
-         break;
+      default: vassert(0);
    }
 
    const HChar *nm[4] = { "vandi.b", "vori.b", "vxori.b", "vnori.b" };
-
    DIP("%s %s, %s, %u\n", nm[insTy], nameVReg(vd), nameVReg(vj), ui8);
+   putVReg(vd, mkexpr(res));
+   return True;
+}
 
-   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-      dres->jk_StopHere = Ijk_SigILL;
-      dres->whatNext    = Dis_StopHere;
-      return True;
+static Bool gen_xvlogical_u8 ( DisResult* dres, UInt insn,
+                               const VexArchInfo* archinfo,
+                               const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt ui8   = SLICE(insn, 17, 10);
+   UInt insTy = SLICE(insn, 19, 18);
+
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp dup = newTemp(Ity_V128);
+   assign(dup, unop(Iop_Dup8x16, mkU8(ui8)));
+   switch (insTy) {
+      case 0b00:
+         assign(res, binop(Iop_AndV256,
+                           getXReg(xj),
+                           mkV256from128s(dup, dup)));
+         break;
+      case 0b01:
+         assign(res, binop(Iop_OrV256,
+                           getXReg(xj),
+                           mkV256from128s(dup, dup)));
+         break;
+      case 0b10:
+         assign(res, binop(Iop_XorV256,
+                           getXReg(xj),
+                           mkV256from128s(dup, dup)));
+         break;
+      case 0b11:
+         assign(res, unop(Iop_NotV256,
+                          binop(Iop_OrV256,
+                                getXReg(xj),
+                                mkV256from128s(dup, dup))));
+         break;
+      default: vassert(0);
    }
 
-   putVReg(vd, mkexpr(res));
-
+   const HChar *nm[4] = { "xvandi.b", "xvori.b", "xvxori.b", "xvnori.b" };
+   DIP("%s %s, %s, %u\n", nm[insTy], nameXReg(xd), nameXReg(xj), ui8);
+   putXReg(xd, EX(res));
    return True;
 }
 
@@ -14815,6 +14842,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1111 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0100: case 0b0101:
+      case 0b0110: case 0b0111:
+         ok = gen_xvlogical_u8(dres, insn, archinfo, abiinfo); break;
       case 0b1001:
       case 0b1010:
       case 0b1011:
