@@ -5073,6 +5073,46 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
          complainIfUndefined(mce, atom2, NULL);
          return assignNew('V', mce, Ity_V256, binop(op, vatom1, atom2));
 
+      /* V x V shifts/rotates are done using the standard lazy scheme. */
+      /* For the non-rounding variants of bi-di vector x vector
+         shifts (the Iop_Sh.. ops, that is) we use the lazy scheme.
+         But note that this is overly pessimistic, because in fact only
+         the bottom 8 bits of each lane of the second argument are taken
+         into account when shifting.  So really we ought to ignore
+         undefinedness in bits 8 and above of each lane in the
+         second argument. */
+      case Iop_Shl8x32:
+      case Iop_Shr8x32:
+      case Iop_Sar8x32:
+         return mkUifUV256(mce,
+                   assignNew('V', mce, Ity_V256, binop(op, vatom1, atom2)),
+                   mkPCast8x32(mce,vatom2)
+                );
+
+      case Iop_Shl16x16:
+      case Iop_Shr16x16:
+      case Iop_Sar16x16:
+         return mkUifUV256(mce,
+                   assignNew('V', mce, Ity_V256, binop(op, vatom1, atom2)),
+                   mkPCast16x16(mce,vatom2)
+                );
+
+      case Iop_Shl32x8:
+      case Iop_Shr32x8:
+      case Iop_Sar32x8:
+         return mkUifUV256(mce,
+                   assignNew('V', mce, Ity_V256, binop(op, vatom1, atom2)),
+                   mkPCast32x8(mce,vatom2)
+                );
+
+      case Iop_Shl64x4:
+      case Iop_Shr64x4:
+      case Iop_Sar64x4:
+         return mkUifUV256(mce,
+                   assignNew('V', mce, Ity_V256, binop(op, vatom1, atom2)),
+                   mkPCast64x4(mce,vatom2)
+                );
+
       case Iop_QSub8Ux32:
       case Iop_QSub8Sx32:
       case Iop_Sub8x32:
@@ -5091,9 +5131,6 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_QAdd8Ux32:
       case Iop_QAdd8Sx32:
       case Iop_Add8x32:
-      case Iop_Shl8x32:
-      case Iop_Shr8x32:
-      case Iop_Sar8x32:
          return binary8Ix32(mce, vatom1, vatom2);
 
       case Iop_QSub16Ux16:
@@ -5114,9 +5151,6 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_QAdd16Ux16:
       case Iop_QAdd16Sx16:
       case Iop_Add16x16:
-      case Iop_Shl16x16:
-      case Iop_Shr16x16:
-      case Iop_Sar16x16:
          return binary16Ix16(mce, vatom1, vatom2);
 
       case Iop_QSub32Ux8:
@@ -5137,9 +5171,6 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_MulHi32Ux8:
       case Iop_Avg32Ux8:
       case Iop_Avg32Sx8:
-      case Iop_Shl32x8:
-      case Iop_Shr32x8:
-      case Iop_Sar32x8:
          return binary32Ix8(mce, vatom1, vatom2);
 
       case Iop_QSub64Ux4:
@@ -5157,9 +5188,6 @@ IRAtom* expr2vbits_Binop ( MCEnv* mce,
       case Iop_Min64Ux4:
       case Iop_Avg64Ux4:
       case Iop_Avg64Sx4:
-      case Iop_Shl64x4:
-      case Iop_Shr64x4:
-      case Iop_Sar64x4:
          return binary64Ix4(mce, vatom1, vatom2);
 
       case Iop_Sub128x2:

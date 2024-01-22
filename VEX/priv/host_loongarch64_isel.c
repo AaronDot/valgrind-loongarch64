@@ -3088,6 +3088,7 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
             case Iop_PackEvenLanes8x32: case Iop_PackEvenLanes16x16: case Iop_PackEvenLanes32x8:
             case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
             case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
+            case Iop_Shl8x32: case Iop_Shl16x16: case Iop_Shl32x8: case Iop_Shl64x4:
             case Iop_Shr8x32: case Iop_Shr16x16: case Iop_Shr32x8: case Iop_Shr64x4:
             case Iop_Sar8x32: case Iop_Sar16x16: case Iop_Sar32x8: case Iop_Sar64x4:
             case Iop_Mul8x32: case Iop_Mul16x16: case Iop_Mul32x8:
