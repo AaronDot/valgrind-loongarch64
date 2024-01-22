@@ -11812,6 +11812,88 @@ static Bool gen_xvshift ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vshift_imm ( DisResult* dres, UInt insn,
+                             const VexArchInfo* archinfo,
+                             const VexAbiInfo* abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt vj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 17, 10);
+   UInt insTy  = SLICE(insn, 19, 18);
+
+   UInt insSz, uImm;
+   if ((insImm & 0xf8) == 0x8) {         // 00001mmm; b
+      uImm = insImm & 0x07;
+      insSz = 0;
+   } else if ((insImm & 0xf0) == 0x10) { // 0001mmmm; h
+      uImm = insImm & 0x0f;
+      insSz = 1;
+   } else if ((insImm & 0xe0) == 0x20) { // 001mmmmm; w
+      uImm = insImm & 0x1f;
+      insSz = 2;
+   } else if ((insImm & 0xc0) == 0x40) { // 01mmmmmm; d
+      uImm = insImm & 0x3f;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   IROp op = Iop_INVALID;
+   switch (insTy) {
+      case 0b11: op = mkV128SHLN(insSz); break;
+      case 0b00: op = mkV128SHRN(insSz); break;
+      case 0b01: op = mkV128SARN(insSz); break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[4] = { "vsrli", "vsrai", "", "vslli" };
+   DIP("%s.%s %s, %s, %u\n", nm[insTy], mkInsSize(insSz),
+                             nameVReg(vd), nameVReg(vj), uImm);
+   putVReg(vd, binop(op, getVReg(vj), mkU8(uImm)));
+   return True;
+}
+
+static Bool gen_xvshift_imm ( DisResult* dres, UInt insn,
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 17, 10);
+   UInt insTy  = SLICE(insn, 19, 18);
+
+   UInt insSz, uImm;
+   if ((insImm & 0xf8) == 0x8) {         // 00001mmm; b
+      uImm = insImm & 0x07;
+      insSz = 0;
+   } else if ((insImm & 0xf0) == 0x10) { // 0001mmmm; h
+      uImm = insImm & 0x0f;
+      insSz = 1;
+   } else if ((insImm & 0xe0) == 0x20) { // 001mmmmm; w
+      uImm = insImm & 0x1f;
+      insSz = 2;
+   } else if ((insImm & 0xc0) == 0x40) { // 01mmmmmm; d
+      uImm = insImm & 0x3f;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   IROp op = Iop_INVALID;
+   switch (insTy) {
+      case 0b11: op = mkV256SHLN(insSz); break;
+      case 0b00: op = mkV256SHRN(insSz); break;
+      case 0b01: op = mkV256SARN(insSz); break;
+      default: vassert(0);
+   }
+
+   const HChar *nm[4] = { "xvsrli", "xvsrai", "", "xvslli" };
+   DIP("%s.%s %s, %s, %u\n", nm[insTy], mkInsSize(insSz),
+                             nameXReg(xd), nameXReg(xj), uImm);
+   putXReg(xd, binop(op, getXReg(xj), mkU8(uImm)));
+   return True;
+}
+
 static Bool gen_vbiti ( DisResult* dres, UInt insn,
                         const VexArchInfo* archinfo,
                         const VexAbiInfo*  abiinfo )
@@ -14747,6 +14829,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1100 ( DisResult* dres, UInt insn,
          break;
       case 0b1001: case 0b1010:
          ok = gen_vsat(dres, insn, archinfo, abiinfo); break;
+      case 0b1011: case 0b1100:
+      case 0b1101:
+         ok = gen_vshift_imm(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False;
          break;
@@ -14996,6 +15081,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
          break;
       case 0b1001: case 0b1010:
          ok = gen_xvsat(dres, insn, archinfo, abiinfo); break;
+      case 0b1011: case 0b1100:
+      case 0b1101:
+         ok = gen_xvshift_imm(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False;
          break;
