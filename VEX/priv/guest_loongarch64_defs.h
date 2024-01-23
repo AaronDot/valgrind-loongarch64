@@ -104,6 +104,39 @@ enum fpop {
    FRINT_S, FRINT_D
 };
 
+enum vfpop {
+   VFADD_S, VFADD_D, VFSUB_S, VFSUB_D,
+   VFMUL_S, VFMUL_D, VFDIV_S, VFDIV_D,
+   VFMADD_S, VFMADD_D, VFMSUB_S, VFMSUB_D,
+   VFNMADD_S, VFNMADD_D, VFNMSUB_S, VFNMSUB_D,
+   VFMAX_S, VFMAX_D, VFMIN_S, VFMIN_D,
+   VFMAXA_S, VFMAXA_D, VFMINA_S, VFMINA_D,
+   VFLOGB_S, VFLOGB_D,
+   VFSQRT_S, VFSQRT_D,
+   VFRECIP_S, VFRECIP_D,
+   VFRSQRT_S, VFRSQRT_D,
+   VFCMP_CAF_S, VFCMP_CAF_D, VFCMP_SAF_S, VFCMP_SAF_D,
+   VFCMP_CLT_S, VFCMP_CLT_D, VvFCMP_SLT_S, VFCMP_SLT_D,
+   VFCMP_CEQ_S, VFCMP_CEQ_D, VFCMP_SEQ_S, VFCMP_SEQ_D,
+   VFCMP_CLE_S, VFCMP_CLE_D, VFCMP_SLE_S, VFCMP_SLE_D,
+   VFCMP_CUN_S, VFCMP_CULT_D, VFCMP_SULT_S, VFCMP_SULT_D,
+   VFCMP_CUEQ_S, VFCMP_CUEQ_D, VFCMP_SUEQ_S, VFCMP_SUEQ_D,
+   VFCMP_CULE_S, VFCMP_CULE_D, VFCMP_SULE_S, VFCMP_SULE_D,
+   VFCMP_CNE_S, VFCMP_CNE_D, VFCMP_SNE_S, VFCMP_SNE_D,
+   VFCMP_COR_S, VFCMP_COR_D, VFCMP_SOR_S, VFCMP_SOR_D,
+   VFCMP_CUNE_S, VFCMP_CUNE_D, VFCMP_SUNE_S, VFCMP_SUNE_D,
+   VFCVTL_S_H, VFCVTL_D_S, VFCVTH_S_H, VFCVTH_D_S, VFCVT_S_H, VFCVT_D_S,
+   VFRINTRNE_S, VFRINTRNE_D, VFRINTRZ_S, VFRINTRZ_D,
+   VFRINTRP_S, VFRINTRP_D, VFRINTRM_S, VFRINTRM_D,
+   VFRINT_S, VFRINT_D,
+   VFTINTRNE_W_S, VFTINTRNE_W_D, VFTINTRNEL_L_S, VFTINTRNEH_L_S, VFTINTRNE_L_D,
+   VFTINTRZ_W_S, VFTINTRZ_WU_S, VFTINTRZ_W_D, VFTINTRZL_L_S, VFTINTRZH_L_S, VFTINTRZ_L_D, VFTINTRZ_LU_D,
+   VFTINTRP_W_S, VFTINTRP_W_D, VFTINTRPL_L_S, VFTINTRPH_L_S, VFTINTRP_L_D,
+   VFTINTRM_W_S, VFTINTRM_W_D, VFTINTRML_L_S, VFTINTRMH_L_S, VFTINTRM_L_D,
+   VFTINT_W_S, VFTINT_WU_S, VFTINT_W_D, VFTINTL_L_S, VFTINTH_L_S, VFTINT_L_D, VFTINT_LU_D,
+   VFFINT_S_W, VFFINT_S_WU, VFFINTL_D_W, VFFINTH_D_W, VFFINT_S_L, VFFINT_D_L, VFFINT_D_LU
+};
+
 extern ULong loongarch64_calculate_cpucfg      ( ULong src );
 extern ULong loongarch64_calculate_revb_2h     ( ULong src );
 extern ULong loongarch64_calculate_revb_4h     ( ULong src );
@@ -121,6 +154,10 @@ extern ULong loongarch64_calculate_fclass_s    ( ULong src );
 extern ULong loongarch64_calculate_fclass_d    ( ULong src );
 extern ULong loongarch64_calculate_FCSR        ( enum fpop op, ULong src1,
                                                  ULong src2, ULong src3 );
+extern ULong loongarch64_calculate_VFCSR       ( enum vfpop op,
+                                                 ULong v1Hi, ULong v1Lo,
+                                                 ULong v2Hi, ULong v2Lo,
+                                                 ULong v3Hi, ULong v3Lo );
 extern ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo );
 
 #endif /* ndef __VEX_GUEST_LOONGARCH64_DEFS_H */
