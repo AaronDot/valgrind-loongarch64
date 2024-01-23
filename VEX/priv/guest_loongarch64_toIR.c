@@ -12539,22 +12539,15 @@ static Bool gen_xvbitops_imm ( DisResult* dres, UInt insn,
 /*--- Helpers for vector string processing insns           ---*/
 /*------------------------------------------------------------*/
 
-static Bool gen_vfrstpi ( DisResult* dres, UInt insn,
-                          const VexArchInfo* archinfo,
-                          const VexAbiInfo*  abiinfo )
+static IRTemp calculate_vfrstp ( IRTemp src, IRTemp dst, UInt insSz, IRExpr* index )
 {
-   UInt vd    = SLICE(insn, 4, 0);
-   UInt vj    = SLICE(insn, 9, 5);
-   UInt ui5   = SLICE(insn, 14, 10);
-   UInt insSz = SLICE(insn, 16, 15);
-
-   UInt i;
-   IRTemp data[2];
    IRTemp res = newTemp(Ity_V128);
+   IRTemp data[2];
+   UInt i;
 
    for (i = 0; i < 2; i++) {
       data[i] = newTemp(Ity_I64);
-      assign(data[i], binop(Iop_GetElem64x2, getVReg(vj), mkU8(i)));
+      assign(data[i], binop(Iop_GetElem64x2, EX(src), mkU8(i)));
    }
 
    IRExpr** arg = mkIRExprVec_3(mkU64(insSz), mkexpr(data[1]), mkexpr(data[0]));
@@ -12566,33 +12559,100 @@ static Bool gen_vfrstpi ( DisResult* dres, UInt insn,
    switch (insSz) {
       case 0b00:
          assign(res, triop(Iop_SetElem8x16,
-                           getVReg(vd),
-                           mkU8(ui5 % 16),
-                           unop(Iop_64to8, call)));
+                           EX(dst), index, unop(Iop_64to8, call)));
          break;
       case 0b01:
          assign(res, triop(Iop_SetElem16x8,
-                           getVReg(vd),
-                           mkU8(ui5 % 8),
-                           unop(Iop_64to16, call)));
+                           EX(dst), index, unop(Iop_64to16, call)));
          break;
-      default:
-         return False;
+      default: vassert(0);
    }
 
-   DIP("vfrstpi.%s %s, %s, %u\n", mkInsSize(insSz), nameVReg(vd), nameVReg(vj), ui5);
+   return res;
+}
 
-   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-      dres->jk_StopHere = Ijk_SigILL;
-      dres->whatNext    = Dis_StopHere;
-      return True;
+static Bool gen_vfrstp ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 15, 15);
+
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V128);
+   IRTemp sK  = newTemp(Ity_V128);
+   IRExpr* index;
+   assign(sJ, getVReg(vj));
+   assign(sK, getVReg(vd));
+
+   if (insSz == 0) {
+      index = binop(Iop_And8, binop(Iop_GetElem8x16, getVReg(vk), mkU8(0)), mkU8(0xf));
+   } else {
+      index = binop(Iop_And16, binop(Iop_GetElem16x8, getVReg(vk), mkU8(0)), mkU16(0x7));
    }
 
+   res = calculate_vfrstp(sJ, sK, insSz, index);
+   DIP("vfrstp.%s %s, %s, %s\n", mkInsSize(insSz),
+                                 nameVReg(vd), nameVReg(vj), nameVReg(vk));
    putVReg(vd, mkexpr(res));
-
    return True;
 }
 
+static Bool gen_vfrstpi ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt ui5   = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V128);
+   IRTemp sK  = newTemp(Ity_V128);
+   IRExpr* index = (insSz == 0b00) ? mkU8(ui5 % 16) : mkU8(ui5 % 8);
+   assign(sJ, getVReg(vj));
+   assign(sK, getVReg(vd));
+   res = calculate_vfrstp(sJ, sK, insSz, index);
+
+   DIP("vfrstpi.%s %s, %s, %u\n", mkInsSize(insSz),
+                                  nameVReg(vd), nameVReg(vj), ui5);
+   putVReg(vd, EX(res));
+   return True;
+}
+
+static Bool gen_xvfrstpi ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt ui5   = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sK  = newTemp(Ity_V256);
+   IRTemp rHi = newTemp(Ity_V128);
+   IRTemp rLo = newTemp(Ity_V128);
+   IRTemp jHi = IRTemp_INVALID;
+   IRTemp jLo = IRTemp_INVALID;
+   IRTemp kHi = IRTemp_INVALID;
+   IRTemp kLo = IRTemp_INVALID;
+   IRExpr* index = (insSz == 0b00) ? mkU8(ui5 % 16) : mkU8(ui5 % 8);
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xd));
+   breakupV256toV128s(sJ, &jHi, &jLo);
+   breakupV256toV128s(sK, &kHi, &kLo);
+   rHi = calculate_vfrstp(jHi, kHi, insSz, index);
+   rLo = calculate_vfrstp(jLo, kLo, insSz, index);
+
+   DIP("xvfrstpi.%s %s, %s, %u\n", mkInsSize(insSz),
+                                   nameXReg(xd), nameXReg(xj), ui5);
+   putXReg(xd, mkV256from128s(rHi, rLo));
+   return True;
+}
 
 /*------------------------------------------------------------*/
 /*--- Helpers for vector comparison and selection insns    ---*/
@@ -15269,6 +15329,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
       case 0b10100:
          ok = gen_logical_v(dres, insn, archinfo, abiinfo);
          break;
+      case 0b10101:
+         ok = gen_vfrstp(dres, insn, archinfo, abiinfo); break;
       case 0b10110:
          ok = gen_vadd_vsub_q(dres, insn, archinfo, abiinfo); break;
       case 0b10111:
@@ -15629,6 +15691,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010 ( DisResult* dres, UInt insn,
          break;
       case 0b0100: case 0b0101:
          ok = gen_xvmaxi_xvmini(dres, insn, archinfo, abiinfo); break;
+      case 0b0110:
+         ok = gen_xvfrstpi(dres, insn, archinfo, abiinfo); break;
       case 0b0111:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010_0111(dres, insn, archinfo, abiinfo);
          break;
