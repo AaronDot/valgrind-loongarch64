@@ -376,16 +376,24 @@ static IRExpr* extendU ( IRType ty, IRExpr* e )
    }
 }
 
+/* Break a V128-bit value up into two 64-bit ints. */
+static void breakupV128to64s ( IRTemp t128,
+                               IRTemp* t1, IRTemp* t0 )
+{
+   vassert(t0 && *t0 == IRTemp_INVALID);
+   vassert(t1 && *t1 == IRTemp_INVALID);
+
+   *t0 = newTemp(Ity_I64);
+   *t1 = newTemp(Ity_I64);
+   assign(*t0, unop(Iop_V128to64,   mkexpr(t128)));
+   assign(*t1, unop(Iop_V128HIto64, mkexpr(t128)));
+}
+
 /* Break a V128-bit value up into four 32-bit ints. */
 static void breakupV128to32s ( IRTemp t128,
                                IRTemp* t3, IRTemp* t2,
                                IRTemp* t1, IRTemp* t0 )
 {
-   IRTemp hi64 = newTemp(Ity_I64);
-   IRTemp lo64 = newTemp(Ity_I64);
-   assign(hi64, unop(Iop_V128HIto64, mkexpr(t128)));
-   assign(lo64, unop(Iop_V128to64,   mkexpr(t128)));
-
    vassert(t0 && *t0 == IRTemp_INVALID);
    vassert(t1 && *t1 == IRTemp_INVALID);
    vassert(t2 && *t2 == IRTemp_INVALID);
@@ -394,6 +402,9 @@ static void breakupV128to32s ( IRTemp t128,
    *t1 = newTemp(Ity_I32);
    *t2 = newTemp(Ity_I32);
    *t3 = newTemp(Ity_I32);
+   IRTemp hi64 = IRTemp_INVALID;
+   IRTemp lo64 = IRTemp_INVALID;
+   breakupV128to64s(t128, &hi64, &lo64);
    assign(*t0, unop(Iop_64to32,   mkexpr(lo64)));
    assign(*t1, unop(Iop_64HIto32, mkexpr(lo64)));
    assign(*t2, unop(Iop_64to32,   mkexpr(hi64)));
@@ -1354,6 +1365,52 @@ static IRExpr* gen_round_up ( void )
 static IRExpr* gen_round_to_zero ( void )
 {
    return mkU32(0x3);
+}
+
+static void calculateVFCSR ( enum vfpop op, UInt nargs,
+                             UInt src1, UInt src2, UInt src3 )
+{
+   IRTemp v1 = newTemp(Ity_V128);
+   IRTemp v2 = newTemp(Ity_V128);
+   IRTemp v3 = newTemp(Ity_V128);
+   IRTemp v1Hi, v1Lo, v2Hi, v2Lo, v3Hi, v3Lo;
+   v1Hi = v1Lo = IRTemp_INVALID;
+   v2Hi = v2Lo = IRTemp_INVALID;
+   v3Hi = v3Lo = IRTemp_INVALID;
+
+   switch (nargs) {
+      case 3: {
+         assign(v3, getVReg(src3));
+         assign(v2, getVReg(src2));
+         assign(v1, getVReg(src1));
+         break;
+      }
+      case 2: {
+         assign(v3, mkV128(0x0000));
+         assign(v2, getVReg(src2));
+         assign(v1, getVReg(src1));
+         break;
+      }
+      case 1: {
+         assign(v3, mkV128(0x0000));
+         assign(v2, mkV128(0x0000));
+         assign(v1, getVReg(src1));
+         break;
+      }
+      default: vassert(0);
+   }
+   breakupV128to64s(v3, &v3Hi, &v3Lo);
+   breakupV128to64s(v2, &v2Hi, &v2Lo);
+   breakupV128to64s(v1, &v1Hi, &v1Lo);
+   IRExpr** arg = mkIRExprVec_7(mkU64(op),
+                                EX(v1Hi), EX(v1Lo),
+                                EX(v2Hi), EX(v2Lo),
+                                EX(v3Hi), EX(v3Lo));
+   IRExpr* call = mkIRExprCCall(Ity_I64, 0/*regparms*/,
+                                "loongarch64_calculate_VFCSR",
+                                &loongarch64_calculate_VFCSR,
+                                arg);
+   putFCSR(2, unop(Iop_64to32, call));
 }
 
 
@@ -12654,6 +12711,61 @@ static Bool gen_xvfrstpi ( DisResult* dres, UInt insn,
    return True;
 }
 
+
+/*------------------------------------------------------------*/
+/*--- Helpers for Vector Floating-point Operation insns    ---*/
+/*------------------------------------------------------------*/
+
+static Bool gen_vfmath ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt isS   = SLICE(insn, 15, 15);
+   UInt insTy = SLICE(insn, 19, 17);
+
+   enum vfpop fop;
+   IROp iop = Iop_INVALID;
+   const HChar *nm;
+   switch (insTy) {
+      case 0b000: {
+         nm  = "vfadd";
+         fop = isS ? VFADD_S : VFADD_D;
+         iop = isS ? Iop_Add32Fx4 : Iop_Add64Fx2;
+         break;
+      }
+      case 0b001: {
+         nm  = "vfsub";
+         fop = isS ? VFSUB_S : VFSUB_D;
+         iop = isS ? Iop_Sub32Fx4 : Iop_Sub64Fx2;
+         break;
+      }
+      case 0b100: {
+         nm  = "vfmul";
+         fop = isS ? VFMUL_S : VFMUL_D;
+         iop = isS ? Iop_Mul32Fx4 : Iop_Mul64Fx2;
+         break;
+      }
+      case 0b101: {
+         nm  = "vfdiv";
+         fop = isS ? VFDIV_S : VFDIV_D;
+         iop = isS ? Iop_Div32Fx4 : Iop_Div64Fx2;
+         break;
+      }
+      default: vassert(0);
+   }
+
+   calculateVFCSR(fop, 2, vj, vk, 0);
+   IRExpr* rm = get_rounding_mode();
+   const HChar arr = "ds"[isS];
+   DIP("%s.%c %s, %s, %s\n", nm, arr, nameVReg(vd),
+                             nameVReg(vj), nameVReg(vk));
+   putVReg(vd, triop(iop, rm, getVReg(vj), getVReg(vk)));
+   return True;
+}
+
 /*------------------------------------------------------------*/
 /*--- Helpers for vector comparison and selection insns    ---*/
 /*------------------------------------------------------------*/
@@ -15335,6 +15447,9 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
          ok = gen_vadd_vsub_q(dres, insn, archinfo, abiinfo); break;
       case 0b10111:
          ok = gen_vsigncov(dres, insn, archinfo, abiinfo); break;
+      case 0b11000: case 0b11001:
+      case 0b11100: case 0b11101:
+         ok = gen_vfmath(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 

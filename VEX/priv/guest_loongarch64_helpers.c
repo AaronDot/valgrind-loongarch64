@@ -532,6 +532,19 @@ ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo )
                     : "$s0", "$f24"                      \
                    )
 
+#define ASM_VOLATILE_V128_BINARY(inst)                   \
+   __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
+                    "movgr2fcsr $r2, $zero       \n\t"   \
+                    "vld $vr22, %1               \n\t"   \
+                    "vld $vr23, %2               \n\t"   \
+                    #inst" $vr24, $vr22, $vr23   \n\t"   \
+                    "movfcsr2gr %0, $r2          \n\t"   \
+                    "movgr2fcsr $r0, $s0         \n\t"   \
+                    : "=r" (fcsr2)                       \
+                    : "m" (src1), "m" (src2)             \
+                    : "$s0"                              \
+                   )
+
 #define ASM_VOLATILE_TRINARY(inst)                       \
    __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
                     "movgr2fcsr $r2, $zero       \n\t"   \
@@ -894,6 +907,33 @@ ULong loongarch64_calculate_FCSR ( enum fpop op, ULong src1,
          break;
       default:
          break;
+   }
+#endif
+   return (ULong)fcsr2;
+}
+
+/* Calculate FCSR and return whether an exception needs to be thrown */
+ULong loongarch64_calculate_VFCSR ( enum vfpop op, ULong v1Hi, ULong v1Lo,
+                                    ULong v2Hi, ULong v2Lo, ULong v3Hi, ULong v3Lo )
+{
+   UInt fcsr2 = 0;
+   ULong src1[2], src2[2], src3[2];
+
+   src3[1] = v3Hi; src3[0] = v3Lo;
+   src2[1] = v2Hi; src2[0] = v2Lo;
+   src1[1] = v1Hi; src1[0] = v1Lo;
+
+#if defined(__loongarch__)
+   switch (op) {
+      case VFADD_S: ASM_VOLATILE_V128_BINARY(vfadd.s); break;
+      case VFADD_D: ASM_VOLATILE_V128_BINARY(vfadd.d); break;
+      case VFSUB_S: ASM_VOLATILE_V128_BINARY(vfsub.s); break;
+      case VFSUB_D: ASM_VOLATILE_V128_BINARY(vfsub.d); break;
+      case VFMUL_S: ASM_VOLATILE_V128_BINARY(vfmul.s); break;
+      case VFMUL_D: ASM_VOLATILE_V128_BINARY(vfmul.d); break;
+      case VFDIV_S: ASM_VOLATILE_V128_BINARY(vfdiv.s); break;
+      case VFDIV_D: ASM_VOLATILE_V128_BINARY(vfdiv.d); break;
+      default: vassert(0);
    }
 #endif
    return (ULong)fcsr2;
