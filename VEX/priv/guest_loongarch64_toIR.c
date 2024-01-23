@@ -8941,34 +8941,43 @@ static Bool gen_xvcount ( DisResult* dres, UInt insn,
    UInt insTy = SLICE(insn, 13, 12);
 
    IRTemp res = newTemp(Ity_V256);
+   IRTemp src = newTemp(Ity_V256);
+   IRTemp sHi = IRTemp_INVALID;
+   IRTemp sLo = IRTemp_INVALID;
+   IRTemp rHi = newTemp(Ity_V128);
+   IRTemp rLo = newTemp(Ity_V128);
+
+   assign(src, getXReg(xj));
+   breakupV256toV128s(src, &sHi, &sLo);
    switch (insTy) {
-      // case 0b00: {
-      //    if (insSz == 0b11) {
-      //       assign(res, unop(Iop_Clz64x2,
-      //                        unop(Iop_NotV256, getXReg(xj))));
-      //    } else {
-      //       assign(res, unop(mkV128CLS(insSz), getXReg(xj)));
-      //    }
-      //    break;
-      // }
-      // case 0b01: {
-      //    assign(res, unop(mkV128CLZ(insSz), getXReg(xj)));
-      //    break;
-      // }
-      // case 0b10: {
-      //    IRTemp hi  = IRTemp_INVALID;
-      //    IRTemp lo  = IRTemp_INVALID;
-      //    IRTemp tHi = newTemp(Ity_V128);
-      //    IRTemp tLo = newTemp(Ity_V128);
-      //    breakupV256toV128s(src, &hi, &lo);         
-      //    gen_vpcnt(insSz, &tHi, mkexpr(hi));
-      //    gen_vpcnt(insSz, &tLo, mkexpr(lo));
-      //    assign(res, mkV256from128(tHi, tLo));
-      //    break;
-      // }
+      case 0b00: {
+         if (insSz == 0b11) {
+            assign(rHi, unop(Iop_Clz64x2,
+                             unop(Iop_NotV128, EX(sHi))));
+            assign(rLo, unop(Iop_Clz64x2,
+                             unop(Iop_NotV128, EX(sLo))));
+         } else {
+            assign(rHi, unop(mkV128CLS(insSz), EX(sHi)));
+            assign(rLo, unop(mkV128CLS(insSz), EX(sLo)));
+         }
+         assign(res, mkV256from128s(rHi, rLo));
+         break;
+      }
+      case 0b01: {
+         assign(rHi, unop(mkV128CLZ(insSz), EX(sHi)));
+         assign(rLo, unop(mkV128CLZ(insSz), EX(sLo)));
+         assign(res, mkV256from128s(rHi, rLo));
+         break;
+      }
+      case 0b10: {
+         gen_vpcnt(insSz, &rHi, EX(sHi));
+         gen_vpcnt(insSz, &rLo, EX(sLo));
+         assign(res, mkV256from128s(rHi, rLo));
+         break;
+      }
       case 0b11: {
          assign(res, binop(mkV256SUB(insSz),
-                           mkV256(0x0000), getXReg(xj)));
+                           mkV256(0x0000), EX(src)));
          break;
       }
       default: vassert(0);
