@@ -556,6 +556,20 @@ ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo )
                     : "$s0", "$f24"                      \
                    )
 
+#define ASM_VOLATILE_V128_TRINARY(inst)                        \
+   __asm__ volatile("movfcsr2gr $s0, $r0               \n\t"   \
+                    "movgr2fcsr $r2, $zero             \n\t"   \
+                    "vld $vr21, %1                     \n\t"   \
+                    "vld $vr22, %2                     \n\t"   \
+                    "vld $vr23, %3                     \n\t"   \
+                    #inst" $vr24, $vr21, $vr22, $vr23  \n\t"   \
+                    "movfcsr2gr %0, $r2                \n\t"   \
+                    "movgr2fcsr $r0, $s0               \n\t"   \
+                    : "=r" (fcsr2)                             \
+                    : "m" (src1), "m" (src2), "m" (src3)       \
+                    : "$s0"                                    \
+                   )
+
 #define ASM_VOLATILE_FCMP(inst)                          \
    __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
                     "movgr2fcsr $r2, $zero       \n\t"   \
@@ -933,6 +947,7 @@ ULong loongarch64_calculate_VFCSR ( enum vfpop op, ULong v1Hi, ULong v1Lo,
       case VFMUL_D: ASM_VOLATILE_V128_BINARY(vfmul.d); break;
       case VFDIV_S: ASM_VOLATILE_V128_BINARY(vfdiv.s); break;
       case VFDIV_D: ASM_VOLATILE_V128_BINARY(vfdiv.d); break;
+      case VFMADD_S: ASM_VOLATILE_V128_TRINARY(vfmadd.s); break;
       default: vassert(0);
    }
 #endif
