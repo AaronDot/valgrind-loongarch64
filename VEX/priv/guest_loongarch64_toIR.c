@@ -12766,6 +12766,189 @@ static Bool gen_vfmath ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vfmmath ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt va    = SLICE(insn, 19, 15);
+   UInt insTy = SLICE(insn, 22, 20);
+
+   IRTemp res = newTemp(Ity_V128);
+   const HChar *nm;
+
+   switch (insTy) {
+      case 0b001: {
+         nm = "vfmadd.s";
+         calculateVFCSR(VFMADD_S, 3, vj, vk, va);
+         IRExpr* rm = get_rounding_mode();
+         IRTemp tmp[4];
+         Int i;
+
+         for (i = 0; i < 4; i++) {
+            tmp[i] = newTemp(Ity_I32);
+            assign(tmp[i],
+                  unop(Iop_ReinterpF32asI32,
+                        qop(Iop_MAddF32, rm,
+                           unop(Iop_ReinterpI32asF32,
+                                 binop(Iop_GetElem32x4, getVReg(vj), mkU8(i))),
+                           unop(Iop_ReinterpI32asF32,
+                                 binop(Iop_GetElem32x4, getVReg(vk), mkU8(i))),
+                           unop(Iop_ReinterpI32asF32,
+                                 binop(Iop_GetElem32x4, getVReg(va), mkU8(i))))));
+         }
+         assign(res, mkV128from32s(tmp[3], tmp[2], tmp[1], tmp[0]));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   DIP("%s %s, %s, %s, %s\n", nm, nameVReg(vd), nameVReg(vj),
+                              nameVReg(vk), nameVReg(va));
+    putVReg(vd, EX(res));
+    return True;
+    #if 0
+
+      case 0x04: { /* FMADD.df */
+         switch (df) {
+            case 0x00: { /* FMADD.W */
+               DIP("FMADD.W w%d, w%d, w%d", wd, ws, wt);
+               calculateMSACSR(ws, wt, FMADDW, 2);
+               IRExpr *rm = get_IR_roundingmode_MSA();
+              
+               break;
+            }
+
+            case 0x01: { /* FMADD.D */
+               DIP("FMADD.D w%d, w%d, w%d", wd, ws, wt);
+               calculateMSACSR(ws, wt, FMADDW, 2);
+               IRExpr *rm = get_IR_roundingmode_MSA();
+               IRTemp tmp[2];
+               Int i;
+
+               for (i = 0; i < 2; i++) {
+                  tmp[i] = newTemp(Ity_F64);
+                  assign(tmp[i],
+                         qop(Iop_MAddF64, rm,
+                             unop(Iop_ReinterpI64asF64,
+                                  binop(Iop_GetElem64x2,
+                                        getWReg(ws),
+                                        mkU8(i))),
+                             unop(Iop_ReinterpI64asF64,
+                                  binop(Iop_GetElem64x2,
+                                        getWReg(wt),
+                                        mkU8(i))),
+                             unop(Iop_ReinterpI64asF64,
+                                  binop(Iop_GetElem64x2,
+                                        getWReg(wd),
+                                        mkU8(i)))));
+               }
+
+               putWReg(wd,
+                       binop(Iop_64HLtoV128,
+                             unop(Iop_ReinterpF64asI64,
+                                  mkexpr(tmp[1])),
+                             unop(Iop_ReinterpF64asI64,
+                                  mkexpr(tmp[0]))));
+               break;
+            }
+
+            default:
+               return -1;
+         }
+
+         break;
+      }
+
+      case 0x05: { /* FMSUB.df */
+         switch (df) {
+            case 0x00: { /* FMSUB.W */
+               DIP("FMSUB.W w%d, w%d, w%d", wd, ws, wt);
+               calculateMSACSR(ws, wt, FMADDW, 2);
+               IRExpr *rm = get_IR_roundingmode_MSA();
+               IRTemp tmp[4];
+               Int i;
+
+               for (i = 0; i < 4; i++) {
+                  tmp[i] = newTemp(Ity_F32);
+                  assign(tmp[i],
+                         qop(Iop_MSubF32, rm,
+                             unop(Iop_ReinterpI32asF32,
+                                  binop(Iop_GetElem32x4,
+                                        getWReg(ws),
+                                        mkU8(i))),
+                             unop(Iop_ReinterpI32asF32,
+                                  binop(Iop_GetElem32x4,
+                                        getWReg(wt),
+                                        mkU8(i))),
+                             unop(Iop_ReinterpI32asF32,
+                                  binop(Iop_GetElem32x4,
+                                        getWReg(wd),
+                                        mkU8(i)))));
+               }
+
+               putWReg(wd,
+                       binop(Iop_64HLtoV128,
+                             binop(Iop_32HLto64,
+                                   unop(Iop_ReinterpF32asI32,
+                                        mkexpr(tmp[3])),
+                                   unop(Iop_ReinterpF32asI32,
+                                        mkexpr(tmp[2]))),
+                             binop(Iop_32HLto64,
+                                   unop(Iop_ReinterpF32asI32,
+                                        mkexpr(tmp[1])),
+                                   unop(Iop_ReinterpF32asI32,
+                                        mkexpr(tmp[0])))));
+               break;
+            }
+
+            case 0x01: { /* FMSUB.D */
+               DIP("FMSUB.D w%d, w%d, w%d", wd, ws, wt);
+               calculateMSACSR(ws, wt, FMADDD, 2);
+               IRExpr *rm = get_IR_roundingmode_MSA();
+               IRTemp tmp[2];
+               Int i;
+
+               for (i = 0; i < 2; i++) {
+                  tmp[i] = newTemp(Ity_F64);
+                  assign(tmp[i],
+                         qop(Iop_MSubF64, rm,
+                             unop(Iop_ReinterpI64asF64,
+                                  binop(Iop_GetElem64x2,
+                                        getWReg(ws),
+                                        mkU8(i))),
+                             unop(Iop_ReinterpI64asF64,
+                                  binop(Iop_GetElem64x2,
+                                        getWReg(wt),
+                                        mkU8(i))),
+                             unop(Iop_ReinterpI64asF64,
+                                  binop(Iop_GetElem64x2,
+                                        getWReg(wd),
+                                        mkU8(i)))));
+               }
+
+               putWReg(wd,
+                       binop(Iop_64HLtoV128,
+                             unop(Iop_ReinterpF64asI64,
+                                  mkexpr(tmp[1])),
+                             unop(Iop_ReinterpF64asI64,
+                                  mkexpr(tmp[0]))));
+               break;
+            }
+
+            default:
+               return -1;
+         }
+
+         break;
+      }
+      #endif
+
+}
+
+
 /*------------------------------------------------------------*/
 /*--- Helpers for vector comparison and selection insns    ---*/
 /*------------------------------------------------------------*/
@@ -15183,6 +15366,8 @@ static Bool disInstr_LOONGARCH64_WRK_00 ( DisResult* dres, UInt insn,
             case 0b001110:
                ok = gen_fnmsub_d(dres, insn, archinfo, abiinfo);
                break;
+            case 0b010001:
+               ok = gen_vfmmath(dres, insn, archinfo, abiinfo); break;
             default:
                ok = False;
                break;
