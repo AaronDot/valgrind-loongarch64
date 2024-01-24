@@ -532,12 +532,25 @@ ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo )
                     : "$s0", "$f24"                      \
                    )
 
-#define ASM_VOLATILE_VEC_BINARY(inst)                    \
+#define ASM_VOLATILE_V128_BINARY(inst)                    \
    __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
                     "movgr2fcsr $r2, $zero       \n\t"   \
                     "vld $vr22, %1            \n\t"   \
                     "vld $vr23, %2            \n\t"   \
                     #inst" $vr24, $vr22, $vr23   \n\t"   \
+                    "movfcsr2gr %0, $r2          \n\t"   \
+                    "movgr2fcsr $r0, $s0         \n\t"   \
+                    : "=r" (fcsr2)                       \
+                    : "m" (src1), "m" (src2)             \
+                    : "$s0"                              \
+                   )
+
+#define ASM_VOLATILE_V256_BINARY(inst)                    \
+   __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
+                    "movgr2fcsr $r2, $zero       \n\t"   \
+                    "xvld $xr22, %1            \n\t"   \
+                    "xvld $xr23, %2            \n\t"   \
+                    #inst" $xr24, $xr22, $xr23   \n\t"   \
                     "movfcsr2gr %0, $r2          \n\t"   \
                     "movgr2fcsr $r0, $s0         \n\t"   \
                     : "=r" (fcsr2)                       \
@@ -925,14 +938,43 @@ ULong loongarch64_calculate_VFCSR ( enum vfpop op, ULong v1Hi, ULong v1Lo,
 
 #if defined(__loongarch__)
    switch (op) {
-      case VFADD_S: ASM_VOLATILE_VEC_BINARY(vfadd.s); break;
-      case VFADD_D: ASM_VOLATILE_VEC_BINARY(vfadd.d); break;
-      case VFSUB_S: ASM_VOLATILE_VEC_BINARY(vfsub.s); break;
-      case VFSUB_D: ASM_VOLATILE_VEC_BINARY(vfsub.d); break;
-      case VFMUL_S: ASM_VOLATILE_VEC_BINARY(vfmul.s); break;
-      case VFMUL_D: ASM_VOLATILE_VEC_BINARY(vfmul.d); break;
-      case VFDIV_S: ASM_VOLATILE_VEC_BINARY(vfdiv.s); break;
-      case VFDIV_D: ASM_VOLATILE_VEC_BINARY(vfdiv.d); break;
+      case VFADD_S: ASM_VOLATILE_V128_BINARY(vfadd.s); break;
+      case VFADD_D: ASM_VOLATILE_V128_BINARY(vfadd.d); break;
+      case VFSUB_S: ASM_VOLATILE_V128_BINARY(vfsub.s); break;
+      case VFSUB_D: ASM_VOLATILE_V128_BINARY(vfsub.d); break;
+      case VFMUL_S: ASM_VOLATILE_V128_BINARY(vfmul.s); break;
+      case VFMUL_D: ASM_VOLATILE_V128_BINARY(vfmul.d); break;
+      case VFDIV_S: ASM_VOLATILE_V128_BINARY(vfdiv.s); break;
+      case VFDIV_D: ASM_VOLATILE_V128_BINARY(vfdiv.d); break;
+      default: vassert(0);
+   }
+#endif
+   return (ULong)fcsr2;
+}
+
+/* Calculate FCSR and return whether an exception needs to be thrown */
+ULong loongarch64_calculate_XVFCSR ( enum vfpop op,
+                                     ULong v1_0, ULong v1_1, ULong v1_2, ULong v1_3,
+                                     ULong v2_0, ULong v2_1, ULong v2_2, ULong v2_3,
+                                     ULong v3_0, ULong v3_1, ULong v3_2, ULong v3_3 )
+{
+   UInt fcsr2 = 0;
+   ULong src1[4], src2[4], src3[4];
+
+   src1[3] = v1_3; src1[2] = v1_2; src1[1] = v1_1; src1[0] = v1_0;
+   src2[3] = v2_3; src2[2] = v2_2; src2[1] = v2_1; src2[0] = v2_0;
+   src3[3] = v3_3; src3[2] = v3_2; src3[1] = v3_1; src3[0] = v3_0;
+
+#if defined(__loongarch__)
+   switch (op) {
+      case XVFADD_S: ASM_VOLATILE_V256_BINARY(xvfadd.s); break;
+      case XVFADD_D: ASM_VOLATILE_V256_BINARY(xvfadd.d); break;
+      case XVFSUB_S: ASM_VOLATILE_V256_BINARY(xvfsub.s); break;
+      case XVFSUB_D: ASM_VOLATILE_V256_BINARY(xvfsub.d); break;
+      case XVFMUL_S: ASM_VOLATILE_V256_BINARY(xvfmul.s); break;
+      case XVFMUL_D: ASM_VOLATILE_V256_BINARY(xvfmul.d); break;
+      case XVFDIV_S: ASM_VOLATILE_V256_BINARY(xvfdiv.s); break;
+      case XVFDIV_D: ASM_VOLATILE_V256_BINARY(xvfdiv.d); break;
       default: vassert(0);
    }
 #endif

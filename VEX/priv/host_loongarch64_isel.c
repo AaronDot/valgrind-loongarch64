@@ -2514,7 +2514,7 @@ static HReg iselV128Expr_wrk ( ISelEnv* env, IRExpr* e )
                      case Iop_Mul64Fx2: op = LAvecbin_VFMUL_D; break;
                      case Iop_Div32Fx4: op = LAvecbin_VFDIV_S; break;
                      case Iop_Div64Fx2: op = LAvecbin_VFDIV_D; break;
-                     default:           vassert(0);            break;
+                     default: vassert(0);
                   }
                   HReg  dst  = newVRegV(env);
                   HReg  src1 = iselV128Expr(env, triop->arg2);
@@ -3248,6 +3248,43 @@ static void iselV256Expr_wrk ( HReg* hi, HReg* lo,
                *hi = dHi;
                *lo = dLo;
                return;
+            }
+            default: goto irreducible;
+         }
+      }
+
+      /* --------- TERNARY OP --------- */
+      case Iex_Triop: {
+         IRTriop *triop = e->Iex.Triop.details;
+         switch (triop->op) {
+            case Iop_Add32Fx8: case Iop_Add64Fx4:
+            case Iop_Sub32Fx8: case Iop_Sub64Fx4:
+            case Iop_Mul32Fx8: case Iop_Mul64Fx4:
+            case Iop_Div32Fx8: case Iop_Div64Fx4: {
+                  LOONGARCH64VecBinOp op;
+                  switch (triop->op) {
+                     case Iop_Add32Fx8: op = LAvecbin_VFADD_S; break;
+                     case Iop_Add64Fx4: op = LAvecbin_VFADD_D; break;
+                     case Iop_Sub32Fx8: op = LAvecbin_VFSUB_S; break;
+                     case Iop_Sub64Fx4: op = LAvecbin_VFSUB_D; break;
+                     case Iop_Mul32Fx8: op = LAvecbin_VFMUL_S; break;
+                     case Iop_Mul64Fx4: op = LAvecbin_VFMUL_D; break;
+                     case Iop_Div32Fx8: op = LAvecbin_VFDIV_S; break;
+                     case Iop_Div64Fx4: op = LAvecbin_VFDIV_D; break;
+                     default: vassert(0);
+                  }
+                  HReg s2Hi, s2Lo, s3Hi, s3Lo;
+                  iselV256Expr(&s2Hi, &s2Lo, env, triop->arg2);
+                  iselV256Expr(&s3Hi, &s3Lo, env, triop->arg3);
+                  set_rounding_mode(env, triop->arg1);
+                  HReg dHi = newVRegV(env);
+                  HReg dLo = newVRegV(env);
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s3Hi), s2Hi, dHi));
+                  addInstr(env, LOONGARCH64Instr_VecBinary(op, LOONGARCH64RI_R(s3Lo), s2Lo, dLo));
+                  set_rounding_mode_default(env);
+                  *hi = dHi;
+                  *lo = dLo;
+                  return;
             }
             default: goto irreducible;
          }
