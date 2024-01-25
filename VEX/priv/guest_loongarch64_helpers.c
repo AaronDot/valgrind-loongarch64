@@ -521,6 +521,18 @@ ULong loongarch64_calculate_negative_id ( ULong insSz, ULong sHi, ULong sLo )
                     : "$s0", "$f24"                      \
                    )
 
+#define ASM_VOLATILE_V128_UNARY(inst)                    \
+   __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
+                    "movgr2fcsr $r2, $zero       \n\t"   \
+                    "vld $vr22, %1               \n\t"   \
+                    #inst" $vr24, $vr22          \n\t"   \
+                    "movfcsr2gr %0, $r2          \n\t"   \
+                    "movgr2fcsr $r0, $s0         \n\t"   \
+                    : "=r" (fcsr2)                       \
+                    : "m" (src1)                         \
+                    : "$s0"                              \
+                   )
+
 #define ASM_VOLATILE_BINARY(inst)                        \
    __asm__ volatile("movfcsr2gr $s0, $r0         \n\t"   \
                     "movgr2fcsr $r2, $zero       \n\t"   \
@@ -952,6 +964,8 @@ ULong loongarch64_calculate_VFCSR ( enum vfpop op, ULong v1Hi, ULong v1Lo,
       case VFMAX_D: ASM_VOLATILE_V128_BINARY(vfmax.d); break;
       case VFMIN_S: ASM_VOLATILE_V128_BINARY(vfmin.s); break;
       case VFMIN_D: ASM_VOLATILE_V128_BINARY(vfmin.d); break;
+      case VFLOGB_S: ASM_VOLATILE_V128_UNARY(vflogb.s); break;
+      case VFLOGB_D: ASM_VOLATILE_V128_UNARY(vflogb.d); break;
       default: vassert(0);
    }
 #endif

@@ -12973,6 +12973,47 @@ static Bool gen_vfcompare ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vflogb ( DisResult* dres, UInt insn,
+                         const VexArchInfo* archinfo,
+                         const VexAbiInfo* abiinfo )
+{
+   UInt vd  = SLICE(insn, 4, 0);
+   UInt vj  = SLICE(insn, 9, 5);
+   UInt isS = SLICE(insn, 10, 10);
+
+   IRTemp res = newTemp(Ity_V128);
+   const HChar *nm;
+
+   switch (isS) {
+      case 0b1: {
+         nm = "vflogb.s";
+         calculateVFCSR(VFLOGB_S, 1, vj, 0, 0);
+         IRExpr* rm = get_rounding_mode();
+         IRTemp tmp[4];
+         Int i;
+
+         for (i = 0; i < 4; i++) {
+            tmp[i] = newTemp(Ity_I32);
+            assign(tmp[i],
+                   unop(Iop_ReinterpF32asI32,
+                        binop(Iop_LogBF32, rm,
+                              unop(Iop_ReinterpI32asF32,
+                                   binop(Iop_GetElem32x4,
+                                         getVReg(vj),
+                                         mkU8(i))))));
+         }
+         assign(res, mkV128from32s(tmp[3], tmp[2], tmp[1], tmp[0]));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   const HChar arr = "ds"[isS];
+   DIP("%s.%c %s, %s\n", nm, arr, nameVReg(vd), nameVReg(vj));
+   putVReg(vd, EX(res));
+   return True;
+}
+
 
 /*------------------------------------------------------------*/
 /*--- Helpers for vector comparison and selection insns    ---*/
@@ -15683,6 +15724,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1010_01110 ( DisResult* dres, UInt 
       case 0b010:
          ok = gen_vset(dres, insn, archinfo, abiinfo);
          break;
+      case 0b011:
+         ok = gen_vflogb(dres, insn, archinfo, abiinfo); break;
       default:
          ok = False;
          break;
