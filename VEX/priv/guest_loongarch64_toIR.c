@@ -13298,6 +13298,8 @@ static Bool gen_xvinsgr2vr ( DisResult* dres, UInt insn,
          }
          default: vassert(0);
       }
+   } else {
+      vassert(0);
    }
 
    DIP("xvinsgr2vr.%s %s, %s, %u\n", mkInsSize(insSz),
@@ -13359,6 +13361,53 @@ static Bool gen_vpickve2gr ( DisResult* dres, UInt insn,
 
    putIReg(rd, mkexpr(res));
 
+   return True;
+}
+
+static Bool gen_xvpickve2gr ( DisResult* dres, UInt insn,
+                              const VexArchInfo* archinfo,
+                              const VexAbiInfo* abiinfo )
+{
+   UInt rd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 15, 10);
+   UInt isS    = SLICE(insn, 18, 18);
+
+   UInt uImm, insSz;
+   IRExpr *immExpr;
+   IRExpr *vExpr;
+   IRType extTy = Ity_INVALID;
+   IRTemp res = newTemp(Ity_I64);
+   IRTemp sJ  = newTemp(Ity_V256);
+   assign(sJ, getXReg(xj));
+   IRTemp jHi, jLo;
+   jHi = jLo = IRTemp_INVALID;
+   breakupV256toV128s(sJ, &jHi, &jLo);
+
+   if ((insImm & 0x38) == 0x30) { // 110mmm; w
+      uImm = (insImm & 0x7) < 4 ? (insImm & 0x7) : (insImm & 0x7) - 4;
+      vExpr = (insImm & 0x7) < 4 ? EX(jLo) : EX(jHi);
+      insSz = 2;
+      extTy = Ity_I32;
+   } else if ((insImm & 0x3c) == 0x38) {  // 1110mm; d
+      uImm = (insImm & 0x3) < 2 ? (insImm & 0x3) : (insImm & 0x3) - 2;
+      vExpr = (insImm & 0x3) < 2 ? EX(jLo) : EX(jHi);
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   immExpr = binop(mkV128GetElem(insSz), vExpr, mkU8(uImm));
+   if (insSz != 3)
+      assign(res, isS ? extendS(extTy, immExpr) :
+                        extendU(extTy, immExpr));
+   else
+      assign(res, binop(Iop_Or64, mkU64(0), immExpr));
+
+   UInt nmId = isS ? insSz : (insSz + 4);
+   DIP("xvpickve2gr.%s %s, %s", mkInsSize(nmId),
+                                nameIReg(rd), nameXReg(xj));
+   putIReg(rd, EX(res));
    return True;
 }
 
@@ -16012,6 +16061,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1011 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 21, 18)) {
       case 0b1010:
          ok = gen_xvinsgr2vr(dres, insn, archinfo, abiinfo); break;
+      case 0b1011: case 0b1100:
+         ok = gen_xvpickve2gr(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
