@@ -13062,81 +13062,54 @@ static Bool gen_vset ( DisResult* dres, UInt insn,
    UInt insTy = SLICE(insn, 13, 12);
 
    IROp ops64;
-   IRTemp resHi = newTemp(Ity_I64);
-   IRTemp resLo = newTemp(Ity_I64);
-   IRTemp res   = newTemp(Ity_V128);
-   IRTemp eq    = newTemp(Ity_V128);
-   IRTemp z128  = newTemp(Ity_V128);
+   IRTemp rHi  = newTemp(Ity_I64);
+   IRTemp rLo  = newTemp(Ity_I64);
+   IRTemp res  = newTemp(Ity_V128);
+   IRTemp eq   = newTemp(Ity_V128);
+   IRTemp z128 = newTemp(Ity_V128);
    assign(z128, mkV128(0x0000));
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
 
    switch (insTy) {
       case 0b01: {
          if (SLICE(insn, 10, 10) == 0b0) {
             DIP("vseteqz.v %u, %s", cd, nameVReg(vj));
-
-            if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-               dres->jk_StopHere = Ijk_SigILL;
-               dres->whatNext    = Dis_StopHere;
-               return True;
-            }
-
-            assign(res, binop(Iop_CmpEQ64x2, getVReg(vj), mkexpr(z128)));
+            assign(res, binop(Iop_CmpEQ64x2, getVReg(vj), EX(z128)));
             ops64 = Iop_And64;
          } else {
             DIP("vsetnez.v %u, %s", cd, nameVReg(vj));
-
-            if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-               dres->jk_StopHere = Ijk_SigILL;
-               dres->whatNext    = Dis_StopHere;
-               return True;
-            }
-
             assign(res, unop(Iop_NotV128,
-                             binop(Iop_CmpEQ64x2, getVReg(vj), mkexpr(z128))));
+                             binop(Iop_CmpEQ64x2, getVReg(vj), EX(z128))));
             ops64 = Iop_Or64;
          }
          break;
       }
-
       case 0b10: {
          DIP("vsetanyeqz.%s %u, %s", mkInsSize(insSz), cd, nameVReg(vj));
-
-         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-            dres->jk_StopHere = Ijk_SigILL;
-            dres->whatNext    = Dis_StopHere;
-            return True;
-         }
-
-         assign(eq, binop(mkV128CMPEQ(insSz), getVReg(vj), mkexpr(z128)));
+         assign(eq, binop(mkV128CMPEQ(insSz), getVReg(vj), EX(z128)));
          assign(res, unop(Iop_NotV128,
-                          binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128))));
+                          binop(Iop_CmpEQ64x2, EX(eq), EX(z128))));
          ops64 = Iop_Or64;
          break;
       }
-
       case 0b11: {
          DIP("vsetqllnez.%s %u, %s", mkInsSize(insSz), cd, nameVReg(vj));
-
-         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-            dres->jk_StopHere = Ijk_SigILL;
-            dres->whatNext    = Dis_StopHere;
-            return True;
-         }
-
-         assign(eq, binop(mkV128CMPEQ(insSz), getVReg(vj), mkexpr(z128)));
-         assign(res, binop(Iop_CmpEQ64x2, mkexpr(eq), mkexpr(z128)));
+         assign(eq, binop(mkV128CMPEQ(insSz), getVReg(vj), EX(z128)));
+         assign(res, binop(Iop_CmpEQ64x2, EX(eq), EX(z128)));
          ops64 = Iop_And64;
          break;
       }
-
-      default:
-         return False;
+      default: vassert(0);
    }
 
-   assign(resHi, binop(Iop_GetElem64x2, mkexpr(res), mkU8(1)));
-   assign(resLo, binop(Iop_GetElem64x2, mkexpr(res), mkU8(0)));
-   putFCC(cd, unop(Iop_64to8, binop(ops64, mkexpr(resHi), mkexpr(resLo))));
-
+   assign(rHi, binop(Iop_GetElem64x2, EX(res), mkU8(1)));
+   assign(rLo, binop(Iop_GetElem64x2, EX(res), mkU8(0)));
+   putFCC(cd, unop(Iop_64to8, binop(ops64, EX(rHi), EX(rLo))));
    return True;
 }
 
@@ -13149,75 +13122,59 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
    UInt insSz = SLICE(insn, 11, 10);
    UInt insTy = SLICE(insn, 13, 12);
 
-   IROp ops64  = Iop_INVALID;
+   IROp ops64;
    IRTemp res  = newTemp(Ity_V256);
-   IRTemp z128 = newTemp(Ity_V128);
-   IRTemp src = newTemp(Ity_V256);
-   assign(z128, mkV128(0x0000));
-   assign(src, getXReg(xj));
+   IRTemp eq   = newTemp(Ity_V256);
+   IRTemp z256 = newTemp(Ity_V256);
+   assign(z256, mkV256(0x0000));
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
 
    switch (insTy) {
       case 0b01: {
          if (SLICE(insn, 10, 10) == 0b0) {
             DIP("xvseteqz.v %u, %s", cd, nameXReg(xj));
-
-            if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
-               dres->jk_StopHere = Ijk_SigILL;
-               dres->whatNext    = Dis_StopHere;
-               return True;
-            }
-
-            IRTemp hi, lo;
-            hi = lo = IRTemp_INVALID;
-            breakupV256toV128s(src, &hi, &lo);
-            assign(res, binop(Iop_V128HLtoV256,
-                              binop(Iop_CmpEQ64x2, mkexpr(hi), mkexpr(z128)),
-                              binop(Iop_CmpEQ64x2, mkexpr(hi), mkexpr(z128))));
+            assign(res, binop(Iop_CmpEQ64x4, getXReg(xj), EX(z256)));
             ops64 = Iop_And64;
          } else {
-            return False;
+            DIP("xvsetnez.v %u, %s", cd, nameXReg(xj));
+            assign(res, unop(Iop_NotV256,
+                             binop(Iop_CmpEQ64x4, getXReg(xj), EX(z256))));
+            ops64 = Iop_Or64;
          }
          break;
       }
-
       case 0b10: {
          DIP("xvsetanyeqz.%s %u, %s", mkInsSize(insSz), cd, nameXReg(xj));
-
-         if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
-            dres->jk_StopHere = Ijk_SigILL;
-            dres->whatNext    = Dis_StopHere;
-            return True;
-         }
-
-         IRTemp eqHi = newTemp(Ity_V128);
-         IRTemp eqLo = newTemp(Ity_V128);
-         IRTemp hi, lo;
-         hi = lo = IRTemp_INVALID;
-         breakupV256toV128s(src, &hi, &lo);
-         assign(eqHi, binop(mkV128CMPEQ(insSz), mkexpr(hi), mkexpr(z128)));
-         assign(eqLo, binop(mkV128CMPEQ(insSz), mkexpr(lo), mkexpr(z128)));
-         assign(res, binop(Iop_V128HLtoV256,
-                           unop(Iop_NotV128,
-                                binop(Iop_CmpEQ64x2, mkexpr(eqHi), mkexpr(z128))),
-                           unop(Iop_NotV128,
-                                binop(Iop_CmpEQ64x2, mkexpr(eqLo), mkexpr(z128)))));
+         assign(eq, binop(mkV256CMPEQ(insSz), getXReg(xj), EX(z256)));
+         assign(res, unop(Iop_NotV256,
+                          binop(Iop_CmpEQ64x4, EX(eq), EX(z256))));
          ops64 = Iop_Or64;
          break;
       }
-
-      default:
-         return False;
+      case 0b11: {
+         DIP("xvsetqllnez.%s %u, %s", mkInsSize(insSz), cd, nameXReg(xj));
+         assign(eq, binop(mkV256CMPEQ(insSz), getXReg(xj), EX(z256)));
+         assign(res, binop(Iop_CmpEQ64x4, EX(eq), EX(z256)));
+         ops64 = Iop_And64;
+         break;
+      }
+      default: vassert(0);
    }
 
    IRTemp r1, r2, r3, r4;
    r1 = r2 = r3 = r4 = IRTemp_INVALID;
    breakupV256to64s(res, &r1, &r2, &r3, &r4);
    putFCC(cd, unop(Iop_64to8, binop(ops64,
-                                    binop(ops64, mkexpr(r1), mkexpr(r2)),
-                                    binop(ops64, mkexpr(r3), mkexpr(r4)))));
-
+                                    binop(ops64, EX(r1), EX(r1)),
+                                    binop(ops64, EX(r2), EX(r3)))));
    return True;
 }
+
 
 /*------------------------------------------------------------*/
 /*--- Helpers for vector moving and shuffling insns        ---*/
