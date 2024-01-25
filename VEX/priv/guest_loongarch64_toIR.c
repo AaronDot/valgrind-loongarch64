@@ -13180,6 +13180,132 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
 /*--- Helpers for vector moving and shuffling insns        ---*/
 /*------------------------------------------------------------*/
 
+static Bool gen_vinsgr2vr ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo* abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt rj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 15, 10);
+   UInt uImm, insSz;
+   IRTemp res = newTemp(Ity_V128);
+
+   if ((insImm & 0x30) == 0x20) {        // 10mmmm; b
+      insSz = 0;
+      uImm = insImm & 0xf;
+      assign(res, triop(Iop_SetElem8x16,
+                        getVReg(vd),
+                        mkU8(uImm),
+                        getIReg8(rj)));
+   } else if ((insImm & 0x38) == 0x30) { // 110mmm; h
+      insSz = 1;
+      uImm = insImm & 0x7;
+      assign(res, triop(Iop_SetElem16x8,
+                        getVReg(vd),
+                        mkU8(uImm),
+                        getIReg16(rj)));
+   } else if ((insImm & 0x3c) == 0x38) { // 1110mm; w
+      insSz = 2;
+      uImm = insImm & 0x3;
+      assign(res, triop(Iop_SetElem32x4,
+                        getVReg(vd),
+                        mkU8(uImm),
+                        getIReg32(rj)));
+   } else if ((insImm & 0x3e) == 0x3c) { // 11110m; d
+      insSz = 3;
+      uImm = insImm & 0x1;
+      if (uImm == 0) {
+         assign(res, binop(Iop_64HLtoV128,
+                           unop(Iop_V128HIto64, getVReg(vd)),
+                           getIReg64(rj)));
+      } else {
+         assign(res, binop(Iop_64HLtoV128,
+                           getIReg64(rj),
+                           unop(Iop_V128to64, getVReg(vd))));
+      }
+   } else {
+      vassert(0);
+   }
+
+   DIP("vinsgr2vr.%s %s, %s, %u\n", mkInsSize(insSz),
+                                    nameVReg(vd), nameIReg(rj), uImm);
+   putVReg(vd, mkexpr(res));
+   return True;
+}
+
+static Bool gen_xvinsgr2vr ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo* abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt rj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 15, 10);
+
+   UInt uImm, insSz;
+   IRTemp rT  = newTemp(Ity_V128);
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp sD  = newTemp(Ity_V256);
+   assign(sD, getXReg(xd));
+   IRTemp dHi, dLo;
+   dHi = dLo = IRTemp_INVALID;
+   breakupV256toV128s(sD, &dHi, &dLo);
+
+   if ((insImm & 0x38) == 0x30) { // 110mmm; w
+      insSz = 2;
+      uImm = insImm & 0x7;
+      if (uImm < 4) {
+         assign(rT, triop(Iop_SetElem32x4,
+                          EX(dLo), mkU8(uImm),
+                          getIReg32(rj)));
+         assign(res, mkV256from128s(dHi, rT));
+      } else {
+         assign(rT, triop(Iop_SetElem32x4,
+                          EX(dHi), mkU8(uImm - 4),
+                          getIReg32(rj)));
+         assign(res, mkV256from128s(rT, dLo));
+      }
+   } else if ((insImm & 0x3c) == 0x38) {  // 1110mm; d
+      insSz = 3;
+      uImm = insImm & 0x3;
+      switch (uImm) {
+         case 0: {
+            assign(rT, binop(Iop_64HLtoV128,
+                             unop(Iop_V128HIto64, EX(dLo)),
+                             getIReg64(rj)));
+            assign(res, mkV256from128s(dHi, rT));
+            break;
+         }
+         case 1: {
+            assign(rT, binop(Iop_64HLtoV128,
+                             getIReg64(rj),
+                             unop(Iop_V128to64, EX(dLo))));
+            assign(res, mkV256from128s(dHi, rT));
+            break;
+         }
+         case 2: {
+            assign(rT, binop(Iop_64HLtoV128,
+                             unop(Iop_V128HIto64, EX(dHi)),
+                             getIReg64(rj)));
+            assign(res, mkV256from128s(rT, dLo));
+            break;
+         }
+         case 3: {
+            assign(rT, binop(Iop_64HLtoV128,
+                             getIReg64(rj),
+                             unop(Iop_V128to64, EX(dHi))));
+            assign(res, mkV256from128s(rT, dLo));
+            break;
+         }
+         default: vassert(0);
+      }
+   }
+
+   DIP("xvinsgr2vr.%s %s, %s, %u\n", mkInsSize(insSz),
+                                     nameXReg(xd), nameIReg(rj), uImm);
+   putXReg(xd, EX(res));
+   return True;
+}
+
 static Bool gen_vpickve2gr ( DisResult* dres, UInt insn,
                              const VexArchInfo* archinfo,
                              const VexAbiInfo* abiinfo )
@@ -15591,6 +15717,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1011 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 16)) {
+      case 0b101011:
+         ok = gen_vinsgr2vr(dres, insn, archinfo, abiinfo); break;
       case 0b101111:
       case 0b110011:
          ok = gen_vpickve2gr(dres, insn, archinfo, abiinfo);
@@ -15875,6 +16003,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1010 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_1011 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b1010:
+         ok = gen_xvinsgr2vr(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -15952,6 +16095,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
       case 0b1010:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1010(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1011:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_1011(dres, insn, archinfo, abiinfo); break;
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1100(dres, insn, archinfo, abiinfo);
          break;
