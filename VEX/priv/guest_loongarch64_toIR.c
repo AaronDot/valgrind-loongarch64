@@ -12966,6 +12966,92 @@ static Bool gen_xvcmpi ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vbitsel ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt vd = SLICE(insn, 4, 0);
+   UInt vj = SLICE(insn, 9, 5);
+   UInt vk = SLICE(insn, 14, 10);
+   UInt va = SLICE(insn, 19, 15);
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+
+   IRTemp argL = newTemp(Ity_V128);
+   IRTemp argR = newTemp(Ity_V128);
+   assign(argL, binop(Iop_AndV128, getVReg(vk), getVReg(va)));
+   assign(argR, binop(Iop_AndV128, getVReg(vj), unop(Iop_NotV128, getVReg(va))));
+   DIP("vbitsel.v %s, %s, %s, %s", nameVReg(vd), nameVReg(vj),
+                                   nameVReg(vk), nameVReg(va));
+   putVReg(vd, binop(Iop_OrV128, EX(argL), EX(argR)));
+   return True;
+}
+
+static Bool gen_xvbitsel ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd = SLICE(insn, 4, 0);
+   UInt xj = SLICE(insn, 9, 5);
+   UInt xk = SLICE(insn, 14, 10);
+   UInt xa = SLICE(insn, 19, 15);
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+
+   IRTemp argL = newTemp(Ity_V256);
+   IRTemp argR = newTemp(Ity_V256);
+   assign(argL, binop(Iop_AndV256, getXReg(xk), getXReg(xa)));
+   assign(argR, binop(Iop_AndV256, getXReg(xj), unop(Iop_NotV256, getXReg(xa))));
+   DIP("vbitsel.v %s, %s, %s, %s", nameXReg(xd), nameXReg(xj),
+                                   nameXReg(xk), nameXReg(xa));
+   putXReg(xd, binop(Iop_OrV256, EX(argL), EX(argR)));
+   return True;
+}
+
+static Bool gen_vbitseli ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt vd  = SLICE(insn, 4, 0);
+   UInt vj  = SLICE(insn, 9, 5);
+   UInt ui8 = SLICE(insn, 17, 10);
+
+   IRTemp argL = newTemp(Ity_V128);
+   IRTemp argR = newTemp(Ity_V128);
+   assign(argL, binop(Iop_AndV128, getVReg(vd), unop(Iop_Dup8x16, mkU8(ui8))));
+   assign(argR, binop(Iop_AndV128, getVReg(vj), unop(Iop_NotV128, getVReg(vd))));
+   DIP("vbitseli.b %s, %s, %u", nameVReg(vd), nameVReg(vj), ui8);
+   putVReg(vd, binop(Iop_OrV128, EX(argL), EX(argR)));
+   return True;
+}
+
+static Bool gen_xvbitseli ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo*  abiinfo )
+{
+   UInt xd  = SLICE(insn, 4, 0);
+   UInt xj  = SLICE(insn, 9, 5);
+   UInt ui8 = SLICE(insn, 17, 10);
+
+   IRTemp argL = newTemp(Ity_V256);
+   IRTemp argR = newTemp(Ity_V256);
+   IRTemp dup  = newTemp(Ity_V128);
+   assign(dup, unop(Iop_Dup8x16, mkU8(ui8)));
+   assign(argL, binop(Iop_AndV256, getXReg(xd), mkV256from128s(dup, dup)));
+   assign(argR, binop(Iop_AndV256, getXReg(xj), unop(Iop_NotV256, getXReg(xd))));
+   DIP("xvbitseli.b %s, %s, %u", nameXReg(xd), nameXReg(xj), ui8);
+   putXReg(xd, binop(Iop_OrV256, EX(argL), EX(argR)));
+   return True;
+}
+
 static Bool gen_vset ( DisResult* dres, UInt insn,
                        const VexArchInfo* archinfo,
                        const VexAbiInfo*  abiinfo )
@@ -15218,6 +15304,10 @@ static Bool disInstr_LOONGARCH64_WRK_00 ( DisResult* dres, UInt insn,
                   ok = False;
                }
                break;
+            case 0b010001:
+               ok = gen_vbitsel(dres, insn, archinfo, abiinfo); break;
+            case 0b010010:
+               ok = gen_xvbitsel(dres, insn, archinfo, abiinfo); break;
             case 0b010101:
                ok = gen_vshuf_b(dres, insn, archinfo, abiinfo);
                break;
@@ -15587,6 +15677,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1111 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0001:
+         ok = gen_vbitseli(dres, insn, archinfo, abiinfo); break;
       case 0b0100:
       case 0b0101:
       case 0b0110:
@@ -15860,6 +15952,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1111 ( DisResult* dres, UInt insn,
    Bool ok;
 
    switch (SLICE(insn, 21, 18)) {
+      case 0b0001:
+         ok = gen_xvbitseli(dres, insn, archinfo, abiinfo); break;
       case 0b0100: case 0b0101:
       case 0b0110: case 0b0111:
          ok = gen_xvlogical_u8(dres, insn, archinfo, abiinfo); break;
