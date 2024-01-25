@@ -948,6 +948,10 @@ ULong loongarch64_calculate_VFCSR ( enum vfpop op, ULong v1Hi, ULong v1Lo,
       case VFDIV_S: ASM_VOLATILE_V128_BINARY(vfdiv.s); break;
       case VFDIV_D: ASM_VOLATILE_V128_BINARY(vfdiv.d); break;
       case VFMADD_S: ASM_VOLATILE_V128_TRINARY(vfmadd.s); break;
+      case VFMAX_S: ASM_VOLATILE_V128_BINARY(vfmax.s); break;
+      case VFMAX_D: ASM_VOLATILE_V128_BINARY(vfmax.d); break;
+      case VFMIN_S: ASM_VOLATILE_V128_BINARY(vfmin.s); break;
+      case VFMIN_D: ASM_VOLATILE_V128_BINARY(vfmin.d); break;
       default: vassert(0);
    }
 #endif

@@ -12948,6 +12948,31 @@ static Bool gen_vfmmath ( DisResult* dres, UInt insn,
 
 }
 
+static Bool gen_vfcompare ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo* abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt vk    = SLICE(insn, 14, 10);
+   UInt isS   = SLICE(insn, 15, 15);
+   UInt isMin = SLICE(insn, 17, 17);
+
+   IROp cmp = isMin ? isS ? Iop_Min32Fx4 : Iop_Min64Fx2 :
+                      isS ? Iop_Max32Fx4 : Iop_Max64Fx2;
+
+   enum vfpop fop = isMin ? isS ? VFMIN_S : VFMIN_D :
+                            isS ? VFMAX_S : VFMAX_D;
+
+   calculateVFCSR(fop, 2, vj, vk, 0);
+   const HChar arr = "ds"[isS];
+   const HChar *nm[2] = { "vfmax", "vfmin" };
+   DIP("%s.%c %s, %s, %s\n", nm[isMin], arr, nameVReg(vd),
+                             nameVReg(vj), nameVReg(vk));
+   putVReg(vd, binop(cmp, getVReg(vj), getVReg(vk)));
+   return True;
+}
+
 
 /*------------------------------------------------------------*/
 /*--- Helpers for vector comparison and selection insns    ---*/
@@ -15635,6 +15660,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0100 ( DisResult* dres, UInt insn,
       case 0b11000: case 0b11001:
       case 0b11100: case 0b11101:
          ok = gen_vfmath(dres, insn, archinfo, abiinfo); break;
+      case 0b11110: case 0b11111:
+         ok = gen_vfcompare(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
