@@ -14385,6 +14385,164 @@ static Bool gen_xvperm_w ( DisResult* dres, UInt insn,
    return True;
 }
 
+static IRTemp gen_vshuf4i_b ( IRTemp sJ, UInt id0,  UInt id1,  UInt id2,  UInt id3 )
+{
+   UInt i;
+   IRTemp vec[16];
+   IRTemp res = newTemp(Ity_V128);
+
+   for (i = 0; i < 16; i++) {
+      vec[i] = newTemp(Ity_I8);
+      assign(vec[i], binop(Iop_GetElem8x16, EX(sJ), mkU8(i)));
+   }
+
+   assign(res, mkV128from8s(vec[id3 + 12], vec[id2 + 12], vec[id1 + 12], vec[id0 + 12],
+                            vec[id3 + 8],  vec[id2 + 8],  vec[id1 + 8],  vec[id0 + 8],
+                            vec[id3 + 4],  vec[id2 + 4],  vec[id1 + 4],  vec[id0 + 4],
+                            vec[id3],      vec[id2],      vec[id1],      vec[id0]));
+   return res;
+}
+
+static IRTemp gen_vshuf4i_h ( IRTemp sJ, UInt id0,  UInt id1,  UInt id2,  UInt id3 )
+{
+   UInt i;
+   IRTemp vec[8];
+   IRTemp res = newTemp(Ity_V128);
+
+   for (i = 0; i < 8; i++) {
+      vec[i] = newTemp(Ity_I16);
+      assign(vec[i], binop(Iop_GetElem16x8, EX(sJ), mkU8(i)));
+   }
+
+   assign(res, mkV128from16s(vec[id3 + 4], vec[id2 + 4], vec[id1 + 4], vec[id0 + 4],
+                             vec[id3],     vec[id2],     vec[id1],     vec[id0]));
+   return res;
+}
+
+static IRTemp gen_vshuf4i_w ( IRTemp sJ, UInt id0,  UInt id1,  UInt id2,  UInt id3 )
+{
+   UInt i;
+   IRTemp vec[4];
+   IRTemp res = newTemp(Ity_V128);
+
+   for (i = 0; i < 4; i ++) {
+      vec[i] = newTemp(Ity_I32);
+      assign(vec[i], binop(Iop_GetElem32x4, EX(sJ), mkU8(i)));
+   }
+
+   assign(res, mkV128from32s(vec[id3], vec[id2], vec[id1], vec[id0]));
+   return res;
+}
+
+static IRTemp gen_vshuf4i_d ( IRTemp sJ, IRTemp sD, UInt id0,  UInt id1 )
+{
+   UInt i;
+   IRTemp vec[4];
+   IRTemp res = newTemp(Ity_V128);
+
+   for (i = 0; i < 4; i ++)
+      vec[i] = newTemp(Ity_I64);
+
+   assign(vec[0], unop(Iop_V128to64, EX(sD)));
+   assign(vec[1], unop(Iop_V128HIto64, EX(sD)));
+   assign(vec[2], unop(Iop_V128to64, EX(sJ)));
+   assign(vec[3], unop(Iop_V128HIto64, EX(sJ)));
+   assign(res, mkV128from64s(vec[id1], vec[id0]));
+   return res;
+}
+
+static Bool gen_vshuf4i ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo*  abiinfo )
+{
+   UInt vd    = SLICE(insn, 4, 0);
+   UInt vj    = SLICE(insn, 9, 5);
+   UInt ui8   = SLICE(insn, 17, 10);
+   UInt insSz = SLICE(insn, 19, 18);
+
+   UInt id0 = ui8 & 0x03;
+   UInt id1 = (ui8 & 0x0c) >> 2;
+   UInt id2 = (ui8 & 0x30) >> 4;
+   UInt id3 = (ui8 & 0xc0) >> 6;
+
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V128);
+   IRTemp sD  = newTemp(Ity_V128);
+   assign(sJ, getVReg(vj));
+   assign(sD, getVReg(vd));
+
+   switch (insSz) {
+      case 0b00:
+         res = gen_vshuf4i_b(sJ, id0, id1, id2, id3); break;
+      case 0b01:
+         res = gen_vshuf4i_h(sJ, id0, id1, id2, id3); break;
+      case 0b10:
+         res = gen_vshuf4i_w(sJ, id0, id1, id2, id3); break;
+      case 0b11:
+         res = gen_vshuf4i_d(sJ, sD, id0, id1); break;
+      default: vassert(0);
+   }
+
+   DIP("vshuf4i.%s %s, %s, %u\n", mkInsSize(insSz),
+                                  nameVReg(vd), nameVReg(vj), ui8);
+   putVReg(vd, EX(res));
+   return True;
+}
+
+static Bool gen_xvshuf4i ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt ui8   = SLICE(insn, 17, 10);
+   UInt insSz = SLICE(insn, 19, 18);
+
+   UInt id0 = ui8 & 0x03;
+   UInt id1 = (ui8 & 0x0c) >> 2;
+   UInt id2 = (ui8 & 0x30) >> 4;
+   UInt id3 = (ui8 & 0xc0) >> 6;
+   IRTemp rHi = newTemp(Ity_V128);
+   IRTemp rLo = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sD  = newTemp(Ity_V256);
+   IRTemp jHi, jLo, dHi, dLo;
+   jHi = jLo = dHi = dLo = IRTemp_INVALID;
+   assign(sJ, getXReg(xj));
+   assign(sD, getXReg(xd));
+   breakupV256toV128s(sJ, &jHi, &jLo);
+   breakupV256toV128s(sD, &dHi, &dLo);
+
+   switch (insSz) {
+      case 0b00: {
+         rHi = gen_vshuf4i_b(jHi, id0, id1, id2, id3);
+         rLo = gen_vshuf4i_b(jLo, id0, id1, id2, id3);
+         break;
+      }
+      case 0b01: {
+         rHi = gen_vshuf4i_h(jHi, id0, id1, id2, id3);
+         rLo = gen_vshuf4i_h(jLo, id0, id1, id2, id3);
+         break;
+      }
+      case 0b10: {
+         rHi = gen_vshuf4i_w(jHi, id0, id1, id2, id3);
+         rLo = gen_vshuf4i_w(jLo, id0, id1, id2, id3);
+         break;
+      }
+      case 0b11: {
+         rHi = gen_vshuf4i_d(jHi, dHi, id0, id1);
+         rLo = gen_vshuf4i_d(jLo, dLo, id0, id1);
+         break;
+      }
+      default: vassert(0);
+   }
+
+   DIP("vshuf4i.%s %s, %s, %u\n", mkInsSize(insSz),
+                                  nameXReg(xd), nameXReg(xj), ui8);
+   putXReg(xd, mkV256from128s(rHi, rLo));
+   return True;
+}
+
 static Bool gen_xvpermi ( DisResult* dres, UInt insn,
                           const VexArchInfo* archinfo,
                           const VexAbiInfo*  abiinfo )
@@ -16469,6 +16627,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_1110 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 20)) {
+      case 0b01:
+         ok = gen_vshuf4i(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100_1111 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -16525,6 +16698,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1100(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1110:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1110(dres, insn, archinfo, abiinfo); break;
       case 0b1111:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1111(dres, insn, archinfo, abiinfo);
          break;
@@ -16792,6 +16967,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_1110 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 20)) {
+      case 0b01:
+         ok = gen_xvshuf4i(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101_1111 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -16850,6 +17040,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1100(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1110:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_1110(dres, insn, archinfo, abiinfo); break;
       case 0b1111:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1111(dres, insn, archinfo, abiinfo);
          break;
