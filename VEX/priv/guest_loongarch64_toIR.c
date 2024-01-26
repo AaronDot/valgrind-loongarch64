@@ -14328,6 +14328,63 @@ static Bool gen_xvshuf ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvperm_w ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+
+   IRTemp sJ = newTemp(Ity_V256);
+   IRTemp sK = newTemp(Ity_V256);
+   IRTemp jHi, jLo, kHi, kLo;
+   jHi = jLo = kHi = kLo = IRTemp_INVALID;
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xk));
+   breakupV256toV128s(sJ, &jHi, &jLo);
+   breakupV256toV128s(sK, &kHi, &kLo);
+
+   UInt i;
+   IRTemp id[8];
+   IRTemp r[8];
+
+   for (i = 0; i < 4; i++) {
+      id[i] = newTemp(Ity_I32);
+      r[i]  = newTemp(Ity_I32);
+      assign(id[i], binop(Iop_And32,
+                          binop(Iop_GetElem32x4, EX(kLo), mkU8(i)),
+                          mkU32(0x7)));
+      assign(r[i], IRExpr_ITE(binop(Iop_CmpLT32U, EX(id[i]), mkU32(0x4)),
+                        binop(Iop_GetElem32x4,
+                              EX(jLo),
+                              unop(Iop_32to8, EX(id[i]))),
+                        binop(Iop_GetElem32x4,
+                              EX(jHi),
+                              unop(Iop_32to8,
+                                   binop(Iop_Sub32, EX(id[i]), mkU32(0x4))))));
+
+      id[i + 4] = newTemp(Ity_I32);
+      r[i + 4]  = newTemp(Ity_I32);
+      assign(id[i + 4], binop(Iop_And32,
+                              binop(Iop_GetElem32x4, EX(kHi), mkU8(i)),
+                              mkU32(0x7)));
+      assign(r[i + 4], IRExpr_ITE(binop(Iop_CmpLT32U, EX(id[i + 4]), mkU32(0x4)),
+                        binop(Iop_GetElem32x4,
+                              EX(jLo),
+                              unop(Iop_32to8, EX(id[i + 4]))),
+                        binop(Iop_GetElem32x4,
+                              EX(jHi),
+                              unop(Iop_32to8,
+                                   binop(Iop_Sub32, EX(id[i + 4]), mkU32(0x4))))));
+   }
+
+   DIP("xvperm.w %s, %s, %s\n", nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, mkV256from32s(r[7], r[6], r[5], r[4],
+                             r[3], r[2], r[1], r[0]));
+   return True;
+}
+
 static Bool gen_xvpermi ( DisResult* dres, UInt insn,
                           const VexArchInfo* archinfo,
                           const VexAbiInfo*  abiinfo )
@@ -16617,6 +16674,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0101 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 21, 18)) {
       case 0b1110:
          ok = gen_xvshuf(dres, insn, archinfo, abiinfo); break;
+      case 0b1111:
+         ok = gen_xvperm_w(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
