@@ -13720,6 +13720,47 @@ static Bool gen_xvrepl128vei ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvreplve0 ( DisResult* dres, UInt insn,
+                            const VexArchInfo* archinfo,
+                            const VexAbiInfo*  abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt insSz = SLICE(insn, 15, 12);
+
+   IRExpr *ir0;
+   IRTemp dup = newTemp(Ity_V128);
+   IRTemp jLo = newTemp(Ity_V128);
+   assign(jLo, unop(Iop_V256toV128_0, getXReg(xj)));
+
+   switch (insSz) {
+      case 0b0:
+         ir0 = binop(Iop_GetElem8x16, EX(jLo), mkU8(0));
+         assign(dup, unop(Iop_Dup8x16, ir0));
+         break;
+      case 0b1000:
+         ir0 = binop(Iop_GetElem16x8, EX(jLo), mkU8(0));
+         assign(dup, unop(Iop_Dup16x8, ir0));
+         break;
+      case 0b1100:
+         ir0 = binop(Iop_GetElem32x4, EX(jLo), mkU8(0));
+         assign(dup, unop(Iop_Dup32x4, ir0));
+         break;
+      case 0b1110:
+         ir0 = binop(Iop_GetElem64x2, EX(jLo), mkU8(0));
+         assign(dup, binop(Iop_64HLtoV128, ir0, ir0));
+         break;
+      case 0b1111:
+         assign(dup, binop(Iop_OrV128, EX(jLo), mkV128(0x0000)));
+         break;
+      default: vassert(0);
+   }
+
+   DIP("xvreplve0.%s %s, %s", mkInsSize(insSz), nameXReg(xd), nameXReg(xj));
+   putXReg(xd, mkV256from128s(dup, dup));
+   return True;
+}
+
 static Bool gen_xvpickve ( DisResult* dres, UInt insn,
                            const VexArchInfo* archinfo,
                            const VexAbiInfo*  abiinfo )
@@ -16259,6 +16300,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
       case 0b0000:
          ok = gen_xvpickve(dres, insn, archinfo, abiinfo);
          break;
+      case 0b0001:
+         ok = gen_xvreplve0(dres, insn, archinfo, abiinfo); break;
       case 0b0010: case 0b0011:
          ok = gen_xvsllwil(dres, insn, archinfo, abiinfo); break;
       case 0b0100: case 0b0101: case 0b0110:
