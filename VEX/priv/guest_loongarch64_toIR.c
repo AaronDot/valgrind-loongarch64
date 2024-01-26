@@ -13233,6 +13233,60 @@ static Bool gen_vinsgr2vr ( DisResult* dres, UInt insn,
    return True;
 }
 
+static IRTemp gen_xvins2vr_w(IRTemp dHi, IRTemp dLo, UInt uImm, IRExpr *val)
+{
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp rT  = newTemp(Ity_V128);
+
+   if (uImm < 4) {
+      assign(rT, triop(Iop_SetElem32x4,
+                        EX(dLo), mkU8(uImm), val));
+      assign(res, mkV256from128s(dHi, rT));
+   } else {
+      assign(rT, triop(Iop_SetElem32x4,
+                        EX(dHi), mkU8(uImm - 4), val));
+      assign(res, mkV256from128s(rT, dLo));
+   }
+
+   return res;
+}
+
+static IRTemp gen_xvins2vr_d(IRTemp dHi, IRTemp dLo, UInt uImm, IRExpr *val)
+{
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp rT  = newTemp(Ity_V128);
+
+   switch (uImm) {
+      case 0: {
+         assign(rT, binop(Iop_64HLtoV128,
+                          unop(Iop_V128HIto64, EX(dLo)), val));
+         assign(res, mkV256from128s(dHi, rT));
+         break;
+      }
+      case 1: {
+         assign(rT, binop(Iop_64HLtoV128,
+                          val, unop(Iop_V128to64, EX(dLo))));
+         assign(res, mkV256from128s(dHi, rT));
+         break;
+      }
+      case 2: {
+         assign(rT, binop(Iop_64HLtoV128,
+                          unop(Iop_V128HIto64, EX(dHi)), val));
+         assign(res, mkV256from128s(rT, dLo));
+         break;
+      }
+      case 3: {
+         assign(rT, binop(Iop_64HLtoV128,
+                          val, unop(Iop_V128to64, EX(dHi))));
+         assign(res, mkV256from128s(rT, dLo));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   return res;
+}
+
 static Bool gen_xvinsgr2vr ( DisResult* dres, UInt insn,
                             const VexArchInfo* archinfo,
                             const VexAbiInfo* abiinfo )
@@ -13241,63 +13295,25 @@ static Bool gen_xvinsgr2vr ( DisResult* dres, UInt insn,
    UInt rj     = SLICE(insn, 9, 5);
    UInt insImm = SLICE(insn, 15, 10);
 
+   IRExpr *val;
    UInt uImm, insSz;
-   IRTemp rT  = newTemp(Ity_V128);
    IRTemp res = newTemp(Ity_V256);
    IRTemp sD  = newTemp(Ity_V256);
-   assign(sD, getXReg(xd));
    IRTemp dHi, dLo;
    dHi = dLo = IRTemp_INVALID;
+   assign(sD, getXReg(xd));
    breakupV256toV128s(sD, &dHi, &dLo);
 
    if ((insImm & 0x38) == 0x30) { // 110mmm; w
       insSz = 2;
       uImm = insImm & 0x7;
-      if (uImm < 4) {
-         assign(rT, triop(Iop_SetElem32x4,
-                          EX(dLo), mkU8(uImm),
-                          getIReg32(rj)));
-         assign(res, mkV256from128s(dHi, rT));
-      } else {
-         assign(rT, triop(Iop_SetElem32x4,
-                          EX(dHi), mkU8(uImm - 4),
-                          getIReg32(rj)));
-         assign(res, mkV256from128s(rT, dLo));
-      }
+      val = getIReg32(rj);
+      res = gen_xvins2vr_w(dHi, dLo, uImm, val);
    } else if ((insImm & 0x3c) == 0x38) {  // 1110mm; d
       insSz = 3;
       uImm = insImm & 0x3;
-      switch (uImm) {
-         case 0: {
-            assign(rT, binop(Iop_64HLtoV128,
-                             unop(Iop_V128HIto64, EX(dLo)),
-                             getIReg64(rj)));
-            assign(res, mkV256from128s(dHi, rT));
-            break;
-         }
-         case 1: {
-            assign(rT, binop(Iop_64HLtoV128,
-                             getIReg64(rj),
-                             unop(Iop_V128to64, EX(dLo))));
-            assign(res, mkV256from128s(dHi, rT));
-            break;
-         }
-         case 2: {
-            assign(rT, binop(Iop_64HLtoV128,
-                             unop(Iop_V128HIto64, EX(dHi)),
-                             getIReg64(rj)));
-            assign(res, mkV256from128s(rT, dLo));
-            break;
-         }
-         case 3: {
-            assign(rT, binop(Iop_64HLtoV128,
-                             getIReg64(rj),
-                             unop(Iop_V128to64, EX(dHi))));
-            assign(res, mkV256from128s(rT, dLo));
-            break;
-         }
-         default: vassert(0);
-      }
+      val = getIReg64(rj);
+      res = gen_xvins2vr_d(dHi, dLo, uImm, val);
    } else {
       vassert(0);
    }
@@ -13758,6 +13774,45 @@ static Bool gen_xvreplve0 ( DisResult* dres, UInt insn,
 
    DIP("xvreplve0.%s %s, %s", mkInsSize(insSz), nameXReg(xd), nameXReg(xj));
    putXReg(xd, mkV256from128s(dup, dup));
+   return True;
+}
+
+static Bool gen_xvinsve0 ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 15, 10);
+
+   IRExpr *ir0;
+   UInt uImm, insSz;
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp jLo = newTemp(Ity_V128);
+   IRTemp sD  = newTemp(Ity_V256);
+   IRTemp dHi, dLo;
+   dHi = dLo  = IRTemp_INVALID;
+   assign(jLo, unop(Iop_V256toV128_0, getXReg(xj)));
+   assign(sD, getXReg(xd));
+   breakupV256toV128s(sD, &dHi, &dLo);
+
+   if ((insImm & 0x38) == 0x30) { // 110mmm; w
+      insSz = 2;
+      uImm = insImm & 0x7;
+      ir0 = binop(Iop_GetElem32x4, EX(jLo), mkU8(0));
+      res = gen_xvins2vr_w(dHi, dLo, uImm, ir0);
+   } else if ((insImm & 0x3c) == 0x38) { // 1110mm; d
+      insSz = 3;
+      uImm = insImm & 0x3;
+      ir0 = binop(Iop_GetElem64x2, EX(jLo), mkU8(0));
+      res = gen_xvins2vr_d(dHi, dLo, uImm, ir0);
+   } else {
+      vassert(0);
+   }
+
+   DIP("xvinsve0.%s %s, %s, %u", mkInsSize(insSz),
+                                 nameXReg(xd), nameXReg(xj), uImm);
+   putXReg(xd, EX(res));
    return True;
 }
 
@@ -16284,6 +16339,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1011 ( DisResult* dres, UInt insn,
          ok = gen_xvpickve2gr(dres, insn, archinfo, abiinfo); break;
       case 0b1101:
          ok = gen_xvrepl128vei(dres, insn, archinfo, abiinfo); break;
+      case 0b1111:
+         ok = gen_xvinsve0(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
