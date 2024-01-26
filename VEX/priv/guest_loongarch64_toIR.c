@@ -13877,58 +13877,59 @@ static Bool gen_evod ( DisResult* dres, UInt insn,
    IRTemp argL = newTemp(Ity_V128);
    IRTemp argR = newTemp(Ity_V128);
    IRTemp res  = newTemp(Ity_V128);
+   IRTemp sJ   = newTemp(Ity_V128);
+   IRTemp sK   = newTemp(Ity_V128);
+   IRTemp z128 = newTemp(Ity_V128);
+   assign(sJ, getVReg(vj));
+   assign(sK, getVReg(vk));
+   assign(z128, mkV128(0x0000));
 
    switch (SLICE(insn, 19, 17)) {
-      case 0b011:
-         nm = "vpackev";
+      case 0b011: {
+         nm = "xvpackev";
          assign(argL, binop(mkV128PACKEV(insSz),
-                            getVReg(vj),
-                            mkV128(0x0000)));
+                            EX(sJ), EX(z128)));
          assign(argR, binop(mkV128PACKEV(insSz),
-                            getVReg(vk),
-                            mkV128(0x0000)));
+                            EX(sK), EX(z128)));
          assign(res, binop(mkV128INTERLEAVEHI(insSz),
-                           mkexpr(argL),
-                           mkexpr(argR)));
+                           EX(argL), EX(argR)));
          break;
-      case 0b100:
-         nm = "vpackod";
+      }
+      case 0b100: {
+         nm = "xvpackod";
          assign(argL, binop(mkV128PACKOD(insSz),
-                            getVReg(vj),
-                            mkV128(0x0000)));
+                            EX(sJ), EX(z128)));
          assign(argR, binop(mkV128PACKOD(insSz),
-                            getVReg(vk),
-                            mkV128(0x0000)));
+                            EX(sK), EX(z128)));
          assign(res, binop(mkV128INTERLEAVEHI(insSz),
-                           mkexpr(argL),
-                           mkexpr(argR)));
+                           EX(argL), EX(argR)));
          break;
-      case 0b101:
-         nm = "vilvl";
+      }
+      case 0b101: {
+         nm = "xvilvl";
          assign(res, binop(mkV128INTERLEAVELO(insSz),
-                           getVReg(vj),
-                           getVReg(vk)));
+                           EX(sJ), EX(sK)));
          break;
-      case 0b110:
-         nm = "vilvh";
+      }
+      case 0b110: {
+         nm = "xvilvh";
          assign(res, binop(mkV128INTERLEAVEHI(insSz),
-                           getVReg(vj),
-                           getVReg(vk)));
+                           EX(sJ), EX(sK)));
          break;
-      case 0b111:
-         nm = "vpickev";
+      }
+      case 0b111: {
+         nm = "xvpickev";
          assign(res, binop(mkV128PACKEV(insSz),
-                           getVReg(vj),
-                           getVReg(vk)));
+                           EX(sJ), EX(sK)));
          break;
-      case 0b000:
-         nm = "vpickod";
+      }
+      case 0b000: {
+         nm = "xvpickod";
          assign(res, binop(mkV128PACKOD(insSz),
-                           getVReg(vj),
-                           getVReg(vk)));
+                           EX(sJ), EX(sK)));
          break;
-      default:
-         return False;
+      }
+      default: vassert(0);
    }
 
    DIP("%s.%s %s, %s, %s\n", nm, mkInsSize(insSz),
@@ -13940,7 +13941,81 @@ static Bool gen_evod ( DisResult* dres, UInt insn,
       return True;
    }
 
-   putVReg(vd, mkexpr(res));
+   putVReg(vd, EX(res));
+   return True;
+}
+
+static Bool gen_xevod ( DisResult* dres, UInt insn,
+                        const VexArchInfo* archinfo,
+                        const VexAbiInfo* abiinfo )
+{
+   UInt xd    = SLICE(insn, 4, 0);
+   UInt xj    = SLICE(insn, 9, 5);
+   UInt xk    = SLICE(insn, 14, 10);
+   UInt insSz = SLICE(insn, 16, 15);
+
+   const HChar *nm;
+   IRTemp argL = newTemp(Ity_V256);
+   IRTemp argR = newTemp(Ity_V256);
+   IRTemp res  = newTemp(Ity_V256);
+   IRTemp sJ   = newTemp(Ity_V256);
+   IRTemp sK   = newTemp(Ity_V256);
+   IRTemp z256 = newTemp(Ity_V256);
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xk));
+   assign(z256, mkV256(0x0000));
+
+   switch (SLICE(insn, 19, 17)) {
+      case 0b011: {
+         nm = "xvpackev";
+         assign(argL, binop(mkV256PACKEV(insSz),
+                            EX(sJ), EX(z256)));
+         assign(argR, binop(mkV256PACKEV(insSz),
+                            EX(sK), EX(z256)));
+         assign(res, binop(mkV256INTERLEAVEHI(insSz),
+                           EX(argL), EX(argR)));
+         break;
+      }
+      case 0b100: {
+         nm = "xvpackod";
+         assign(argL, binop(mkV256PACKOD(insSz),
+                            EX(sJ), EX(z256)));
+         assign(argR, binop(mkV256PACKOD(insSz),
+                            EX(sK), EX(z256)));
+         assign(res, binop(mkV256INTERLEAVEHI(insSz),
+                           EX(argL), EX(argR)));
+         break;
+      }
+      case 0b101: {
+         nm = "xvilvl";
+         assign(res, binop(mkV256INTERLEAVELO(insSz),
+                           EX(sJ), EX(sK)));
+         break;
+      }
+      case 0b110: {
+         nm = "xvilvh";
+         assign(res, binop(mkV256INTERLEAVEHI(insSz),
+                           EX(sJ), EX(sK)));
+         break;
+      }
+      case 0b111: {
+         nm = "xvpickev";
+         assign(res, binop(mkV256PACKEV(insSz),
+                           EX(sJ), EX(sK)));
+         break;
+      }
+      case 0b000: {
+         nm = "xvpickod";
+         assign(res, binop(mkV256PACKOD(insSz),
+                           EX(sJ), EX(sK)));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   DIP("%s.%s %s, %s, %s\n", nm, mkInsSize(insSz),
+                             nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, EX(res));
    return True;
 }
 
@@ -16252,6 +16327,10 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0100 ( DisResult* dres, UInt insn,
    switch (SLICE(insn, 21, 17)) {
       case 0b00110: case 0b00111: case 0b01000:
          ok = gen_xvbitops(dres, insn, archinfo, abiinfo); break;
+      case 0b01011: case 0b01100:
+      case 0b01101: case 0b01110:
+      case 0b01111: case 0b10000:
+         ok = gen_xevod(dres, insn, archinfo, abiinfo); break;
       case 0b10001:
          ok = gen_xvreplve(dres, insn, archinfo, abiinfo); break;
       case 0b10011: case 0b10100:
