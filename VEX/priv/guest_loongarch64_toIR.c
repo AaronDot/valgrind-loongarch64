@@ -14853,7 +14853,7 @@ static Bool gen_vldrepl ( DisResult* dres, UInt insn,
    UInt insImm = SLICE(insn, 23, 10);
 
    UInt sImm, insSz;
-   IRTemp res = newTemp(Ity_V128);
+   IRTemp res  = newTemp(Ity_V128);
    IRTemp addr = newTemp(Ity_I64);
 
    if ((insImm & 0x3000) == 0x2000) {        // 10si12; b
@@ -14869,7 +14869,7 @@ static Bool gen_vldrepl ( DisResult* dres, UInt insn,
       sImm = insImm & 0x1ff;
       insSz = 3;
    } else {
-      return False;
+      vassert(0);
    }
 
    switch (insSz) {
@@ -14877,21 +14877,21 @@ static Bool gen_vldrepl ( DisResult* dres, UInt insn,
          assign(addr, binop(Iop_Add64,
                             getIReg64(rj),
                             mkU64(extend64(sImm, 12))));
-         assign(res, unop(Iop_Dup8x16, load(Ity_I8, mkexpr(addr))));
+         assign(res, unop(Iop_Dup8x16, load(Ity_I8, EX(addr))));
          break;
       }
       case 0b01: {
          assign(addr, binop(Iop_Add64,
                             getIReg64(rj),
                             mkU64(extend64(sImm << 1, 12))));
-         assign(res, unop(Iop_Dup16x8, load(Ity_I16, mkexpr(addr))));
+         assign(res, unop(Iop_Dup16x8, load(Ity_I16, EX(addr))));
          break;
       }
       case 0b10: {
          assign(addr, binop(Iop_Add64,
                             getIReg64(rj),
                             mkU64(extend64(sImm << 2, 12))));
-         assign(res, unop(Iop_Dup32x4, load(Ity_I32, mkexpr(addr))));
+         assign(res, unop(Iop_Dup32x4, load(Ity_I32, EX(addr))));
          break;
       }
       case 0b11: {
@@ -14899,13 +14899,11 @@ static Bool gen_vldrepl ( DisResult* dres, UInt insn,
                             getIReg64(rj),
                             mkU64(extend64(sImm << 3, 12))));
          assign(res, binop(Iop_64HLtoV128,
-                           load(Ity_I64, mkexpr(addr)),
-                           load(Ity_I64, mkexpr(addr))));
+                           load(Ity_I64, EX(addr)),
+                           load(Ity_I64, EX(addr))));
          break;
       }
-      default:
-         vassert(0);
-         break;
+      default: vassert(0);
    }
 
    DIP("vldrepl.%s %s, %s, %u\n", mkInsSize(insSz),
@@ -14917,8 +14915,80 @@ static Bool gen_vldrepl ( DisResult* dres, UInt insn,
       return True;
    }
 
-   putVReg(vd, mkexpr(res));
+   putVReg(vd, EX(res));
+   return True;
+}
 
+static Bool gen_xvldrepl ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo*  abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt rj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 23, 10);
+
+   UInt sImm, insSz;
+   IRTemp dup  = newTemp(Ity_V128);
+   IRTemp addr = newTemp(Ity_I64);
+
+   if ((insImm & 0x3000) == 0x2000) {        // 10si12; b
+      sImm = insImm & 0xfff;
+      insSz = 0;
+   } else if ((insImm & 0x3800) == 0x1000) { // 010si11; h
+      sImm = insImm & 0x7ff;
+      insSz = 1;
+   } else if ((insImm & 0x3c00) == 0x800) {  // 0010si10; w
+      sImm = insImm & 0x3ff;
+      insSz = 2;
+   } else if ((insImm & 0x3e00) == 0x400) {  // 00010si9; d
+      sImm = insImm & 0x1ff;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   switch (insSz) {
+      case 0b00: {
+         assign(addr, binop(Iop_Add64,
+                            getIReg64(rj),
+                            mkU64(extend64(sImm, 12))));
+         assign(dup, unop(Iop_Dup8x16, load(Ity_I8, EX(addr))));
+         break;
+      }
+      case 0b01: {
+         assign(addr, binop(Iop_Add64,
+                            getIReg64(rj),
+                            mkU64(extend64(sImm << 1, 12))));
+         assign(dup, unop(Iop_Dup16x8, load(Ity_I16, EX(addr))));
+         break;
+      }
+      case 0b10: {
+         assign(addr, binop(Iop_Add64,
+                            getIReg64(rj),
+                            mkU64(extend64(sImm << 2, 12))));
+         assign(dup, unop(Iop_Dup32x4, load(Ity_I32, EX(addr))));
+         break;
+      }
+      case 0b11: {
+         assign(addr, binop(Iop_Add64,
+                            getIReg64(rj),
+                            mkU64(extend64(sImm << 3, 12))));
+         assign(dup, binop(Iop_64HLtoV128,
+                           load(Ity_I64, EX(addr)),
+                           load(Ity_I64, EX(addr))));
+         break;
+      }
+      default: vassert(0);
+   }
+
+   DIP("xvldrepl.%s %s, %s, %u\n", mkInsSize(insSz),
+                                   nameXReg(xd), nameIReg(rj), sImm);
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+   putXReg(xd, mkV256from128s(dup, dup));
    return True;
 }
 
@@ -15867,22 +15937,14 @@ static Bool disInstr_LOONGARCH64_WRK_00_1100 ( DisResult* dres, UInt insn,
 {
    Bool ok;
 
-   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-      dres->jk_StopHere = Ijk_SigILL;
-      dres->whatNext    = Dis_StopHere;
-      return True;
-   }
-
    switch (SLICE(insn, 25, 24)) {
       case 0b00:
-         ok = gen_vldrepl(dres, insn, archinfo, abiinfo);
-         break;
+         ok = gen_vldrepl(dres, insn, archinfo, abiinfo); break;
       case 0b01:
-         ok = gen_vstelm(dres, insn, archinfo, abiinfo);
-         break;
-      default:
-         ok = False;
-         break;
+         ok = gen_vstelm(dres, insn, archinfo, abiinfo); break;
+      case 0b10:
+         ok = gen_xvldrepl(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
    }
 
    return ok;
