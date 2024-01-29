@@ -14775,6 +14775,75 @@ static Bool gen_vld ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_xvld ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt si12 = SLICE(insn, 21, 10);
+   UInt   rj = SLICE(insn, 9, 5);
+   UInt   xd = SLICE(insn, 4, 0);
+
+   DIP("xvld %s, %s, %d\n", nameXReg(xd), nameIReg(rj),
+                            (Int)extend32(si12, 12));
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+
+   IRExpr* addr = binop(Iop_Add64, getIReg64(rj), mkU64(extend64(si12, 12)));
+   putXReg(xd, load(Ity_V256, addr));
+
+   return True;
+}
+
+static Bool gen_vst ( DisResult* dres, UInt insn,
+                      const VexArchInfo* archinfo,
+                      const VexAbiInfo* abiinfo )
+{
+   UInt si12 = SLICE(insn, 21, 10);
+   UInt   rj = SLICE(insn, 9, 5);
+   UInt   vd = SLICE(insn, 4, 0);
+
+   DIP("vst %s, %s, %d\n", nameVReg(vd), nameIReg(rj),
+                           (Int)extend32(si12, 12));
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+
+   IRExpr* addr = binop(Iop_Add64, getIReg64(rj), mkU64(extend64(si12, 12)));
+   store(addr, getVReg(vd));
+
+   return True;
+}
+
+static Bool gen_xvst ( DisResult* dres, UInt insn,
+                       const VexArchInfo* archinfo,
+                       const VexAbiInfo* abiinfo )
+{
+   UInt si12 = SLICE(insn, 21, 10);
+   UInt   rj = SLICE(insn, 9, 5);
+   UInt   xd = SLICE(insn, 4, 0);
+
+   DIP("xvst %s, %s, %d\n", nameXReg(xd), nameIReg(rj),
+                            (Int)extend32(si12, 12));
+
+   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
+      dres->jk_StopHere = Ijk_SigILL;
+      dres->whatNext    = Dis_StopHere;
+      return True;
+   }
+
+   IRExpr* addr = binop(Iop_Add64, getIReg64(rj), mkU64(extend64(si12, 12)));
+   store(addr, getXReg(xd));
+
+   return True;
+}
+
 static Bool gen_vldrepl ( DisResult* dres, UInt insn,
                           const VexArchInfo* archinfo,
                           const VexAbiInfo*  abiinfo )
@@ -14849,75 +14918,6 @@ static Bool gen_vldrepl ( DisResult* dres, UInt insn,
    }
 
    putVReg(vd, mkexpr(res));
-
-   return True;
-}
-
-static Bool gen_vst ( DisResult* dres, UInt insn,
-                      const VexArchInfo* archinfo,
-                      const VexAbiInfo* abiinfo )
-{
-   UInt si12 = SLICE(insn, 21, 10);
-   UInt   rj = SLICE(insn, 9, 5);
-   UInt   vd = SLICE(insn, 4, 0);
-
-   DIP("vst %s, %s, %d\n", nameVReg(vd), nameIReg(rj),
-                           (Int)extend32(si12, 12));
-
-   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LSX)) {
-      dres->jk_StopHere = Ijk_SigILL;
-      dres->whatNext    = Dis_StopHere;
-      return True;
-   }
-
-   IRExpr* addr = binop(Iop_Add64, getIReg64(rj), mkU64(extend64(si12, 12)));
-   store(addr, getVReg(vd));
-
-   return True;
-}
-
-static Bool gen_xvld ( DisResult* dres, UInt insn,
-                       const VexArchInfo* archinfo,
-                       const VexAbiInfo* abiinfo )
-{
-   UInt si12 = SLICE(insn, 21, 10);
-   UInt   rj = SLICE(insn, 9, 5);
-   UInt   xd = SLICE(insn, 4, 0);
-
-   DIP("xvld %s, %s, %d\n", nameXReg(xd), nameIReg(rj),
-                            (Int)extend32(si12, 12));
-
-   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
-      dres->jk_StopHere = Ijk_SigILL;
-      dres->whatNext    = Dis_StopHere;
-      return True;
-   }
-
-   IRExpr* addr = binop(Iop_Add64, getIReg64(rj), mkU64(extend64(si12, 12)));
-   putXReg(xd, load(Ity_V256, addr));
-
-   return True;
-}
-
-static Bool gen_xvst ( DisResult* dres, UInt insn,
-                       const VexArchInfo* archinfo,
-                       const VexAbiInfo* abiinfo )
-{
-   UInt si12 = SLICE(insn, 21, 10);
-   UInt   rj = SLICE(insn, 9, 5);
-   UInt   xd = SLICE(insn, 4, 0);
-
-   DIP("xvst %s, %s, %d\n", nameXReg(xd), nameIReg(rj),
-                            (Int)extend32(si12, 12));
-
-   if (!(archinfo->hwcaps & VEX_HWCAPS_LOONGARCH_LASX)) {
-      dres->jk_StopHere = Ijk_SigILL;
-      dres->whatNext    = Dis_StopHere;
-      return True;
-   }
-
-   IRExpr* addr = binop(Iop_Add64, getIReg64(rj), mkU64(extend64(si12, 12)));
-   store(addr, getXReg(xd));
 
    return True;
 }
