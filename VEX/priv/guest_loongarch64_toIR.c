@@ -13122,7 +13122,7 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
    UInt insSz = SLICE(insn, 11, 10);
    UInt insTy = SLICE(insn, 13, 12);
 
-   IROp ops64;
+   IROp ops64  = Iop_INVALID;
    IRTemp res  = newTemp(Ity_V256);
    IRTemp eq   = newTemp(Ity_V256);
    IRTemp z256 = newTemp(Ity_V256);
@@ -13170,8 +13170,8 @@ static Bool gen_xvset ( DisResult* dres, UInt insn,
    r1 = r2 = r3 = r4 = IRTemp_INVALID;
    breakupV256to64s(res, &r1, &r2, &r3, &r4);
    putFCC(cd, unop(Iop_64to8, binop(ops64,
-                                    binop(ops64, EX(r1), EX(r1)),
-                                    binop(ops64, EX(r2), EX(r3)))));
+                                    binop(ops64, EX(r1), EX(r2)),
+                                    binop(ops64, EX(r3), EX(r4)))));
    return True;
 }
 
