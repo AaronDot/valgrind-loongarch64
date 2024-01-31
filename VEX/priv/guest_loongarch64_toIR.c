@@ -12349,6 +12349,153 @@ static Bool gen_xvsrlan ( DisResult* dres, UInt insn,
    return True;
 }
 
+static IRTemp gen_vsrlan_d_q ( IRTemp src, UInt isSAR, UInt uImm )
+{
+   IRTemp sHi = newTemp(Ity_I64);
+   IRTemp sLo = newTemp(Ity_I64);
+   IRTemp res = newTemp(Ity_I64);
+   IROp shOp  = isSAR ? Iop_Sar64 : Iop_Shr64;
+
+   assign(sHi, unop(Iop_V128HIto64, EX(src)));
+   assign(sLo, unop(Iop_V128to64, EX(src)));
+
+   if (uImm == 0)
+      return sLo;
+   
+   if (uImm < 64) {
+      assign(res, binop(Iop_Or64, binop(Iop_Shl64,
+                                        EX(sHi), mkU8(64 - uImm)),
+                                  binop(Iop_Shr64,
+                                        EX(sLo), mkU8(uImm))));
+   } else {
+      assign(res, binop(shOp, EX(sHi), mkU8(uImm - 64)));
+   }
+
+   return res;
+}
+
+static Bool gen_vsrlani ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo* abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt vj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 17, 10);
+   UInt isSAR  = SLICE(insn, 19, 19);
+
+   UInt uImm, insSz;
+   if ((insImm & 0xf0) == 0x10) {        // 0001mmmm; b
+      uImm = insImm & 0x0f;
+      insSz = 0;
+   } else if ((insImm & 0xe0) == 0x20) { // 001mmmmm; h
+      uImm = insImm & 0x1f;
+      insSz = 1;
+   } else if ((insImm & 0xc0) == 0x40) { // 01mmmmmm; w
+      uImm = insImm & 0x3f;
+      insSz = 2;
+   } else if ((insImm & 0x80) == 0x80) { // 1mmmmmmm; d
+      uImm = insImm & 0x7f;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V128);
+   IRTemp sD  = newTemp(Ity_V128);
+   assign(sJ, getVReg(vj));
+   assign(sD, getVReg(vd));
+
+   if (insSz == 3) {
+      IRTemp rHi = newTemp(Ity_I64);
+      IRTemp rLo = newTemp(Ity_I64);
+      rHi = gen_vsrlan_d_q(sD, isSAR, uImm);
+      rLo = gen_vsrlan_d_q(sJ, isSAR, uImm);
+      assign(res, binop(Iop_64HLtoV128, EX(rHi), EX(rLo)));
+   } else {
+      IRTemp rHi = newTemp(Ity_V128);
+      IRTemp rLo = newTemp(Ity_V128);
+      IROp shOp  = isSAR ? mkV128SARN(insSz + 1) : mkV128SHRN(insSz + 1);
+      assign(rLo, binop(mkV128PACKEV(insSz),
+                        mkV128(0x0000),
+                        binop(shOp, EX(sJ), mkU8(uImm))));
+      assign(rHi, binop(mkV128PACKEV(insSz),
+                        mkV128(0x0000),
+                        binop(shOp, EX(sD), mkU8(uImm))));
+      assign(res, binop(Iop_InterleaveLO64x2, EX(rHi), EX(rLo)));
+   }
+
+   const HChar *nm = isSAR ? "vsrani" : "vsrlni";
+   DIP("%s.%s %s, %s, %u\n", nm, mkInsExtSize(insSz),
+                             nameVReg(vd), nameVReg(vj), uImm);
+   putVReg(vd, EX(res));
+   return True;
+}
+
+static Bool gen_xvsrlani ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo* abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt insImm = SLICE(insn, 17, 10);
+   UInt isSAR  = SLICE(insn, 19, 19);
+
+   UInt uImm, insSz;
+   if ((insImm & 0xf0) == 0x10) {        // 0001mmmm; b
+      uImm = insImm & 0x0f;
+      insSz = 0;
+   } else if ((insImm & 0xe0) == 0x20) { // 001mmmmm; h
+      uImm = insImm & 0x1f;
+      insSz = 1;
+   } else if ((insImm & 0xc0) == 0x40) { // 01mmmmmm; w
+      uImm = insImm & 0x3f;
+      insSz = 2;
+   } else if ((insImm & 0x80) == 0x80) { // 1mmmmmmm; d
+      uImm = insImm & 0x7f;
+      insSz = 3;
+   } else {
+      vassert(0);
+   }
+
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sD  = newTemp(Ity_V256);
+   assign(sJ, getXReg(xj));
+   assign(sD, getXReg(xd));
+
+   if (insSz == 3) {
+      IRTemp jHi, jLo, dHi, dLo;
+      jHi = jLo = dHi = dLo = IRTemp_INVALID;
+      breakupV256toV128s(sJ, &jHi, &jLo);
+      breakupV256toV128s(sD, &dHi, &dLo);
+      IRTemp rjHi, rjLo, rdHi, rdLo;
+      rjHi = rjLo = rdHi = rdLo = newTemp(Ity_I64);
+      rjHi = gen_vsrlan_d_q(jHi, isSAR, uImm);
+      rjLo = gen_vsrlan_d_q(jLo, isSAR, uImm);
+      rdHi = gen_vsrlan_d_q(dHi, isSAR, uImm);
+      rdLo = gen_vsrlan_d_q(dLo, isSAR, uImm);
+      assign(res, mkV256from64s(rdHi, rjHi, rdLo, rjLo));
+   } else {
+      IRTemp rHi = newTemp(Ity_V128);
+      IRTemp rLo = newTemp(Ity_V128);
+      IROp shOp  = isSAR ? mkV256SARN(insSz + 1) : mkV256SHRN(insSz + 1);
+      assign(rLo, binop(mkV256PACKEV(insSz),
+                        mkV256(0x0000),
+                        binop(shOp, EX(sJ), mkU8(uImm))));
+      assign(rHi, binop(mkV256PACKEV(insSz),
+                        mkV256(0x0000),
+                        binop(shOp, EX(sD), mkU8(uImm))));
+      assign(res, binop(Iop_InterleaveLO64x4, EX(rHi), EX(rLo)));
+   }
+
+   const HChar *nm = isSAR ? "xvsrani" : "xvsrlni";
+   DIP("%s.%s %s, %s, %u\n", nm, mkInsExtSize(insSz),
+                             nameXReg(xd), nameXReg(xj), uImm);
+   putXReg(xd, EX(res));
+   return True;
+}
+
 static Bool gen_vbitops ( DisResult* dres, UInt insn,
                           const VexArchInfo* archinfo,
                           const VexAbiInfo*  abiinfo )
@@ -16954,6 +17101,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_1100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1100_1101 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0000: case 0b0110:
+         ok = gen_vsrlani(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1100_1110 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -17029,6 +17191,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100 ( DisResult* dres, UInt insn,
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1100(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1101:
+         ok = disInstr_LOONGARCH64_WRK_01_1100_1101(dres, insn, archinfo, abiinfo); break;
       case 0b1110:
          ok = disInstr_LOONGARCH64_WRK_01_1100_1110(dres, insn, archinfo, abiinfo); break;
       case 0b1111:
@@ -17300,6 +17464,21 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_1100 ( DisResult* dres, UInt insn,
    return ok;
 }
 
+static Bool disInstr_LOONGARCH64_WRK_01_1101_1101 ( DisResult* dres, UInt insn,
+                                                    const VexArchInfo* archinfo,
+                                                    const VexAbiInfo*  abiinfo )
+{
+   Bool ok;
+
+   switch (SLICE(insn, 21, 18)) {
+      case 0b0000: case 0b0110:
+         ok = gen_xvsrlani(dres, insn, archinfo, abiinfo); break;
+      default: ok = False; break;
+   }
+
+   return ok;
+}
+
 static Bool disInstr_LOONGARCH64_WRK_01_1101_1110 ( DisResult* dres, UInt insn,
                                                     const VexArchInfo* archinfo,
                                                     const VexAbiInfo*  abiinfo )
@@ -17375,6 +17554,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101 ( DisResult* dres, UInt insn,
       case 0b1100:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1100(dres, insn, archinfo, abiinfo);
          break;
+      case 0b1101:
+         ok = disInstr_LOONGARCH64_WRK_01_1101_1101(dres, insn, archinfo, abiinfo); break;
       case 0b1110:
          ok = disInstr_LOONGARCH64_WRK_01_1101_1110(dres, insn, archinfo, abiinfo); break;
       case 0b1111:
