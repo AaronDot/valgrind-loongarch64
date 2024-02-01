@@ -12496,6 +12496,66 @@ static Bool gen_xvsrlani ( DisResult* dres, UInt insn,
    return True;
 }
 
+static Bool gen_vsrlarn ( DisResult* dres, UInt insn,
+                          const VexArchInfo* archinfo,
+                          const VexAbiInfo* abiinfo )
+{
+   UInt vd     = SLICE(insn, 4, 0);
+   UInt vj     = SLICE(insn, 9, 5);
+   UInt vk     = SLICE(insn, 14, 10);
+   UInt insSz  = SLICE(insn, 16, 15);
+   UInt isSAR  = SLICE(insn, 17, 17);
+
+   IRTemp arg = newTemp(Ity_V128);
+   IRTemp res = newTemp(Ity_V128);
+   IRTemp sJ  = newTemp(Ity_V128);
+   IRTemp sK  = newTemp(Ity_V128);
+   IROp shOp  = isSAR ? mkV128SAR(insSz) : mkV128SHR(insSz);
+   const HChar *nm = isSAR ? "vsrarn" : "vsrlrn";
+
+   assign(sJ, getVReg(vj));
+   assign(sK, getVReg(vk));
+   arg = vsrlr_ops(sJ, sK, shOp, insSz);
+   assign(res, binop(mkV128PACKEV(insSz - 1),
+                     mkV128(0x0000),
+                     EX(arg)));
+
+   DIP("%s.%s %s, %s, %s\n", nm, mkInsExtSize(insSz),
+                             nameVReg(vd), nameVReg(vj), nameVReg(vk));
+   putVReg(vd, EX(res));
+   return True;
+}
+
+static Bool gen_xvsrlarn ( DisResult* dres, UInt insn,
+                           const VexArchInfo* archinfo,
+                           const VexAbiInfo* abiinfo )
+{
+   UInt xd     = SLICE(insn, 4, 0);
+   UInt xj     = SLICE(insn, 9, 5);
+   UInt xk     = SLICE(insn, 14, 10);
+   UInt insSz  = SLICE(insn, 16, 15);
+   UInt isSAR  = SLICE(insn, 17, 17);
+
+   IRTemp arg = newTemp(Ity_V256);
+   IRTemp res = newTemp(Ity_V256);
+   IRTemp sJ  = newTemp(Ity_V256);
+   IRTemp sK  = newTemp(Ity_V256);
+   IROp shOp  = isSAR ? mkV256SAR(insSz) : mkV256SHR(insSz);
+   const HChar *nm = isSAR ? "vsrarn" : "vsrlrn";
+
+   assign(sJ, getXReg(xj));
+   assign(sK, getXReg(xk));
+   arg = xvsrlr_ops(sJ, sK, shOp, insSz);
+   assign(res, binop(mkV256PACKEV(insSz - 1),
+                     mkV256(0x0000),
+                     EX(arg)));
+
+   DIP("%s.%s %s, %s, %s\n", nm, mkInsExtSize(insSz),
+                             nameXReg(xd), nameXReg(xj), nameXReg(xk));
+   putXReg(xd, EX(res));
+   return True;
+}
+
 static Bool gen_vbitops ( DisResult* dres, UInt insn,
                           const VexArchInfo* archinfo,
                           const VexAbiInfo*  abiinfo )
@@ -16917,6 +16977,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1100_0011 ( DisResult* dres, UInt insn,
          break;
       case 0b1101:
          ok = gen_vsrlan(dres, insn, archinfo, abiinfo); break;
+      case 0b1110:
+         ok = gen_vsrlarn(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
@@ -17304,6 +17366,8 @@ static Bool disInstr_LOONGARCH64_WRK_01_1101_0011 ( DisResult* dres, UInt insn,
          ok = gen_xvsrlr(dres, insn, archinfo, abiinfo); break;
       case 0b1101:
          ok = gen_xvsrlan(dres, insn, archinfo, abiinfo); break;
+      case 0b1110:
+         ok = gen_xvsrlarn(dres, insn, archinfo, abiinfo); break;
       default: ok = False; break;
    }
 
