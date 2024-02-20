@@ -1347,6 +1347,18 @@ static void calculateFCSR ( enum fpop op, UInt nargs,
    putFCSR(2, mkexpr(fcsr2));
 }
 
+static void calculateFCSR_t ( enum fpop op, IRTemp src1, IRTemp src2, IRTemp src3 )
+{
+   IRExpr** arg = mkIRExprVec_4(mkU64(op), mkexpr(src1), mkexpr(src2), mkexpr(src3));
+   IRExpr* call = mkIRExprCCall(Ity_I64, 0/*regparms*/,
+                                "loongarch64_calculate_FCSR",
+                                &loongarch64_calculate_FCSR,
+                                arg);
+   IRTemp fcsr2 = newTemp(Ity_I32);
+   assign(fcsr2, unop(Iop_64to32, call));
+   putFCSR(2, mkexpr(fcsr2));
+}
+
 static IRExpr* gen_round_to_nearest ( void )
 {
    return mkU32(0x0);
@@ -13207,7 +13219,6 @@ static Bool gen_vfmmath ( DisResult* dres, UInt insn,
          nm = "vfmadd.s";
          calculateVFCSR(VFMADD_S, 3, vj, vk, va);
          IRExpr* rm = get_rounding_mode();
-
          IRTemp j32[4], k32[4], a32[4], tmp[4];
          for (i = 0; i < 4; i++) {
             j32[i] = newTemp(Ity_I32);
@@ -13231,10 +13242,7 @@ static Bool gen_vfmmath ( DisResult* dres, UInt insn,
       }
       case 0b010: {
          nm = "vfmadd.d";
-         calculateVFCSR(VFMADD_D, 3, vj, vk, va);
-         IRExpr* rm = get_rounding_mode();
-
-         IRTemp j64[2], k64[2], a64[2], tmp[2];
+         IRTemp j64[2], k64[2], a64[2], tmp[2], rm[2];
          for (i = 0; i < 2; i++) {
             j64[i] = newTemp(Ity_I64);
             k64[i] = newTemp(Ity_I64);
@@ -13246,8 +13254,11 @@ static Bool gen_vfmmath ( DisResult* dres, UInt insn,
 
          for (i = 0; i < 2; i++) {
             tmp[i] = newTemp(Ity_I64);
+            rm[i] = newTemp(Ity_I32);
+            calculateFCSR_t(FMADD_D, j64[i], k64[i], a64[i]);
+            assign(rm[i], get_rounding_mode());
             assign(tmp[i], unop(Iop_ReinterpF64asI64,
-                                qop(Iop_MAddF64, rm,
+                                qop(Iop_MAddF64, EX(rm[i]),
                                     unop(Iop_ReinterpI64asF64, EX(j64[i])),
                                     unop(Iop_ReinterpI64asF64, EX(k64[i])),
                                     unop(Iop_ReinterpI64asF64, EX(a64[i])))));
@@ -13262,144 +13273,6 @@ static Bool gen_vfmmath ( DisResult* dres, UInt insn,
                               nameVReg(vk), nameVReg(va));
    putVReg(vd, EX(res));
    return True;
-
-    #if 0
-
-      case 0x04: { /* FMADD.df */
-         switch (df) {
-            case 0x00: { /* FMADD.W */
-               DIP("FMADD.W w%d, w%d, w%d", wd, ws, wt);
-               calculateMSACSR(ws, wt, FMADDW, 2);
-               IRExpr *rm = get_IR_roundingmode_MSA();
-              
-               break;
-            }
-
-            case 0x01: { /* FMADD.D */
-               DIP("FMADD.D w%d, w%d, w%d", wd, ws, wt);
-               calculateMSACSR(ws, wt, FMADDW, 2);
-               IRExpr *rm = get_IR_roundingmode_MSA();
-               IRTemp tmp[2];
-               Int i;
-
-               for (i = 0; i < 2; i++) {
-                  tmp[i] = newTemp(Ity_F64);
-                  assign(tmp[i],
-                         qop(Iop_MAddF64, rm,
-                             unop(Iop_ReinterpI64asF64,
-                                  binop(Iop_GetElem64x2,
-                                        getWReg(ws),
-                                        mkU8(i))),
-                             unop(Iop_ReinterpI64asF64,
-                                  binop(Iop_GetElem64x2,
-                                        getWReg(wt),
-                                        mkU8(i))),
-                             unop(Iop_ReinterpI64asF64,
-                                  binop(Iop_GetElem64x2,
-                                        getWReg(wd),
-                                        mkU8(i)))));
-               }
-
-               putWReg(wd,
-                       binop(Iop_64HLtoV128,
-                             unop(Iop_ReinterpF64asI64,
-                                  mkexpr(tmp[1])),
-                             unop(Iop_ReinterpF64asI64,
-                                  mkexpr(tmp[0]))));
-               break;
-            }
-
-            default:
-               return -1;
-         }
-
-         break;
-      }
-
-      case 0x05: { /* FMSUB.df */
-         switch (df) {
-            case 0x00: { /* FMSUB.W */
-               DIP("FMSUB.W w%d, w%d, w%d", wd, ws, wt);
-               calculateMSACSR(ws, wt, FMADDW, 2);
-               IRExpr *rm = get_IR_roundingmode_MSA();
-               IRTemp tmp[4];
-               Int i;
-
-               for (i = 0; i < 4; i++) {
-                  tmp[i] = newTemp(Ity_F32);
-                  assign(tmp[i],
-                         qop(Iop_MSubF32, rm,
-                             unop(Iop_ReinterpI32asF32,
-                                  binop(Iop_GetElem32x4,
-                                        getWReg(ws),
-                                        mkU8(i))),
-                             unop(Iop_ReinterpI32asF32,
-                                  binop(Iop_GetElem32x4,
-                                        getWReg(wt),
-                                        mkU8(i))),
-                             unop(Iop_ReinterpI32asF32,
-                                  binop(Iop_GetElem32x4,
-                                        getWReg(wd),
-                                        mkU8(i)))));
-               }
-
-               putWReg(wd,
-                       binop(Iop_64HLtoV128,
-                             binop(Iop_32HLto64,
-                                   unop(Iop_ReinterpF32asI32,
-                                        mkexpr(tmp[3])),
-                                   unop(Iop_ReinterpF32asI32,
-                                        mkexpr(tmp[2]))),
-                             binop(Iop_32HLto64,
-                                   unop(Iop_ReinterpF32asI32,
-                                        mkexpr(tmp[1])),
-                                   unop(Iop_ReinterpF32asI32,
-                                        mkexpr(tmp[0])))));
-               break;
-            }
-
-            case 0x01: { /* FMSUB.D */
-               DIP("FMSUB.D w%d, w%d, w%d", wd, ws, wt);
-               calculateMSACSR(ws, wt, FMADDD, 2);
-               IRExpr *rm = get_IR_roundingmode_MSA();
-               IRTemp tmp[2];
-               Int i;
-
-               for (i = 0; i < 2; i++) {
-                  tmp[i] = newTemp(Ity_F64);
-                  assign(tmp[i],
-                         qop(Iop_MSubF64, rm,
-                             unop(Iop_ReinterpI64asF64,
-                                  binop(Iop_GetElem64x2,
-                                        getWReg(ws),
-                                        mkU8(i))),
-                             unop(Iop_ReinterpI64asF64,
-                                  binop(Iop_GetElem64x2,
-                                        getWReg(wt),
-                                        mkU8(i))),
-                             unop(Iop_ReinterpI64asF64,
-                                  binop(Iop_GetElem64x2,
-                                        getWReg(wd),
-                                        mkU8(i)))));
-               }
-
-               putWReg(wd,
-                       binop(Iop_64HLtoV128,
-                             unop(Iop_ReinterpF64asI64,
-                                  mkexpr(tmp[1])),
-                             unop(Iop_ReinterpF64asI64,
-                                  mkexpr(tmp[0]))));
-               break;
-            }
-
-            default:
-               return -1;
-         }
-
-         break;
-      }
-      #endif
-
 }
 
 
