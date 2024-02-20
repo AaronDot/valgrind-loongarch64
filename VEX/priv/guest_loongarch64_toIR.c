@@ -13229,6 +13229,32 @@ static Bool gen_vfmmath ( DisResult* dres, UInt insn,
          assign(res, mkV128from32s(tmp[3], tmp[2], tmp[1], tmp[0]));
          break;
       }
+      case 0b010: {
+         nm = "vfmadd.d";
+         calculateVFCSR(VFMADD_D, 3, vj, vk, va);
+         IRExpr* rm = get_rounding_mode();
+
+         IRTemp j64[2], k64[2], a64[2], tmp[2];
+         for (i = 0; i < 2; i++) {
+            j64[i] = newTemp(Ity_I64);
+            k64[i] = newTemp(Ity_I64);
+            a64[i] = newTemp(Ity_I64);
+            assign(j64[i], binop(Iop_GetElem64x2, getVReg(vj), mkU8(i)));
+            assign(k64[i], binop(Iop_GetElem64x2, getVReg(vk), mkU8(i)));
+            assign(a64[i], binop(Iop_GetElem64x2, getVReg(va), mkU8(i)));
+         }
+
+         for (i = 0; i < 2; i++) {
+            tmp[i] = newTemp(Ity_I64);
+            assign(tmp[i], unop(Iop_ReinterpF64asI64,
+                                qop(Iop_MAddF64, rm,
+                                    unop(Iop_ReinterpI64asF64, EX(j64[i])),
+                                    unop(Iop_ReinterpI64asF64, EX(k64[i])),
+                                    unop(Iop_ReinterpI64asF64, EX(a64[i])))));
+         }
+         assign(res, mkV128from64s(tmp[1], tmp[0]));
+         break;
+      }
       default: vassert(0);
    }
 
@@ -17209,7 +17235,7 @@ static Bool disInstr_LOONGARCH64_WRK_00 ( DisResult* dres, UInt insn,
             case 0b001110:
                ok = gen_fnmsub_d(dres, insn, archinfo, abiinfo);
                break;
-            case 0b010001:
+            case 0b010001: case 0b010010:
                ok = gen_vfmmath(dres, insn, archinfo, abiinfo); break;
             default:
                ok = False;
