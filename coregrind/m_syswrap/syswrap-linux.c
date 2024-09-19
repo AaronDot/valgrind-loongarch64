@@ -13631,7 +13631,7 @@ POST(sys_close_range)
 
    /* If the close_range range is too wide, we don't want to loop
       through the whole range.  */
-   if (ARG2 == ~0U)
+   if ((UInt)ARG2 == ~0U)
      ML_(record_fd_close_range)(tid, ARG1);
    else {
      for (fd = ARG1; fd <= last; fd++)
