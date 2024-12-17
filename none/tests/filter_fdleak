@@ -44,8 +44,9 @@ sed "s/by 0x........: (below main)/by 0x........: main/" |
 sed "s/by 0x........: main (.*)/by 0x........: main/" |
 
 # With glibc debuginfo installed we might see syscall-template.S,
-# dup2.c close.c or creat64.c
+# dup2.c close.c creat64.c or write.c
 perl -p -e "s/\(syscall-template.S:[0-9]*\)/(in \/...libc...)/" |
 perl -p -e "s/\(close.c:[0-9]*\)/(in \/...libc...)/" |
 perl -p -e "s/\(creat(?:64)?.c:[0-9]*\)/(in \/...libc...)/" |
-perl -p -e "s/\(dup2.c:[0-9]*\)/(in \/...libc...)/"
+perl -p -e "s/\(dup2.c:[0-9]*\)/(in \/...libc...)/" |
+perl -p -e "s/\(write.c:[0-9]*\)/(in \/...libc...)/"

@@ -36,6 +36,7 @@
 #undef PLAT_s390x_linux
 #undef PLAT_mips32_linux
 #undef PLAT_mips64_linux
+#undef PLAT_loongarch64_linux
 #undef PLAT_x86_solaris
 #undef PLAT_amd64_solaris
 
@@ -71,6 +72,8 @@
 #endif
 #elif defined(__linux__) && defined(__nanomips__)
 #  define PLAT_nanomips_linux 1
+#elif defined(__linux__) && defined(__loongarch__) && (__loongarch_grlen == 64)
+#  define PLAT_loongarch64_linux 1
 #elif defined(__sun__) && defined(__i386__)
 #  define PLAT_x86_solaris 1
 #elif defined(__sun__) && defined(__x86_64__)
@@ -153,6 +156,20 @@
       "        beqc $t1, $zero, 1b\n"               \
       : /*out*/ : /*in*/ "r"(&(_lval))              \
       : /*trash*/ "$t0", "$t1", "memory"            \
+   )
+#elif defined(PLAT_loongarch64_linux)
+#  define INC(_lval,_lqual)                     \
+   __asm__ __volatile__ (                       \
+      "1:                     \n"               \
+      "   move   $t0, %0      \n"               \
+      "   ll.w   $t1, $t0, 0  \n"               \
+      "   addi.w $t1, $t1, 1  \n"               \
+      "   sc.w   $t1, $t0, 0  \n"               \
+      "   li.w   $t2, 1       \n"               \
+      "   bne    $t1, $t2, 1b \n"               \
+      : /*out*/                                 \
+      : /*in*/ "r" (&(_lval))                   \
+      : /*trash*/ "$t0", "$t1", "$t2", "memory" \
    )
 #else
 #  error "Fix Me for this platform"

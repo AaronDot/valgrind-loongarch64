@@ -588,10 +588,10 @@ typedef
 
       /* Binary operations, with rounding. */
       /* :: IRRoundingMode(I32) x F64 x F64 -> F64 */ 
-      Iop_AddF64, Iop_SubF64, Iop_MulF64, Iop_DivF64,
+      Iop_AddF64, Iop_SubF64, Iop_MulF64, Iop_DivF64, Iop_ScaleBF64,
 
       /* :: IRRoundingMode(I32) x F32 x F32 -> F32 */ 
-      Iop_AddF32, Iop_SubF32, Iop_MulF32, Iop_DivF32,
+      Iop_AddF32, Iop_SubF32, Iop_MulF32, Iop_DivF32, Iop_ScaleBF32,
 
       /* Variants of the above which produce a 64-bit result but which
          round their result to a IEEE float range first. */
@@ -610,10 +610,10 @@ typedef
 
       /* Unary operations, with rounding. */
       /* :: IRRoundingMode(I32) x F64 -> F64 */
-      Iop_SqrtF64,
+      Iop_SqrtF64, Iop_RSqrtF64, Iop_LogBF64,
 
       /* :: IRRoundingMode(I32) x F32 -> F32 */
-      Iop_SqrtF32,
+      Iop_SqrtF32, Iop_RSqrtF32, Iop_LogBF32,
 
       /* :: IRRoundingMode(I32) x F16 -> F16 */
       Iop_SqrtF16,
@@ -834,10 +834,14 @@ typedef
 
       /* --------- Possibly required by IEEE 754-2008. --------- */
 
-      Iop_MaxNumF64,  /* max, F64, numerical operand if other is a qNaN */
-      Iop_MinNumF64,  /* min, F64, ditto */
-      Iop_MaxNumF32,  /* max, F32, ditto */
-      Iop_MinNumF32,  /* min, F32, ditto */
+      Iop_MaxNumF64,    /* max, F64, numerical operand if other is a qNaN */
+      Iop_MinNumF64,    /* min, F64, ditto */
+      Iop_MaxNumAbsF64, /* max abs, F64, ditto */
+      Iop_MinNumAbsF64, /* min abs, F64, ditto */
+      Iop_MaxNumF32,    /* max, F32, ditto */
+      Iop_MinNumF32,    /* min, F32, ditto */
+      Iop_MaxNumAbsF32, /* max abs, F32, ditto */
+      Iop_MinNumAbsF32, /* min abs, F32, ditto */
 
       /* ------------------ 16-bit scalar FP ------------------ */
 
@@ -1533,6 +1537,10 @@ typedef
        IRRoundingMode(I32) x (F64x2 | F64x2) -> Q32x4 */
       Iop_F64x2_2toQ32x4,
 
+       /* --- Int to/from FP conversion --- */
+      Iop_RoundF64x2_RM, Iop_RoundF64x2_RP,   /* round to fp integer  */
+      Iop_RoundF64x2_RN, Iop_RoundF64x2_RZ,   /* round to fp integer  */
+
       /* --- 64x2 lowest-lane-only scalar FP --- */
 
       /* In binary cases, upper half is copied from first operand.  In
@@ -1878,6 +1886,9 @@ typedef
       Iop_Widen8Uto16x8, Iop_Widen16Uto32x4, Iop_Widen32Uto64x2,
       Iop_Widen8Sto16x8, Iop_Widen16Sto32x4, Iop_Widen32Sto64x2,
 
+      Iop_WidenHIto16Sx8, Iop_WidenHIto32Sx4, Iop_WidenHIto64Sx2, Iop_WidenHIto128Sx1,
+      Iop_WidenHIto16Ux8, Iop_WidenHIto32Ux4, Iop_WidenHIto64Ux2, Iop_WidenHIto128Ux1,
+
       /* INTERLEAVING */
       /* Interleave lanes from low or high halves of
          operands.  Most-significant result lane is from the left
@@ -1999,32 +2010,52 @@ typedef
       Iop_NotV256,
 
       /* MISC (vector integer cmp != 0) */
-      Iop_CmpNEZ8x32, Iop_CmpNEZ16x16, Iop_CmpNEZ32x8, Iop_CmpNEZ64x4,
+      Iop_CmpNEZ8x32, Iop_CmpNEZ16x16, Iop_CmpNEZ32x8, Iop_CmpNEZ64x4, Iop_CmpNEZ128x2,
 
-      Iop_Add8x32,    Iop_Add16x16,    Iop_Add32x8,    Iop_Add64x4,
-      Iop_Sub8x32,    Iop_Sub16x16,    Iop_Sub32x8,    Iop_Sub64x4,
+      Iop_Add8x32,    Iop_Add16x16,    Iop_Add32x8,    Iop_Add64x4,  Iop_Add128x2,
+      Iop_Sub8x32,    Iop_Sub16x16,    Iop_Sub32x8,    Iop_Sub64x4,  Iop_Sub128x2,
 
       Iop_CmpEQ8x32,  Iop_CmpEQ16x16,  Iop_CmpEQ32x8,  Iop_CmpEQ64x4,
+      Iop_CmpGT8Ux32, Iop_CmpGT16Ux16, Iop_CmpGT32Ux8, Iop_CmpGT64Ux4,
       Iop_CmpGT8Sx32, Iop_CmpGT16Sx16, Iop_CmpGT32Sx8, Iop_CmpGT64Sx4,
 
-      Iop_ShlN16x16, Iop_ShlN32x8, Iop_ShlN64x4,
-      Iop_ShrN16x16, Iop_ShrN32x8, Iop_ShrN64x4,
-      Iop_SarN16x16, Iop_SarN32x8,
+      /* VECTOR x SCALAR SHIFT (shift amt :: Ity_I8) */
+      Iop_ShlN8x32, Iop_ShlN16x16, Iop_ShlN32x8, Iop_ShlN64x4,
+      Iop_ShrN8x32, Iop_ShrN16x16, Iop_ShrN32x8, Iop_ShrN64x4,
+      Iop_SarN8x32, Iop_SarN16x16, Iop_SarN32x8, Iop_SarN64x4,
 
-      Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8,
-      Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8,
-      Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8,
-      Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8,
+      /* VECTOR x VECTOR SHIFT / ROTATE */
+      /* FIXME: I'm pretty sure the ARM32 front/back ends interpret these
+         differently from all other targets.  The intention is that
+         the shift amount (2nd arg) is interpreted as unsigned and
+         only the lowest log2(lane-bits) bits are relevant.  But the
+         ARM32 versions treat the shift amount as an 8 bit signed
+         number.  The ARM32 uses should be replaced by the relevant
+         vector x vector bidirectional shifts instead. */
+      Iop_Shl8x32, Iop_Shl16x16, Iop_Shl32x8, Iop_Shl64x4,
+      Iop_Shr8x32, Iop_Shr16x16, Iop_Shr32x8, Iop_Shr64x4,
+      Iop_Sar8x32, Iop_Sar16x16, Iop_Sar32x8, Iop_Sar64x4,
 
-      Iop_Mul16x16, Iop_Mul32x8,
-      Iop_MulHi16Ux16, Iop_MulHi16Sx16,
+      Iop_Max8Sx32, Iop_Max16Sx16, Iop_Max32Sx8, Iop_Max64Sx4,
+      Iop_Max8Ux32, Iop_Max16Ux16, Iop_Max32Ux8, Iop_Max64Ux4,
+      Iop_Min8Sx32, Iop_Min16Sx16, Iop_Min32Sx8, Iop_Min64Sx4,
+      Iop_Min8Ux32, Iop_Min16Ux16, Iop_Min32Ux8, Iop_Min64Ux4,
 
-      Iop_QAdd8Ux32, Iop_QAdd16Ux16,
-      Iop_QAdd8Sx32, Iop_QAdd16Sx16,
-      Iop_QSub8Ux32, Iop_QSub16Ux16,
-      Iop_QSub8Sx32, Iop_QSub16Sx16,
+      /* ABSOLUTE VALUE */
+      Iop_Abs8x32, Iop_Abs16x16, Iop_Abs32x8, Iop_Abs64x4,
 
-      Iop_Avg8Ux32, Iop_Avg16Ux16,
+      Iop_Mul8x32, Iop_Mul16x16, Iop_Mul32x8,
+      Iop_MulHi8Ux32, Iop_MulHi16Ux16, Iop_MulHi32Ux8,
+      Iop_MulHi8Sx32, Iop_MulHi16Sx16, Iop_MulHi32Sx8,
+
+      Iop_QAdd8Ux32, Iop_QAdd16Ux16, Iop_QAdd32Ux8, Iop_QAdd64Ux4,
+      Iop_QAdd8Sx32, Iop_QAdd16Sx16, Iop_QAdd32Sx8, Iop_QAdd64Sx4,
+      Iop_QSub8Ux32, Iop_QSub16Ux16, Iop_QSub32Ux8, Iop_QSub64Ux4,
+      Iop_QSub8Sx32, Iop_QSub16Sx16, Iop_QSub32Sx8, Iop_QSub64Sx4,
+
+      /* AVERAGING: note: (arg1 + arg2 + 1) >>u 1 */
+      Iop_Avg8Ux32, Iop_Avg16Ux16, Iop_Avg32Ux8, Iop_Avg64Ux4,
+      Iop_Avg8Sx32, Iop_Avg16Sx16, Iop_Avg32Sx8, Iop_Avg64Sx4,
 
       Iop_Perm32x8,
 
@@ -2038,6 +2069,28 @@ typedef
        * SIX are fields from the insn. See ISA 2.07 description of
        * vshasigmad and vshasigmaw insns.*/
       Iop_SHA512, Iop_SHA256,
+
+      Iop_WidenHIto16Sx16, Iop_WidenHIto32Sx8, Iop_WidenHIto64Sx4, Iop_WidenHIto128Sx2,
+      Iop_WidenHIto16Ux16, Iop_WidenHIto32Ux8, Iop_WidenHIto64Ux4, Iop_WidenHIto128Ux2,
+
+      /* INTERLEAVING */
+      /* Interleave lanes from low or high halves of
+         operands.  Most-significant result lane is from the left
+         arg. */
+      Iop_InterleaveHI8x32, Iop_InterleaveHI16x16,
+      Iop_InterleaveHI32x8, Iop_InterleaveHI64x4,
+      Iop_InterleaveLO8x32, Iop_InterleaveLO16x16,
+      Iop_InterleaveLO32x8, Iop_InterleaveLO64x4,
+      /* Interleave odd/even lanes of operands.  Most-significant result lane
+         is from the left arg. */
+      Iop_InterleaveOddLanes8x32, Iop_InterleaveEvenLanes8x32,
+      Iop_InterleaveOddLanes16x16, Iop_InterleaveEvenLanes16x16,
+      Iop_InterleaveOddLanes32x8, Iop_InterleaveEvenLanes32x8,
+
+      /* Pack even/odd lanes. */
+      Iop_PackOddLanes8x32, Iop_PackEvenLanes8x32,
+      Iop_PackOddLanes16x16, Iop_PackEvenLanes16x16,
+      Iop_PackOddLanes32x8, Iop_PackEvenLanes32x8,
 
       /* ------------------ 256-bit SIMD FP. ------------------ */
 
@@ -2513,6 +2566,7 @@ typedef
       Ijk_SigFPE,         /* current instruction synths generic SIGFPE */
       Ijk_SigFPE_IntDiv,  /* current instruction synths SIGFPE - IntDiv */
       Ijk_SigFPE_IntOvf,  /* current instruction synths SIGFPE - IntOvf */
+      Ijk_SigSYS,         /* current instruction synths SIGSYS */
       /* Unfortunately, various guest-dependent syscall kinds.  They
 	 all mean: do a syscall before continuing. */
       Ijk_Sys_syscall,    /* amd64/x86 'syscall', ppc 'sc', arm 'svc #0' */
@@ -2673,7 +2727,12 @@ typedef
       /* Needed only on ARM.  It cancels a reservation made by a
          preceding Linked-Load, and needs to be handed through to the
          back end, just as LL and SC themselves are. */
-      Imbe_CancelReservation
+      Imbe_CancelReservation,
+      /* Needed only on LOONGARCH64.  It completes the synchronization
+         between the store operation and the instruction fetch operation
+         within a single processor core, and needs to be handed through
+         to the back end. */
+      Imbe_InsnFence
    }
    IRMBusEvent;
 

@@ -64,6 +64,7 @@ nobase_pkginclude_HEADERS = \
 	vki/vki-posixtypes-mips32-linux.h \
 	vki/vki-posixtypes-mips64-linux.h \
 	vki/vki-posixtypes-nanomips-linux.h \
+	vki/vki-posixtypes-loongarch64-linux.h \
 	vki/vki-amd64-linux.h		\
 	vki/vki-arm64-linux.h		\
 	vki/vki-ppc32-linux.h		\
@@ -77,6 +78,7 @@ nobase_pkginclude_HEADERS = \
 	vki/vki-mips32-linux.h		\
 	vki/vki-mips64-linux.h		\
 	vki/vki-nanomips-linux.h	\
+	vki/vki-loongarch64-linux.h	\
 	vki/vki-scnums-amd64-linux.h	\
 	vki/vki-scnums-arm64-linux.h	\
 	vki/vki-scnums-ppc32-linux.h	\
@@ -88,6 +90,7 @@ nobase_pkginclude_HEADERS = \
 	vki/vki-scnums-mips32-linux.h	\
 	vki/vki-scnums-mips64-linux.h	\
 	vki/vki-scnums-nanomips-linux.h	\
+	vki/vki-scnums-loongarch64-linux.h \
 	vki/vki-scnums-darwin.h         \
 	vki/vki-scnums-solaris.h	\
 	vki/vki-scnums-shared-linux.h	\
