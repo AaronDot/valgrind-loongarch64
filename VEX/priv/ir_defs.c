@@ -1296,35 +1296,104 @@ void ppIROp ( IROp op )
       case Iop_OrV256:  vex_printf("OrV256"); return;
       case Iop_XorV256: vex_printf("XorV256"); return;
       case Iop_NotV256: vex_printf("NotV256"); return;
+      case Iop_CmpNEZ128x2: vex_printf("CmpNEZ128x2"); return;
       case Iop_CmpNEZ64x4: vex_printf("CmpNEZ64x4"); return;
       case Iop_CmpNEZ32x8: vex_printf("CmpNEZ32x8"); return;
       case Iop_CmpNEZ16x16: vex_printf("CmpNEZ16x16"); return;
       case Iop_CmpNEZ8x32: vex_printf("CmpNEZ8x32"); return;
 
+      case Iop_WidenHIto16Sx16: vex_printf("WidenHIto16Sx16"); return;
+      case Iop_WidenHIto32Sx8:  vex_printf("WidenHIto32Sx8");  return;
+      case Iop_WidenHIto64Sx4:  vex_printf("WidenHIto64Sx4");  return;
+      case Iop_WidenHIto128Sx2: vex_printf("WidenHIto128Sx2"); return;
+      case Iop_WidenHIto16Ux16: vex_printf("WidenHIto16Ux16"); return;
+      case Iop_WidenHIto32Ux8:  vex_printf("WidenHIto32Ux8");  return;
+      case Iop_WidenHIto64Ux4:  vex_printf("WidenHIto64Ux4");  return;
+      case Iop_WidenHIto128Ux2: vex_printf("WidenHIto128Ux2"); return;
+      case Iop_InterleaveHI8x32: vex_printf("InterleaveHI8x32"); return;
+      case Iop_InterleaveHI16x16: vex_printf("InterleaveHI16x16"); return;
+      case Iop_InterleaveHI32x8: vex_printf("InterleaveHI32x8"); return;
+      case Iop_InterleaveHI64x4: vex_printf("InterleaveHI64x4"); return;
+      case Iop_InterleaveLO8x32: vex_printf("InterleaveLO8x32"); return;
+      case Iop_InterleaveLO16x16: vex_printf("InterleaveLO16x16"); return;
+      case Iop_InterleaveLO32x8: vex_printf("InterleaveLO32x8"); return;
+      case Iop_InterleaveLO64x4: vex_printf("InterleaveLO64x4"); return;
+      case Iop_InterleaveOddLanes8x32: vex_printf("InterleaveOddLanes8x32"); return;
+      case Iop_InterleaveOddLanes16x16: vex_printf("InterleaveOddLanes16x16"); return;
+      case Iop_InterleaveOddLanes32x8: vex_printf("InterleaveOddLanes32x8"); return;
+      case Iop_InterleaveEvenLanes8x32: vex_printf("InterleaveEvenLanes8x32"); return;
+      case Iop_InterleaveEvenLanes16x16: vex_printf("InterleaveEvenLanes16x16"); return;
+      case Iop_InterleaveEvenLanes32x8: vex_printf("InterleaveEvenLanes32x8"); return;
+      case Iop_PackOddLanes8x32: vex_printf("PackOddLanes8x32"); return;
+      case Iop_PackOddLanes16x16: vex_printf("PackOddLanes16x16"); return;
+      case Iop_PackOddLanes32x8: vex_printf("PackOddLanes32x8"); return;
+      case Iop_PackEvenLanes8x32: vex_printf("PackEvenLanes8x32"); return;
+      case Iop_PackEvenLanes16x16: vex_printf("PackEvenLanes16x16"); return;
+      case Iop_PackEvenLanes32x8: vex_printf("PackEvenLanes32x8"); return;
+
       case Iop_Add8x32:   vex_printf("Add8x32"); return;
       case Iop_Add16x16:  vex_printf("Add16x16"); return;
       case Iop_Add32x8:   vex_printf("Add32x8"); return;
       case Iop_Add64x4:   vex_printf("Add64x4"); return;
+      case Iop_Add128x2:  vex_printf("Add128x2"); return;
       case Iop_Sub8x32:   vex_printf("Sub8x32"); return;
       case Iop_Sub16x16:  vex_printf("Sub16x16"); return;
       case Iop_Sub32x8:   vex_printf("Sub32x8"); return;
       case Iop_Sub64x4:   vex_printf("Sub64x4"); return;
+      case Iop_Sub128x2:  vex_printf("Sub128x2"); return;
       case Iop_QAdd8Ux32: vex_printf("QAdd8Ux32"); return;
       case Iop_QAdd16Ux16: vex_printf("QAdd16Ux16"); return;
+      case Iop_QAdd32Ux8: vex_printf("QAdd32Ux8"); return;
+      case Iop_QAdd64Ux4: vex_printf("QAdd64Ux4"); return;
       case Iop_QAdd8Sx32: vex_printf("QAdd8Sx32"); return;
       case Iop_QAdd16Sx16: vex_printf("QAdd16Sx16"); return;
+      case Iop_QAdd32Sx8: vex_printf("QAdd32Sx8"); return;
+      case Iop_QAdd64Sx4: vex_printf("QAdd64Sx4"); return;
       case Iop_QSub8Ux32: vex_printf("QSub8Ux32"); return;
       case Iop_QSub16Ux16: vex_printf("QSub16Ux16"); return;
+      case Iop_QSub32Ux8: vex_printf("QSub32Ux8"); return;
+      case Iop_QSub64Ux4: vex_printf("QSub64Ux4"); return;
       case Iop_QSub8Sx32: vex_printf("QSub8Sx32"); return;
       case Iop_QSub16Sx16: vex_printf("QSub16Sx16"); return;
+      case Iop_QSub32Sx8: vex_printf("QSub32Sx8"); return;
+      case Iop_QSub64Sx4: vex_printf("QSub64Sx4"); return;
 
+      case Iop_Mul8x32:    vex_printf("Mul8x32"); return;
       case Iop_Mul16x16:    vex_printf("Mul16x16"); return;
       case Iop_Mul32x8:     vex_printf("Mul32x8"); return;
+      case Iop_MulHi8Ux32: vex_printf("MulHi8Ux32"); return;
       case Iop_MulHi16Ux16: vex_printf("MulHi16Ux16"); return;
+      case Iop_MulHi32Ux8: vex_printf("MulHi32Ux8"); return;
+      case Iop_MulHi8Sx32: vex_printf("MulHi8Sx32"); return;
       case Iop_MulHi16Sx16: vex_printf("MulHi16Sx16"); return;
+      case Iop_MulHi32Sx8: vex_printf("MulHi32Sx8"); return;
 
       case Iop_Avg8Ux32:  vex_printf("Avg8Ux32"); return;
       case Iop_Avg16Ux16: vex_printf("Avg16Ux16"); return;
+      case Iop_Avg32Ux8: vex_printf("Avg32Ux8"); return;
+      case Iop_Avg64Ux4: vex_printf("Avg64Ux4"); return;
+      case Iop_Avg8Sx32:  vex_printf("Avg8Sx32"); return;
+      case Iop_Avg16Sx16: vex_printf("Avg16Sx16"); return;
+      case Iop_Avg32Sx8: vex_printf("Avg32Sx8"); return;
+      case Iop_Avg64Sx4: vex_printf("Avg64Sx4"); return;
+
+      case Iop_Shl8x32: vex_printf("Shl8x32"); return;
+      case Iop_Shl16x16: vex_printf("Shl16x16"); return;
+      case Iop_Shl32x8: vex_printf("Shl32x8"); return;
+      case Iop_Shl64x4: vex_printf("Shl64x4"); return;
+      case Iop_Shr8x32: vex_printf("Shr8x32"); return;
+      case Iop_Shr16x16: vex_printf("Shr16x16"); return;
+      case Iop_Shr32x8: vex_printf("Shr32x8"); return;
+      case Iop_Shr64x4: vex_printf("Shr64x4"); return;
+      case Iop_Sar8x32: vex_printf("Sar8x32"); return;
+      case Iop_Sar16x16: vex_printf("Sar16x16"); return;
+      case Iop_Sar32x8: vex_printf("Sar32x8"); return;
+      case Iop_Sar64x4: vex_printf("Sar64x4"); return;
+
+      case Iop_Abs8x32:   vex_printf("Abs8x32"); return;
+      case Iop_Abs16x16:  vex_printf("Abs16x16"); return;
+      case Iop_Abs32x8:   vex_printf("Abs32x8"); return;
+      case Iop_Abs64x4:   vex_printf("Abs64x4"); return;
 
       case Iop_Max8Sx32:  vex_printf("Max8Sx32"); return;
       case Iop_Max16Sx16: vex_printf("Max16Sx16"); return;
@@ -1348,19 +1417,27 @@ void ppIROp ( IROp op )
       case Iop_CmpEQ16x16:  vex_printf("CmpEQ16x16"); return;
       case Iop_CmpEQ32x8:   vex_printf("CmpEQ32x8"); return;
       case Iop_CmpEQ64x4:   vex_printf("CmpEQ64x4"); return;
+      case Iop_CmpGT8Ux32:  vex_printf("CmpGT8Ux32"); return;
+      case Iop_CmpGT16Ux16: vex_printf("CmpGT16Ux16"); return;
+      case Iop_CmpGT32Ux8:  vex_printf("CmpGT32Ux8"); return;
+      case Iop_CmpGT64Ux4:  vex_printf("CmpGT64Ux4"); return;
       case Iop_CmpGT8Sx32:  vex_printf("CmpGT8Sx32"); return;
       case Iop_CmpGT16Sx16: vex_printf("CmpGT16Sx16"); return;
       case Iop_CmpGT32Sx8:  vex_printf("CmpGT32Sx8"); return;
       case Iop_CmpGT64Sx4:  vex_printf("CmpGT64Sx4"); return;
 
+      case Iop_ShlN8x32:   vex_printf("ShlN8x32"); return;
       case Iop_ShlN16x16:  vex_printf("ShlN16x16"); return;
       case Iop_ShlN32x8:   vex_printf("ShlN32x8"); return;
       case Iop_ShlN64x4:   vex_printf("ShlN64x4"); return;
+      case Iop_ShrN8x32:   vex_printf("ShrN8x32"); return;
       case Iop_ShrN16x16:  vex_printf("ShrN16x16"); return;
       case Iop_ShrN32x8:   vex_printf("ShrN32x8"); return;
       case Iop_ShrN64x4:   vex_printf("ShrN64x4"); return;
+      case Iop_SarN8x32:   vex_printf("SarN8x32"); return;
       case Iop_SarN16x16:  vex_printf("SarN16x16"); return;
       case Iop_SarN32x8:   vex_printf("SarN32x8"); return;
+      case Iop_SarN64x4:   vex_printf("SarN64x4"); return;
 
       case Iop_Perm32x8:   vex_printf("Perm32x8"); return;
 
@@ -1815,31 +1892,51 @@ Bool primopMightTrap ( IROp op )
    case Iop_AndV256: case Iop_OrV256: case Iop_XorV256:
    case Iop_NotV256:
    case Iop_CmpNEZ8x32: case Iop_CmpNEZ16x16: case Iop_CmpNEZ32x8:
-   case Iop_CmpNEZ64x4:
-   case Iop_Add8x32: case Iop_Add16x16: case Iop_Add32x8: case Iop_Add64x4:
-   case Iop_Sub8x32: case Iop_Sub16x16: case Iop_Sub32x8: case Iop_Sub64x4:
+   case Iop_CmpNEZ64x4: case Iop_CmpNEZ128x2:
+   case Iop_Add8x32: case Iop_Add16x16: case Iop_Add32x8: case Iop_Add64x4: case Iop_Add128x2:
+   case Iop_Sub8x32: case Iop_Sub16x16: case Iop_Sub32x8: case Iop_Sub64x4: case Iop_Sub128x2:
    case Iop_CmpEQ8x32: case Iop_CmpEQ16x16: case Iop_CmpEQ32x8:
    case Iop_CmpEQ64x4:
-   case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16: case Iop_CmpGT32Sx8:
-   case Iop_CmpGT64Sx4:
-   case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
-   case Iop_ShrN16x16: case Iop_ShrN32x8: case Iop_ShrN64x4:
-   case Iop_SarN16x16: case Iop_SarN32x8:
+   case Iop_CmpGT8Ux32: case Iop_CmpGT16Ux16: case Iop_CmpGT32Ux8: case Iop_CmpGT64Ux4:
+   case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16: case Iop_CmpGT32Sx8: case Iop_CmpGT64Sx4:
+   case Iop_ShlN8x32: case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
+   case Iop_ShrN8x32: case Iop_ShrN16x16: case Iop_ShrN32x8: case Iop_ShrN64x4:
+   case Iop_SarN8x32: case Iop_SarN16x16: case Iop_SarN32x8: case Iop_SarN64x4:
+   case Iop_Shl8x32:  case Iop_Shl16x16:  case Iop_Shl32x8:  case Iop_Shl64x4:
+   case Iop_Shr8x32:  case Iop_Shr16x16:  case Iop_Shr32x8:  case Iop_Shr64x4:
+   case Iop_Sar8x32:  case Iop_Sar16x16:  case Iop_Sar32x8:  case Iop_Sar64x4:
    case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
    case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
    case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
    case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
-   case Iop_Mul16x16: case Iop_Mul32x8:
-   case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
-   case Iop_QAdd8Ux32: case Iop_QAdd16Ux16:
-   case Iop_QAdd8Sx32: case Iop_QAdd16Sx16:
-   case Iop_QSub8Ux32: case Iop_QSub16Ux16:
-   case Iop_QSub8Sx32: case Iop_QSub16Sx16:
-   case Iop_Avg8Ux32: case Iop_Avg16Ux16:
+   case Iop_Mul8x32: case Iop_Mul16x16: case Iop_Mul32x8:
+   case Iop_MulHi8Ux32: case Iop_MulHi16Ux16: case Iop_MulHi32Ux8:
+   case Iop_MulHi8Sx32: case Iop_MulHi16Sx16: case Iop_MulHi32Sx8:
+   case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
+   case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
+   case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
+   case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4:
+   case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
+   case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
+   case Iop_Abs8x32: case Iop_Abs16x16: case Iop_Abs32x8: case Iop_Abs64x4:
    case Iop_Perm32x8:
    case Iop_CipherV128: case Iop_CipherLV128: case Iop_CipherSV128:
    case Iop_NCipherV128: case Iop_NCipherLV128:
    case Iop_SHA512: case Iop_SHA256:
+   case Iop_WidenHIto16Sx16: case Iop_WidenHIto32Sx8:
+   case Iop_WidenHIto64Sx4:  case Iop_WidenHIto128Sx2:
+   case Iop_WidenHIto16Ux16: case Iop_WidenHIto32Ux8:
+   case Iop_WidenHIto64Ux4:  case Iop_WidenHIto128Ux2:
+   case Iop_InterleaveHI8x32: case Iop_InterleaveHI16x16:
+   case Iop_InterleaveHI32x8: case Iop_InterleaveHI64x4:
+   case Iop_InterleaveLO8x32: case Iop_InterleaveLO16x16:
+   case Iop_InterleaveLO32x8: case Iop_InterleaveLO64x4:
+   case Iop_InterleaveOddLanes8x32:  case Iop_InterleaveEvenLanes8x32:
+   case Iop_InterleaveOddLanes16x16: case Iop_InterleaveEvenLanes16x16:
+   case Iop_InterleaveOddLanes32x8:  case Iop_InterleaveEvenLanes32x8:
+   case Iop_PackOddLanes8x32:  case Iop_PackEvenLanes8x32:
+   case Iop_PackOddLanes16x16: case Iop_PackEvenLanes16x16:
+   case Iop_PackOddLanes32x8:  case Iop_PackEvenLanes32x8:
    case Iop_Add64Fx4: case Iop_Sub64Fx4: case Iop_Mul64Fx4: case Iop_Div64Fx4:
    case Iop_Add32Fx8: case Iop_Sub32Fx8: case Iop_Mul32Fx8: case Iop_Div32Fx8:
    case Iop_I32StoF32x8: case Iop_F32toI32Sx8: case Iop_F32toF16x8:
@@ -4203,25 +4300,42 @@ void typeOfPrimop ( IROp op,
       case Iop_Max32Fx8: case Iop_Min32Fx8:
       case Iop_Max64Fx4: case Iop_Min64Fx4:
       case Iop_Add8x32:  case Iop_Add16x16:
-      case Iop_Add32x8:  case Iop_Add64x4:
+      case Iop_Add32x8:  case Iop_Add64x4: case Iop_Add128x2:
       case Iop_Sub8x32:  case Iop_Sub16x16:
-      case Iop_Sub32x8:  case Iop_Sub64x4:
-      case Iop_Mul16x16: case Iop_Mul32x8:
-      case Iop_MulHi16Ux16: case Iop_MulHi16Sx16:
-      case Iop_Avg8Ux32: case Iop_Avg16Ux16:
+      case Iop_Sub32x8:  case Iop_Sub64x4: case Iop_Sub128x2:
+      case Iop_Mul8x32: case Iop_Mul16x16: case Iop_Mul32x8:
+      case Iop_MulHi8Ux32: case Iop_MulHi16Ux16: case Iop_MulHi32Ux8:
+      case Iop_MulHi8Sx32: case Iop_MulHi16Sx16: case Iop_MulHi32Sx8:
+      case Iop_Avg8Ux32: case Iop_Avg16Ux16: case Iop_Avg32Ux8: case Iop_Avg64Ux4:
+      case Iop_Avg8Sx32: case Iop_Avg16Sx16: case Iop_Avg32Sx8: case Iop_Avg64Sx4:
+      case Iop_Shl8x32:  case Iop_Shl16x16:  case Iop_Shl32x8:  case Iop_Shl64x4:
+      case Iop_Shr8x32:  case Iop_Shr16x16:  case Iop_Shr32x8:  case Iop_Shr64x4:
+      case Iop_Sar8x32:  case Iop_Sar16x16:  case Iop_Sar32x8:  case Iop_Sar64x4:
       case Iop_Max8Sx32: case Iop_Max16Sx16: case Iop_Max32Sx8: case Iop_Max64Sx4:
       case Iop_Max8Ux32: case Iop_Max16Ux16: case Iop_Max32Ux8: case Iop_Max64Ux4:
       case Iop_Min8Sx32: case Iop_Min16Sx16: case Iop_Min32Sx8: case Iop_Min64Sx4:
       case Iop_Min8Ux32: case Iop_Min16Ux16: case Iop_Min32Ux8: case Iop_Min64Ux4:
       case Iop_CmpEQ8x32:  case Iop_CmpEQ16x16:
       case Iop_CmpEQ32x8:  case Iop_CmpEQ64x4:
+      case Iop_CmpGT8Ux32: case Iop_CmpGT16Ux16:
+      case Iop_CmpGT32Ux8: case Iop_CmpGT64Ux4:
       case Iop_CmpGT8Sx32: case Iop_CmpGT16Sx16:
       case Iop_CmpGT32Sx8: case Iop_CmpGT64Sx4:
-      case Iop_QAdd8Ux32: case Iop_QAdd16Ux16:
-      case Iop_QAdd8Sx32: case Iop_QAdd16Sx16:
-      case Iop_QSub8Ux32: case Iop_QSub16Ux16:
-      case Iop_QSub8Sx32: case Iop_QSub16Sx16:
+      case Iop_QAdd8Ux32: case Iop_QAdd16Ux16: case Iop_QAdd32Ux8: case Iop_QAdd64Ux4:
+      case Iop_QAdd8Sx32: case Iop_QAdd16Sx16: case Iop_QAdd32Sx8: case Iop_QAdd64Sx4:
+      case Iop_QSub8Ux32: case Iop_QSub16Ux16: case Iop_QSub32Ux8: case Iop_QSub64Ux4:
+      case Iop_QSub8Sx32: case Iop_QSub16Sx16: case Iop_QSub32Sx8: case Iop_QSub64Sx4:
       case Iop_Perm32x8:
+      case Iop_InterleaveHI8x32: case Iop_InterleaveHI16x16:
+      case Iop_InterleaveHI32x8: case Iop_InterleaveHI64x4:
+      case Iop_InterleaveLO8x32: case Iop_InterleaveLO16x16:
+      case Iop_InterleaveLO32x8: case Iop_InterleaveLO64x4:
+      case Iop_InterleaveOddLanes8x32:  case Iop_InterleaveEvenLanes8x32:
+      case Iop_InterleaveOddLanes16x16: case Iop_InterleaveEvenLanes16x16:
+      case Iop_InterleaveOddLanes32x8:  case Iop_InterleaveEvenLanes32x8:
+      case Iop_PackOddLanes8x32:  case Iop_PackEvenLanes8x32:
+      case Iop_PackOddLanes16x16: case Iop_PackEvenLanes16x16:
+      case Iop_PackOddLanes32x8:  case Iop_PackEvenLanes32x8:
          BINARY(Ity_V256,Ity_V256, Ity_V256);
 
       case Iop_I32StoF32x8:
@@ -4254,14 +4368,17 @@ void typeOfPrimop ( IROp op,
       case Iop_Sqrt64Fx4:
       case Iop_RecipEst32Fx8:
       case Iop_CmpNEZ8x32: case Iop_CmpNEZ16x16:
-      case Iop_CmpNEZ64x4: case Iop_CmpNEZ32x8:
+      case Iop_CmpNEZ64x4: case Iop_CmpNEZ32x8: case Iop_CmpNEZ128x2:
+      case Iop_WidenHIto16Sx16: case Iop_WidenHIto32Sx8:
+      case Iop_WidenHIto64Sx4:  case Iop_WidenHIto128Sx2:
+      case Iop_WidenHIto16Ux16: case Iop_WidenHIto32Ux8:
+      case Iop_WidenHIto64Ux4:  case Iop_WidenHIto128Ux2:
+      case Iop_Abs8x32: case Iop_Abs16x16: case Iop_Abs32x8: case Iop_Abs64x4:
          UNARY(Ity_V256, Ity_V256);
 
-      case Iop_ShlN16x16: case Iop_ShlN32x8:
-      case Iop_ShlN64x4:
-      case Iop_ShrN16x16: case Iop_ShrN32x8:
-      case Iop_ShrN64x4:
-      case Iop_SarN16x16: case Iop_SarN32x8:
+      case Iop_ShlN8x32: case Iop_ShlN16x16: case Iop_ShlN32x8: case Iop_ShlN64x4:
+      case Iop_ShrN8x32: case Iop_ShrN16x16: case Iop_ShrN32x8: case Iop_ShrN64x4:
+      case Iop_SarN8x32: case Iop_SarN16x16: case Iop_SarN32x8: case Iop_SarN64x4:
          BINARY(Ity_V256,Ity_I8, Ity_V256);
       case Iop_Rotx32:
          QUATERNARY(Ity_I32, Ity_I8, Ity_I8, Ity_I8, Ity_I32);
